@@ -13,6 +13,7 @@
   "secondary_phone",
   "address",
   "credit_limit",
+  "current_balance",
   "active",
   "notes"
  ],
@@ -51,6 +52,14 @@
    "fieldname": "credit_limit",
    "fieldtype": "Currency",
    "label": "Credit Limit"
+  },
+  {
+   "default": "0",
+   "fieldname": "current_balance",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Current Balance",
+   "read_only": 1
   },
   {
    "default": "1",
