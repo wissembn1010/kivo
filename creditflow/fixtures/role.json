@@ -1,0 +1,16 @@
+[
+ {
+  "desk_access": 1,
+  "doctype": "Role",
+  "is_custom": 1,
+  "name": "OWNER",
+  "role_name": "OWNER"
+ },
+ {
+  "desk_access": 1,
+  "doctype": "Role",
+  "is_custom": 1,
+  "name": "STAFF",
+  "role_name": "STAFF"
+ }
+]

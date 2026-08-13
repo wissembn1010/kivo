@@ -1,7 +1,5 @@
 {
  "actions": [],
- "allow_bulk_edit": 0,
- "allow_rename": 0,
  "autoname": "CTX-.#####",
  "creation": "2026-08-10 14:53:33.848673",
  "doctype": "DocType",
@@ -10,10 +8,19 @@
   "transaction_details_section",
   "customer",
   "transaction_type",
+  "direction",
   "amount",
   "transaction_date",
+  "source_doctype",
+  "source_sale",
+  "source_payment",
+  "source_sale_reversal",
+  "source_payment_reversal",
+  "reversal_of",
   "notes",
-  "amended_from"
+  "amended_from",
+  "business",
+  "legacy_reference"
  ],
  "fields": [
   {
@@ -35,8 +42,8 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "Transaction Type",
-   "options": "Opening Balance\nSale\nPayment\nReturn\nAdjustment Increase\nAdjustment Decrease",
+   "label": "Event Type",
+   "options": "OPENING_BALANCE\nSALE\nPAYMENT\nRETURN",
    "reqd": 1
   },
   {
@@ -52,7 +59,7 @@
    "fieldtype": "Date",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "Transaction Date",
+   "label": "Business Date",
    "reqd": 1
   },
   {
@@ -69,16 +76,79 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "direction",
+   "fieldtype": "Select",
+   "label": "Direction",
+   "options": "DEBIT\nCREDIT",
+   "reqd": 1
+  },
+  {
+   "fieldname": "source_doctype",
+   "fieldtype": "Link",
+   "label": "Source DocType",
+   "options": "DocType",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_sale",
+   "fieldtype": "Link",
+   "label": "Source Sale",
+   "options": "Sale",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_payment",
+   "fieldtype": "Link",
+   "label": "Source Payment",
+   "options": "Payment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_sale_reversal",
+   "fieldtype": "Link",
+   "label": "Source Sale Reversal",
+   "options": "Sale Reversal",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_payment_reversal",
+   "fieldtype": "Link",
+   "label": "Source Payment Reversal",
+   "options": "Payment Reversal",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reversal_of",
+   "fieldtype": "Link",
+   "label": "Reversal Of",
+   "options": "Credit Transaction",
+   "read_only": 1
+  },
+  {
+   "fieldname": "business",
+   "fieldtype": "Link",
+   "label": "Business",
+   "options": "Business",
+   "reqd": 1
+  },
+  {
+   "fieldname": "legacy_reference",
+   "fieldtype": "Data",
+   "label": "Legacy Reference",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-10 14:53:33.848673",
+ "modified": "2026-08-12 23:01:43.043480",
  "modified_by": "Administrator",
  "module": "CreditFlow",
  "name": "Credit Transaction",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
@@ -95,6 +165,17 @@
    "share": 1,
    "submit": 1,
    "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "OWNER",
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "STAFF"
   }
  ],
  "row_format": "Dynamic",
@@ -102,5 +183,5 @@
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": [],
- "track_changes": 1
+ "track_changes": 0
 }

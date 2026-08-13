@@ -1,62 +1,60 @@
+from decimal import Decimal, InvalidOperation
+
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt
 
 
-INCREASE_TYPES = {
-    "Opening Balance",
-    "Sale",
-    "Adjustment Increase",
-}
-
-DECREASE_TYPES = {
-    "Payment",
-    "Return",
-    "Adjustment Decrease",
+EVENT_DIRECTIONS = {
+    "SALE": {"DEBIT"},
+    "PAYMENT": {"CREDIT"},
+    "RETURN": {"CREDIT"},
+    "OPENING_BALANCE": {"DEBIT", "CREDIT"},
 }
 
 
 class CreditTransaction(Document):
     def validate(self):
-        if flt(self.amount) <= 0:
+        self.validate_amount()
+        self.validate_direction()
+        self.validate_business()
+
+    def validate_amount(self):
+        try:
+            amount = Decimal(str(self.amount))
+        except (InvalidOperation, TypeError):
+            frappe.throw(_("Amount must be a valid number."))
+
+        if amount <= Decimal("0"):
             frappe.throw(_("Amount must be greater than zero."))
 
-    def on_submit(self):
-        update_customer_balance(self.customer)
+    def validate_direction(self):
+        allowed = EVENT_DIRECTIONS.get(self.transaction_type)
 
-    def on_cancel(self):
-        update_customer_balance(self.customer)
+        if not allowed:
+            frappe.throw(_("Invalid Event Type."))
 
+        if self.direction not in allowed:
+            frappe.throw(
+                _("Direction {0} is invalid for {1}.").format(
+                    self.direction,
+                    self.transaction_type,
+                )
+            )
 
-def update_customer_balance(customer):
-    transactions = frappe.get_all(
-        "Credit Transaction",
-        filters={
-            "customer": customer,
-            "docstatus": 1,
-        },
-        fields=[
-            "transaction_type",
-            "amount",
-        ],
-    )
+    def validate_business(self):
+        customer_business = frappe.db.get_value(
+            "Customer",
+            self.customer,
+            "business",
+        )
 
-    balance = 0.0
+        if customer_business != self.business:
+            frappe.throw(
+                _("Customer and Credit Transaction must belong to the same Business.")
+            )
 
-    for transaction in transactions:
-        amount = flt(transaction.amount)
-
-        if transaction.transaction_type in INCREASE_TYPES:
-            balance += amount
-
-        elif transaction.transaction_type in DECREASE_TYPES:
-            balance -= amount
-
-    frappe.db.set_value(
-        "Customer",
-        customer,
-        "current_balance",
-        balance,
-        update_modified=False,
-    )
+    def before_cancel(self):
+        frappe.throw(
+            _("Posted ledger entries cannot be cancelled. Create a reversal instead.")
+        )

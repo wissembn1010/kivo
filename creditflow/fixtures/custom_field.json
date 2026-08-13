@@ -1,0 +1,13 @@
+[
+ {
+  "doctype": "Custom Field",
+  "dt": "User",
+  "fieldname": "creditflow_business",
+  "fieldtype": "Link",
+  "insert_after": "username",
+  "label": "CreditFlow Business",
+  "module": "CreditFlow",
+  "name": "User-creditflow_business",
+  "options": "Business"
+ }
+]

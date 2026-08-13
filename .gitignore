@@ -56,3 +56,31 @@ jspm_packages/
 
 __pycache__/
 *.py[cod]
+# Frappe site configuration, backups, private files, and logs
+site_config.json
+common_site_config.json
+sites/*/site_config.json
+sites/*/private/
+sites/*/public/files/
+sites/*/logs/
+sites/*/private/backups/
+*.sql
+*.sql.gz
+*.sql.xz
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.bak
+*.backup
+*.log
+
+# Private legacy migration sources
+*.mdb
+*.accdb
+*.csv
+# Production deployment secrets and generated Docker configuration
+.env.production
+.env.production.local
+apps.json
+compose.production.yaml

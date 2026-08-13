@@ -1,7 +1,6 @@
 {
  "actions": [],
  "allow_bulk_edit": 1,
- "allow_rename": 0,
  "autoname": "CUST-.#####",
  "creation": "2026-08-09 22:55:21.227603",
  "doctype": "DocType",
@@ -9,8 +8,10 @@
  "field_order": [
   "customer_details_section",
   "customer_name",
+  "business",
   "phone",
   "secondary_phone",
+  "legacy_customer_id",
   "address",
   "credit_limit",
   "current_balance",
@@ -34,8 +35,7 @@
    "fieldname": "phone",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Phone",
-   "reqd": 1
+   "label": "Phone"
   },
   {
    "fieldname": "secondary_phone",
@@ -57,6 +57,7 @@
    "default": "0",
    "fieldname": "current_balance",
    "fieldtype": "Currency",
+   "hidden": 1,
    "in_list_view": 1,
    "label": "Current Balance",
    "read_only": 1
@@ -71,15 +72,30 @@
    "fieldname": "notes",
    "fieldtype": "Small Text",
    "label": "Notes"
+  },
+  {
+   "fieldname": "business",
+   "fieldtype": "Link",
+   "label": "Business",
+   "options": "Business",
+   "reqd": 1
+  },
+  {
+   "fieldname": "legacy_customer_id",
+   "fieldtype": "Data",
+   "label": "Legacy Customer ID",
+   "read_only": 1,
+   "unique": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-09 22:55:21.227603",
+ "modified": "2026-08-12 23:25:52.343237",
  "modified_by": "Administrator",
  "module": "CreditFlow",
  "name": "Customer",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
@@ -93,10 +109,21 @@
    "role": "System Manager",
    "share": 1,
    "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "OWNER",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "STAFF"
   }
  ],
  "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,
+ "show_title_field_in_link": 1,
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": [],

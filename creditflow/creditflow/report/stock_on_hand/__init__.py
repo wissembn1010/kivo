@@ -1,0 +1,1 @@
+"""Stock On Hand report."""

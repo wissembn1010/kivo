@@ -1,0 +1,109 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "creation": "2026-08-12 19:34:26.483166",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "product_details_section",
+  "business",
+  "product_name",
+  "legacy_product_id",
+  "primary_unit",
+  "selling_price",
+  "active",
+  "reference"
+ ],
+ "fields": [
+  {
+   "fieldname": "product_details_section",
+   "fieldtype": "Section Break",
+   "label": "Product Details"
+  },
+  {
+   "fieldname": "business",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Business",
+   "options": "Business",
+   "reqd": 1
+  },
+  {
+   "fieldname": "product_name",
+   "fieldtype": "Data",
+   "label": "Product Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "legacy_product_id",
+   "fieldtype": "Data",
+   "label": "Legacy Product ID",
+   "unique": 1
+  },
+  {
+   "fieldname": "primary_unit",
+   "fieldtype": "Select",
+   "label": "Primary Unit",
+   "options": "UNIT\nKG\nM\nL\nBOX\nPACK\nOTHER"
+  },
+  {
+   "default": "0",
+   "fieldname": "selling_price",
+   "fieldtype": "Currency",
+   "label": "Selling Price"
+  },
+  {
+   "default": "1",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "label": "Active"
+  },
+  {
+   "fieldname": "reference",
+   "fieldtype": "Data",
+   "label": "Reference",
+   "reqd": 1,
+   "unique": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-12 22:38:38.259878",
+ "modified_by": "Administrator",
+ "module": "CreditFlow",
+ "name": "Product",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "OWNER",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "STAFF"
+  }
+ ],
+ "row_format": "Dynamic",
+ "show_title_field_in_link": 1,
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "title_field": "product_name",
+ "states": []
+}

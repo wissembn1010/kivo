@@ -5,6 +5,17 @@ app_description = "Customer credit, payment and debt management system"
 app_email = "wissemwork10@gmail.com"
 app_license = "mit"
 
+fixtures = [
+	{
+		"dt": "Role",
+		"filters": [["name", "in", ["OWNER", "STAFF"]]],
+	},
+	{
+		"dt": "Custom Field",
+		"filters": [["name", "=", "User-creditflow_business"]],
+	},
+]
+
 # Apps
 # ------------------
 
@@ -43,7 +54,17 @@ app_license = "mit"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {
+	"Customer": "public/js/business_defaults.js",
+	"Product": "public/js/business_defaults.js",
+	"Supplier": "public/js/business_defaults.js",
+	"Sale": "public/js/business_defaults.js",
+	"Payment": "public/js/business_defaults.js",
+	"Purchase": "public/js/business_defaults.js",
+	"Sale Reversal": "public/js/business_defaults.js",
+	"Payment Reversal": "public/js/business_defaults.js",
+	"Purchase Reversal": "public/js/business_defaults.js",
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -126,25 +147,39 @@ app_license = "mit"
 # -----------
 # Permissions evaluated in scripted ways
 
-# permission_query_conditions = {
-# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
-# }
-#
-# has_permission = {
-# 	"Event": "frappe.desk.doctype.event.event.has_permission",
-# }
+permission_query_conditions = {
+	doctype: "creditflow.permissions.get_permission_query_conditions"
+	for doctype in (
+		"Business",
+		"Customer",
+		"Product",
+		"Supplier",
+		"Sale",
+		"Payment",
+		"Purchase",
+		"Sale Reversal",
+		"Payment Reversal",
+		"Purchase Reversal",
+		"Credit Transaction",
+		"Stock Movement",
+	)
+}
+
+has_permission = {
+	doctype: "creditflow.permissions.has_permission"
+	for doctype in permission_query_conditions
+}
 
 # Document Events
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	doctype: {
+		"before_validate": "creditflow.permissions.set_and_validate_business",
+	}
+	for doctype in permission_query_conditions
+}
 
 # Scheduled Tasks
 # ---------------
@@ -255,4 +290,3 @@ app_license = "mit"
 # ------------
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
-

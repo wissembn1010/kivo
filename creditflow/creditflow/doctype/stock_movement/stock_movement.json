@@ -1,0 +1,174 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "creation": "2026-08-12 19:45:59.131722",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "stock_movement_details_section",
+  "column_break_mejw",
+  "business",
+  "product",
+  "direction",
+  "quantity",
+  "movement_reason",
+  "business_date",
+  "source_sale",
+  "source_purchase",
+  "source_sale_reversal",
+  "source_purchase_reversal",
+  "legacy_reference",
+  "reversal_of",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "stock_movement_details_section",
+   "fieldtype": "Section Break",
+   "label": "Stock Movement Details",
+   "not_nullable": 1
+  },
+  {
+   "fieldname": "business",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Business",
+   "options": "Business",
+   "reqd": 1
+  },
+  {
+   "fieldname": "product",
+   "fieldtype": "Link",
+   "label": "Product",
+   "options": "Product",
+   "reqd": 1
+  },
+  {
+   "fieldname": "direction",
+   "fieldtype": "Select",
+   "label": "Direction",
+   "options": "IN\nOUT",
+   "reqd": 1
+  },
+  {
+   "fieldname": "quantity",
+   "fieldtype": "Float",
+   "label": "Quantity",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "movement_reason",
+   "fieldtype": "Select",
+   "label": "Movement Reason",
+   "options": "PURCHASE\nSALE\nCUSTOMER_RETURN\nSUPPLIER_RETURN\nMANUAL_ADJUSTMENT\nOPENING_STOCK\nREVERSAL"
+  },
+  {
+   "fieldname": "business_date",
+   "fieldtype": "Date",
+   "label": "Business Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "source_sale",
+   "fieldtype": "Link",
+   "label": "Source Sale",
+   "options": "Sale",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_purchase",
+   "fieldtype": "Link",
+   "label": "Source Purchase",
+   "options": "Purchase",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_sale_reversal",
+   "fieldtype": "Link",
+   "label": "Source Sale Reversal",
+   "options": "Sale Reversal",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_purchase_reversal",
+   "fieldtype": "Link",
+   "label": "Source Purchase Reversal",
+   "options": "Purchase Reversal",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_mejw",
+   "fieldtype": "Column Break",
+   "read_only": 1
+  },
+  {
+   "fieldname": "legacy_reference",
+   "fieldtype": "Data",
+   "label": "Legacy Reference"
+  },
+  {
+   "fieldname": "reversal_of",
+   "fieldtype": "Link",
+   "label": "Reversal Of",
+   "options": "Stock Movement",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Stock Movement",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-08-12 21:45:15.753488",
+ "modified_by": "Administrator",
+ "module": "CreditFlow",
+ "name": "Stock Movement",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "OWNER",
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "STAFF"
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
