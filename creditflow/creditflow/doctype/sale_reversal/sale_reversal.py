@@ -57,9 +57,9 @@ class SaleReversal(Document):
 			},
 			pluck="name",
 		)
-		if len(transactions) != 1:
-			frappe.throw(_("Original Sale must have exactly one submitted SALE transaction."))
-		return transactions[0]
+		if len(transactions) > 1:
+			frappe.throw(_("Original Sale must not have more than one submitted SALE transaction."))
+		return frappe.get_doc("Credit Transaction", transactions[0]) if transactions else None
 
 	def get_original_movements(self):
 		movements = frappe.get_all(
@@ -78,6 +78,8 @@ class SaleReversal(Document):
 		return movements
 
 	def create_reversal_transaction(self, original_sale, original_transaction):
+		if not original_transaction:
+			return
 		transaction = frappe.get_doc(
 			{
 				"doctype": "Credit Transaction",
@@ -85,9 +87,9 @@ class SaleReversal(Document):
 				"customer": original_sale.customer,
 				"transaction_type": "RETURN",
 				"direction": "CREDIT",
-				"amount": original_sale.total_amount,
+				"amount": original_transaction.amount,
 				"transaction_date": self.business_date,
-				"reversal_of": original_transaction,
+				"reversal_of": original_transaction.name,
 				"source_sale_reversal": self.name,
 			}
 		)

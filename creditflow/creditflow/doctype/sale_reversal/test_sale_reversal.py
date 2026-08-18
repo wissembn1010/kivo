@@ -46,7 +46,14 @@ class IntegrationTestSaleReversal(IntegrationTestCase):
 		).insert()
 		movement.submit()
 
-	def make_sale(self, include_second_item=False, submit=True):
+	def make_sale(
+		self,
+		include_second_item=False,
+		submit=True,
+		sale_mode="CREDIT",
+		amount_paid="0",
+		customer=True,
+	):
 		self.add_stock(self.product.name, "10")
 		if include_second_item:
 			self.add_stock(self.second_product.name, "8")
@@ -54,10 +61,13 @@ class IntegrationTestSaleReversal(IntegrationTestCase):
 			{
 				"doctype": "Sale",
 				"business": self.business.name,
-				"customer": self.customer.name,
 				"business_date": frappe.utils.today(),
+				"sale_mode": sale_mode,
+				"amount_paid": amount_paid,
 			}
 		)
+		if customer:
+			sale.customer = self.customer.name
 		sale.append(
 			"items",
 			{"product": self.product.name, "quantity": "3", "unit_price": "2"},
@@ -218,3 +228,27 @@ class IntegrationTestSaleReversal(IntegrationTestCase):
 		reversal.submit()
 		with self.assertRaises(frappe.ValidationError):
 			reversal.cancel()
+
+	def test_cash_sale_reversal_has_no_debt_effect(self):
+		sale = self.make_sale(customer=False, sale_mode="CASH", amount_paid="6")
+		self.assertEqual(frappe.db.count("Credit Transaction", {"source_sale": sale.name}), 0)
+		reversal = self.make_reversal(sale)
+		reversal.insert()
+		reversal.submit()
+		self.assertEqual(frappe.db.count("Credit Transaction", {"source_sale_reversal": reversal.name}), 0)
+		self.assertEqual(self.get_stock(self.product.name), Decimal("10"))
+
+	def test_mixed_sale_reversal_restores_partial_debt(self):
+		sale = self.make_sale(sale_mode="MIXED", amount_paid="2")
+		self.assertEqual(Decimal(self.customer.get_ledger_balance()), Decimal("4.000"))
+		reversal = self.make_reversal(sale)
+		reversal.insert()
+		reversal.submit()
+		reversal_transaction = frappe.get_all(
+			"Credit Transaction",
+			filters={"source_sale_reversal": reversal.name},
+			fields=["amount", "direction", "transaction_type"],
+		)[0]
+		self.assertEqual(Decimal(str(reversal_transaction.amount)), Decimal("4.000"))
+		self.assertEqual(Decimal(self.customer.get_ledger_balance()), Decimal("0.000"))
+		self.assertEqual(self.get_stock(self.product.name), Decimal("10"))

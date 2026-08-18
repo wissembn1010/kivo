@@ -8,6 +8,11 @@
   "business",
   "customer",
   "business_date",
+  "sale_mode",
+  "amount_paid",
+  "outstanding_amount",
+  "payment_method",
+  "payment_reference",
   "items",
   "total_amount",
   "notes",
@@ -25,8 +30,7 @@
    "fieldname": "customer",
    "fieldtype": "Link",
    "label": "Customer",
-   "options": "Customer",
-   "reqd": 1
+   "options": "Customer"
   },
   {
    "default": "Today",
@@ -41,6 +45,39 @@
    "label": "Items",
    "options": "Sale Item",
    "reqd": 1
+  },
+  {
+   "default": "CREDIT",
+   "fieldname": "sale_mode",
+   "fieldtype": "Select",
+   "label": "Sale Mode",
+   "options": "CASH\nCREDIT\nMIXED"
+  },
+  {
+   "default": "0",
+   "fieldname": "amount_paid",
+   "fieldtype": "Currency",
+   "label": "Amount Paid",
+   "precision": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "outstanding_amount",
+   "fieldtype": "Currency",
+   "label": "Outstanding Amount",
+   "precision": "3",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_method",
+   "fieldtype": "Select",
+   "label": "Payment Method",
+   "options": "CASH\nBANK_TRANSFER\nCHEQUE\nOTHER"
+  },
+  {
+   "fieldname": "payment_reference",
+   "fieldtype": "Data",
+   "label": "Payment Reference"
   },
   {
    "default": "0",

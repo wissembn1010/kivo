@@ -15,12 +15,14 @@
    "fieldtype": "Link",
    "label": "Product",
    "options": "Product",
+   "in_list_view": 1,
    "reqd": 1
   },
   {
    "fieldname": "quantity",
    "fieldtype": "Float",
    "label": "Quantity",
+   "in_list_view": 1,
    "reqd": 1
   },
   {
@@ -28,6 +30,7 @@
    "fieldtype": "Currency",
    "label": "Unit Cost",
    "precision": "3",
+   "in_list_view": 1,
    "reqd": 1
   }
  ],

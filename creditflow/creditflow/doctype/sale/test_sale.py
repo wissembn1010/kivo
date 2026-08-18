@@ -43,15 +43,34 @@ class IntegrationTestSale(IntegrationTestCase):
 			}
 		).insert()
 
-	def make_sale(self, customer=None, product=None, quantity="1", unit_price="1"):
+	def make_sale(
+		self,
+		customer=None,
+		product=None,
+		quantity="1",
+		unit_price="1",
+		sale_mode="CREDIT",
+		amount_paid="0",
+		payment_method=None,
+		payment_reference=None,
+	):
 		sale = frappe.get_doc(
 			{
 				"doctype": "Sale",
 				"business": self.business.name,
-				"customer": customer or self.customer.name,
 				"business_date": frappe.utils.today(),
+				"sale_mode": sale_mode,
+				"amount_paid": amount_paid,
 			}
 		)
+		if customer is not None:
+			sale.customer = customer
+		elif sale_mode != "CASH":
+			sale.customer = self.customer.name
+		if payment_method:
+			sale.payment_method = payment_method
+		if payment_reference:
+			sale.payment_reference = payment_reference
 		sale.append(
 			"items",
 			{
@@ -127,6 +146,9 @@ class IntegrationTestSale(IntegrationTestCase):
 			Decimal(str(transactions[0].amount)), Decimal(str(sale.total_amount))
 		)
 		self.assertEqual(transactions[0].source_sale, sale.name)
+		self.assertEqual(sale.sale_mode, "CREDIT")
+		self.assertEqual(Decimal(str(sale.amount_paid)), Decimal("0.000"))
+		self.assertEqual(Decimal(str(sale.outstanding_amount)), Decimal(str(sale.total_amount)))
 
 		movements = frappe.get_all(
 			"Stock Movement",
@@ -204,3 +226,96 @@ class IntegrationTestSale(IntegrationTestCase):
 
 		with self.assertRaises(frappe.ValidationError):
 			sale.cancel()
+
+	def test_full_cash_sale_posts_no_customer_debt(self):
+		self.add_stock(self.product.name, "10")
+		sale = self.make_sale(customer=None, quantity="3", unit_price="2", sale_mode="CASH", amount_paid="6", payment_method="CASH")
+		sale.insert()
+		sale.submit()
+
+		self.assertEqual(sale.sale_mode, "CASH")
+		self.assertEqual(Decimal(str(sale.amount_paid)), Decimal("6.000"))
+		self.assertEqual(Decimal(str(sale.outstanding_amount)), Decimal("0.000"))
+		self.assertEqual(frappe.db.count("Credit Transaction", {"source_sale": sale.name}), 0)
+		self.assertEqual(self.get_stock(self.product.name), Decimal("7"))
+
+	def test_mixed_sale_posts_partial_customer_debt(self):
+		self.add_stock(self.product.name, "10")
+		sale = self.make_sale(
+			quantity="3",
+			unit_price="100",
+			sale_mode="MIXED",
+			amount_paid="100",
+			payment_method="CASH",
+		)
+		sale.insert()
+		sale.submit()
+
+		transactions = frappe.get_all(
+			"Credit Transaction",
+			filters={"source_sale": sale.name},
+			fields=["transaction_type", "direction", "amount"],
+		)
+		self.assertEqual(len(transactions), 1)
+		self.assertEqual(Decimal(str(transactions[0].amount)), Decimal("200.000"))
+		self.assertEqual(Decimal(self.customer.get_ledger_balance()), Decimal("200.000"))
+		self.assertEqual(Decimal(str(sale.outstanding_amount)), Decimal("200.000"))
+
+	def test_credit_sale_without_customer_is_rejected(self):
+		sale = self.make_sale(customer=None)
+		sale.customer = None
+		sale.sale_mode = "CREDIT"
+		with self.assertRaises(frappe.ValidationError):
+			sale.validate()
+
+	def test_mixed_sale_without_customer_is_rejected(self):
+		sale = self.make_sale(customer=None, sale_mode="MIXED", amount_paid="10", payment_method="CASH")
+		sale.customer = None
+		with self.assertRaises(frappe.ValidationError):
+			sale.validate()
+
+	def test_cash_walk_in_sale_succeeds(self):
+		self.add_stock(self.product.name, "5")
+		sale = self.make_sale(
+			customer=None,
+			quantity="2",
+			unit_price="1",
+			sale_mode="CASH",
+			amount_paid="2",
+			payment_method="CASH",
+		)
+		sale.insert()
+		sale.submit()
+
+		self.assertFalse(sale.customer)
+		self.assertEqual(frappe.db.count("Credit Transaction", {"source_sale": sale.name}), 0)
+
+	def test_amount_paid_greater_than_total_is_rejected(self):
+		sale = self.make_sale(quantity="1", unit_price="10", sale_mode="CASH", amount_paid="11", payment_method="CASH")
+		with self.assertRaises(frappe.ValidationError):
+			sale.validate()
+
+	def test_invalid_cash_amount_is_rejected(self):
+		sale = self.make_sale(quantity="1", unit_price="10", sale_mode="CASH", amount_paid="9", payment_method="CASH")
+		with self.assertRaises(frappe.ValidationError):
+			sale.validate()
+
+	def test_invalid_credit_amount_is_rejected(self):
+		sale = self.make_sale(quantity="1", unit_price="10", sale_mode="CREDIT", amount_paid="1")
+		with self.assertRaises(frappe.ValidationError):
+			sale.validate()
+
+	def test_invalid_mixed_amounts_are_rejected(self):
+		with self.assertRaises(frappe.ValidationError):
+			self.make_sale(quantity="1", unit_price="10", sale_mode="MIXED", amount_paid="0", payment_method="CASH").validate()
+		with self.assertRaises(frappe.ValidationError):
+			self.make_sale(quantity="1", unit_price="10", sale_mode="MIXED", amount_paid="10", payment_method="CASH").validate()
+
+	def test_product_selling_price_defaults_when_unit_price_is_blank(self):
+		pricey_product = self.make_product(self.business.name, f"DEFAULT-PRICE-{uuid4().hex[:10]}")
+		frappe.db.set_value("Product", pricey_product.name, "selling_price", "12.345")
+		sale = self.make_sale(product=pricey_product.name, unit_price="", quantity="1")
+		sale.items[0].unit_price = ""
+		sale.validate_items_and_calculate_total()
+		self.assertEqual(Decimal(str(sale.items[0].unit_price)), Decimal("12.345"))
+		self.assertEqual(Decimal(str(sale.total_amount)), Decimal("12.345"))

@@ -22,6 +22,7 @@ class IntegrationTestWorkspaceDashboard(IntegrationTestCase):
 		)
 		self.admin_baseline = {
 			"debt": dashboard.total_customer_debt()["value"],
+			"cash_collected": dashboard.cash_collected_today()["value"],
 			"sales": dashboard.sales_today()["value"],
 			"payments": dashboard.payments_today()["value"],
 			"purchases": dashboard.purchases_today()["value"],
@@ -99,6 +100,14 @@ class IntegrationTestWorkspaceDashboard(IntegrationTestCase):
 					"docstatus": 1,
 				}
 			)
+			if doctype == "Sale":
+				doc.update(
+					{
+						"sale_mode": "CASH",
+						"amount_paid": amount,
+						"outstanding_amount": 0,
+					}
+				)
 			doc.db_insert()
 
 		movement = frappe.new_doc("Stock Movement")
@@ -136,6 +145,7 @@ class IntegrationTestWorkspaceDashboard(IntegrationTestCase):
 		for card_name in (
 			"Total Customer Debt",
 			"Sales Today",
+			"Cash Collected Today",
 			"Payments Today",
 			"Purchases Today",
 			"Negative Stock Products",
@@ -145,6 +155,7 @@ class IntegrationTestWorkspaceDashboard(IntegrationTestCase):
 	def test_staff_kpis_are_limited_to_assigned_business(self):
 		frappe.set_user(self.staff)
 		self.assertEqual(dashboard.total_customer_debt()["value"], Decimal("10.345"))
+		self.assertEqual(dashboard.cash_collected_today()["value"], Decimal("12.345"))
 		self.assertEqual(dashboard.sales_today()["value"], Decimal("12.345"))
 		self.assertEqual(dashboard.payments_today()["value"], Decimal("3.210"))
 		self.assertEqual(dashboard.purchases_today()["value"], Decimal("9.876"))
@@ -155,6 +166,10 @@ class IntegrationTestWorkspaceDashboard(IntegrationTestCase):
 		self.assertEqual(
 			dashboard.total_customer_debt()["value"],
 			self.admin_baseline["debt"] + Decimal("108.345"),
+		)
+		self.assertEqual(
+			dashboard.cash_collected_today()["value"],
+			self.admin_baseline["cash_collected"] + Decimal("112.345"),
 		)
 		self.assertEqual(
 			dashboard.sales_today()["value"],

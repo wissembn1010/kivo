@@ -64,6 +64,8 @@ class CreditTransaction(Document):
 		if self.reversal_of:
 			frappe.throw(_("Non-reversal Credit Transactions cannot set Reversal Of."))
 		source = frappe.get_doc(doctype, self.get(source_field))
+		if doctype == "Sale":
+			amount_field = "outstanding_amount" if source.get("outstanding_amount") not in (None, "") else "total_amount"
 		self.validate_common_source_values(source, amount_field)
 		self.validate_unique_source(source_field, source.name)
 
@@ -85,7 +87,8 @@ class CreditTransaction(Document):
 			frappe.throw(_("RETURN Credit Transactions must reference the original transaction."))
 		reversal = frappe.get_doc("Sale Reversal", self.source_sale_reversal)
 		sale = frappe.get_doc("Sale", reversal.original_sale)
-		self.validate_common_source_values(sale, "total_amount")
+		if sale.docstatus == 2 or sale.business != self.business:
+			frappe.throw(_("Credit Transaction Business must match its source."))
 		self.validate_original_transaction("source_sale", sale.name, "SALE", "DEBIT")
 		self.validate_unique_source("source_sale_reversal", reversal.name)
 

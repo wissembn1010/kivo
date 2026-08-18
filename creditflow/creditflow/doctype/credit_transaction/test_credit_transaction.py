@@ -26,7 +26,7 @@ class IntegrationTestCreditTransaction(IntegrationTestCase):
 
 	def make_sale(self):
 		frappe.get_doc({"doctype": "Stock Movement", "business": self.business.name, "product": self.product.name, "direction": "IN", "quantity": 5, "movement_reason": "OPENING_STOCK", "business_date": frappe.utils.today()}).insert().submit()
-		sale = frappe.get_doc({"doctype": "Sale", "business": self.business.name, "customer": self.customer.name, "business_date": frappe.utils.today(), "items": [{"product": self.product.name, "quantity": 1, "unit_price": 10}]})
+		sale = frappe.get_doc({"doctype": "Sale", "business": self.business.name, "customer": self.customer.name, "business_date": frappe.utils.today(), "sale_mode": "CREDIT", "amount_paid": "0", "items": [{"product": self.product.name, "quantity": 1, "unit_price": 10}]})
 		sale.insert().submit()
 		return sale
 

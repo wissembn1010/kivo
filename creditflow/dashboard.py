@@ -97,7 +97,74 @@ def _today_total(doctype, amount_field):
 
 @frappe.whitelist()
 def sales_today(filters=None):
-	return _today_total("Sale", "total_amount")
+        sale_scope, sale_values = _business_scope("document")
+        sale_values["today"] = frappe.utils.today()
+
+        gross_sales = frappe.db.sql(
+                f"""
+                SELECT COALESCE(SUM(document.total_amount), 0)
+                FROM `tabSale` document
+                WHERE document.docstatus = 1
+                  AND document.business_date = %(today)s
+                {sale_scope}
+                """,
+                sale_values,
+        )[0][0]
+
+        reversal_scope, reversal_values = _business_scope("reversal")
+        reversal_values["today"] = frappe.utils.today()
+
+        reversed_sales = frappe.db.sql(
+                f"""
+                SELECT COALESCE(SUM(original.total_amount), 0)
+                FROM `tabSale Reversal` reversal
+                INNER JOIN `tabSale` original
+                        ON original.name = reversal.original_sale
+                WHERE reversal.docstatus = 1
+                  AND reversal.business_date = %(today)s
+                {reversal_scope}
+                """,
+                reversal_values,
+        )[0][0]
+
+        return _money_card(gross_sales - reversed_sales, ["List", "Sale"])
+
+
+@frappe.whitelist()
+def cash_collected_today(filters=None):
+        sale_scope, sale_values = _business_scope("document")
+        sale_values["today"] = frappe.utils.today()
+
+        cash_received = frappe.db.sql(
+                f"""
+                SELECT COALESCE(SUM(COALESCE(document.amount_paid, 0)), 0)
+                FROM `tabSale` document
+                WHERE document.docstatus = 1
+                  AND document.business_date = %(today)s
+                  AND document.payment_method = 'CASH'
+                {sale_scope}
+                """,
+                sale_values,
+        )[0][0]
+
+        reversal_scope, reversal_values = _business_scope("reversal")
+        reversal_values["today"] = frappe.utils.today()
+
+        cash_reversed = frappe.db.sql(
+                f"""
+                SELECT COALESCE(SUM(COALESCE(original.amount_paid, 0)), 0)
+                FROM `tabSale Reversal` reversal
+                INNER JOIN `tabSale` original
+                        ON original.name = reversal.original_sale
+                WHERE reversal.docstatus = 1
+                  AND reversal.business_date = %(today)s
+                  AND original.payment_method = 'CASH'
+                {reversal_scope}
+                """,
+                reversal_values,
+        )[0][0]
+
+        return _money_card(cash_received - cash_reversed, ["List", "Sale"])
 
 
 @frappe.whitelist()

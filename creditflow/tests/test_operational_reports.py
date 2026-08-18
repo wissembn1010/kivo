@@ -113,6 +113,8 @@ class IntegrationTestOperationalReports(IntegrationTestCase):
 				"business": self.business.name,
 				"customer": self.customer.name,
 				"business_date": frappe.utils.today(),
+				"sale_mode": "CREDIT",
+				"amount_paid": "0",
 				"items": [
 					{
 						"product": self.product.name,
