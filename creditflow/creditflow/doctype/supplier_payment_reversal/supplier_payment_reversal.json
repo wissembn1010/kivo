@@ -1,0 +1,97 @@
+{
+  "actions": [],
+  "autoname": "SUPPAYREV-.#####",
+  "creation": "2026-08-17 00:00:00.000000",
+  "doctype": "DocType",
+  "engine": "InnoDB",
+  "field_order": [
+   "business",
+   "original_supplier_payment",
+   "business_date",
+   "reason",
+   "amended_from"
+  ],
+  "fields": [
+   {
+    "fieldname": "business",
+    "fieldtype": "Link",
+    "label": "Business",
+    "options": "Business",
+    "reqd": 1
+   },
+   {
+    "fieldname": "original_supplier_payment",
+    "fieldtype": "Link",
+    "label": "Original Supplier Payment",
+    "options": "Supplier Payment",
+    "reqd": 1
+   },
+   {
+    "default": "Today",
+    "fieldname": "business_date",
+    "fieldtype": "Date",
+    "label": "Business Date",
+    "reqd": 1
+   },
+   {
+    "fieldname": "reason",
+    "fieldtype": "Small Text",
+    "label": "Reason"
+   },
+   {
+    "fieldname": "amended_from",
+    "fieldtype": "Link",
+    "label": "Amended From",
+    "no_copy": 1,
+    "options": "Supplier Payment Reversal",
+    "print_hide": 1,
+    "read_only": 1,
+    "search_index": 1
+   }
+  ],
+  "grid_page_length": 50,
+  "is_submittable": 1,
+  "links": [],
+  "modified": "2026-08-17 00:00:00.000000",
+  "modified_by": "Administrator",
+  "module": "CreditFlow",
+  "name": "Supplier Payment Reversal",
+  "naming_rule": "Expression",
+  "owner": "Administrator",
+  "permissions": [
+   {
+    "amend": 1,
+    "cancel": 1,
+    "create": 1,
+    "delete": 1,
+    "email": 1,
+    "export": 1,
+    "print": 1,
+    "read": 1,
+    "report": 1,
+    "role": "System Manager",
+    "share": 1,
+    "submit": 1,
+    "write": 1
+   },
+   {
+    "create": 1,
+    "read": 1,
+    "role": "OWNER",
+    "submit": 1,
+    "write": 1
+   },
+   {
+    "create": 1,
+    "read": 1,
+    "role": "STAFF",
+    "submit": 1,
+    "write": 1
+   }
+  ],
+  "row_format": "Dynamic",
+  "rows_threshold_for_grid_search": 20,
+  "sort_field": "creation",
+  "sort_order": "DESC",
+  "states": []
+}

@@ -57,10 +57,11 @@ class Purchase(Document):
 
 	def before_submit(self):
 		self.validate()
-		save_point = "purchase_stock_movements"
+		save_point = "purchase_stock_and_supplier_transaction"
 		frappe.db.savepoint(save_point)
 		try:
 			self.create_stock_movements()
+			self.create_supplier_transaction()
 		except Exception:
 			frappe.db.rollback(save_point=save_point)
 			raise
@@ -79,8 +80,26 @@ class Purchase(Document):
 					"source_purchase": self.name,
 				}
 			)
+			movement.flags.creditflow_system_generated = True
 			movement.insert(ignore_permissions=True)
 			movement.submit()
+
+	def create_supplier_transaction(self):
+		transaction = frappe.get_doc(
+			{
+				"doctype": "Supplier Transaction",
+				"business": self.business,
+				"supplier": self.supplier,
+				"transaction_type": "PURCHASE",
+				"direction": "DEBIT",
+				"amount": self.total_amount,
+				"transaction_date": self.business_date,
+				"source_purchase": self.name,
+			}
+		)
+		transaction.flags.creditflow_system_generated = True
+		transaction.insert(ignore_permissions=True)
+		transaction.submit()
 
 	def before_cancel(self):
 		frappe.throw(

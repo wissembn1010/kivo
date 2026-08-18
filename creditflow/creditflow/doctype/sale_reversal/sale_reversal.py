@@ -91,6 +91,7 @@ class SaleReversal(Document):
 				"source_sale_reversal": self.name,
 			}
 		)
+		transaction.flags.creditflow_system_generated = True
 		transaction.insert()
 		transaction.submit()
 
@@ -109,6 +110,7 @@ class SaleReversal(Document):
 					"source_sale_reversal": self.name,
 				}
 			)
+			movement.flags.creditflow_system_generated = True
 			movement.insert()
 			movement.submit()
 

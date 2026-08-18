@@ -114,7 +114,8 @@
    "fieldtype": "Link",
    "label": "Reversal Of",
    "options": "Stock Movement",
-   "read_only": 1
+   "read_only": 1,
+   "unique": 1
   },
   {
    "fieldname": "notes",

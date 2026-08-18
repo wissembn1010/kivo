@@ -14,7 +14,6 @@
   "legacy_customer_id",
   "address",
   "credit_limit",
-  "current_balance",
   "active",
   "notes"
  ],
@@ -52,15 +51,6 @@
    "fieldname": "credit_limit",
    "fieldtype": "Currency",
    "label": "Credit Limit"
-  },
-  {
-   "default": "0",
-   "fieldname": "current_balance",
-   "fieldtype": "Currency",
-   "hidden": 1,
-   "in_list_view": 1,
-   "label": "Current Balance",
-   "read_only": 1
   },
   {
    "default": "1",

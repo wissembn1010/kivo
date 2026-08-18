@@ -60,6 +60,7 @@ class Payment(Document):
 				"source_payment": self.name,
 			}
 		)
+		transaction.flags.creditflow_system_generated = True
 		transaction.insert(ignore_permissions=True)
 		transaction.submit()
 

@@ -43,11 +43,13 @@ class PurchaseReversal(Document):
 		required_by_product = self.get_required_quantity_by_product(original_movements)
 		self.lock_products(required_by_product)
 		self.validate_available_stock(required_by_product)
+		original_transaction = self.get_original_transaction()
 
 		save_point = "purchase_reversal_movements"
 		frappe.db.savepoint(save_point)
 		try:
 			self.create_reversal_movements(original_movements)
+			self.create_supplier_transaction(original_transaction)
 		except Exception:
 			frappe.db.rollback(save_point=save_point)
 			raise
@@ -114,6 +116,23 @@ class PurchaseReversal(Document):
 		)
 		return Decimal(str(result[0][0] or 0))
 
+	def get_original_transaction(self):
+		transactions = frappe.get_all(
+			"Supplier Transaction",
+			filters={
+				"source_purchase": self.original_purchase,
+				"transaction_type": "PURCHASE",
+				"direction": "DEBIT",
+				"docstatus": 1,
+			},
+			pluck="name",
+		)
+		if len(transactions) != 1:
+			frappe.throw(
+				_("Original Purchase must have exactly one submitted PURCHASE supplier transaction.")
+			)
+		return transactions[0]
+
 	def create_reversal_movements(self, original_movements):
 		for original in original_movements:
 			movement = frappe.get_doc(
@@ -129,8 +148,28 @@ class PurchaseReversal(Document):
 					"source_purchase_reversal": self.name,
 				}
 			)
+			movement.flags.creditflow_system_generated = True
 			movement.insert()
 			movement.submit()
+
+	def create_supplier_transaction(self, original_transaction):
+		purchase = frappe.get_doc("Purchase", self.original_purchase)
+		transaction = frappe.get_doc(
+			{
+				"doctype": "Supplier Transaction",
+				"business": purchase.business,
+				"supplier": purchase.supplier,
+				"transaction_type": "RETURN",
+				"direction": "CREDIT",
+				"amount": purchase.total_amount,
+				"transaction_date": self.business_date,
+				"reversal_of": original_transaction,
+				"source_purchase_reversal": self.name,
+			}
+		)
+		transaction.flags.creditflow_system_generated = True
+		transaction.insert(ignore_permissions=True)
+		transaction.submit()
 
 	def before_cancel(self):
 		frappe.throw(_("Submitted Purchase Reversals cannot be cancelled."))

@@ -96,28 +96,32 @@
    "fieldtype": "Link",
    "label": "Source Sale",
    "options": "Sale",
-   "read_only": 1
+   "read_only": 1,
+   "unique": 1
   },
   {
    "fieldname": "source_payment",
    "fieldtype": "Link",
    "label": "Source Payment",
    "options": "Payment",
-   "read_only": 1
+   "read_only": 1,
+   "unique": 1
   },
   {
    "fieldname": "source_sale_reversal",
    "fieldtype": "Link",
    "label": "Source Sale Reversal",
    "options": "Sale Reversal",
-   "read_only": 1
+   "read_only": 1,
+   "unique": 1
   },
   {
    "fieldname": "source_payment_reversal",
    "fieldtype": "Link",
    "label": "Source Payment Reversal",
    "options": "Payment Reversal",
-   "read_only": 1
+   "read_only": 1,
+   "unique": 1
   },
   {
    "fieldname": "reversal_of",

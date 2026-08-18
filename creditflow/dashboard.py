@@ -55,6 +55,30 @@ def total_customer_debt(filters=None):
 	return _money_card(result, ["query-report", "Customer Balances"])
 
 
+@frappe.whitelist()
+def total_supplier_debt(filters=None):
+	scope, values = _business_scope("ledger")
+	result = frappe.db.sql(
+		f"""
+		SELECT COALESCE(
+			SUM(
+				CASE
+					WHEN ledger.direction = 'DEBIT' THEN ledger.amount
+					WHEN ledger.direction = 'CREDIT' THEN -ledger.amount
+					ELSE 0
+				END
+			),
+			0
+		)
+		FROM `tabSupplier Transaction` ledger
+		WHERE ledger.docstatus = 1
+		{scope}
+		""",
+		values,
+	)[0][0]
+	return _money_card(result, ["query-report", "Supplier Balances"])
+
+
 def _today_total(doctype, amount_field):
 	scope, values = _business_scope("document")
 	values["today"] = frappe.utils.today()
@@ -79,6 +103,11 @@ def sales_today(filters=None):
 @frappe.whitelist()
 def payments_today(filters=None):
 	return _today_total("Payment", "amount")
+
+
+@frappe.whitelist()
+def supplier_payments_today(filters=None):
+	return _today_total("Supplier Payment", "amount")
 
 
 @frappe.whitelist()

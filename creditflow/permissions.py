@@ -7,12 +7,15 @@ DEFAULTED_DOCTYPES = {
 	"Customer",
 	"Product",
 	"Supplier",
+	"Supplier Payment",
+	"Supplier Transaction",
 	"Sale",
 	"Payment",
 	"Purchase",
 	"Sale Reversal",
 	"Payment Reversal",
 	"Purchase Reversal",
+	"Supplier Payment Reversal",
 }
 
 

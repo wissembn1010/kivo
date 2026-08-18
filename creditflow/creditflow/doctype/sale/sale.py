@@ -129,6 +129,7 @@ class Sale(Document):
 				"source_sale": self.name,
 			}
 		)
+		transaction.flags.creditflow_system_generated = True
 		transaction.insert(ignore_permissions=True)
 		transaction.submit()
 
@@ -146,6 +147,7 @@ class Sale(Document):
 					"source_sale": self.name,
 				}
 			)
+			movement.flags.creditflow_system_generated = True
 			movement.insert(ignore_permissions=True)
 			movement.submit()
 
