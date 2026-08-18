@@ -12,6 +12,8 @@
   "legacy_product_id",
   "primary_unit",
   "selling_price",
+  "professional_price",
+  "minimum_selling_price",
   "active",
   "reference"
  ],
@@ -52,6 +54,18 @@
    "fieldname": "selling_price",
    "fieldtype": "Currency",
    "label": "Selling Price"
+  },
+  {
+   "default": "0",
+   "fieldname": "professional_price",
+   "fieldtype": "Currency",
+   "label": "Professional Price"
+  },
+  {
+   "default": "0",
+   "fieldname": "minimum_selling_price",
+   "fieldtype": "Currency",
+   "label": "Minimum Selling Price"
   },
   {
    "default": "1",

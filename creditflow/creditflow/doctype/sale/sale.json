@@ -16,6 +16,11 @@
   "items",
   "total_amount",
   "notes",
+  "overrides_section",
+  "price_override",
+  "price_override_reason",
+  "credit_limit_override",
+  "credit_override_reason",
   "amended_from"
  ],
  "fields": [
@@ -91,6 +96,33 @@
    "fieldname": "notes",
    "fieldtype": "Small Text",
    "label": "Notes"
+  },
+  {
+   "fieldname": "overrides_section",
+   "fieldtype": "Section Break",
+   "label": "Overrides"
+  },
+  {
+   "default": "0",
+   "fieldname": "price_override",
+   "fieldtype": "Check",
+   "label": "Price Override"
+  },
+  {
+   "fieldname": "price_override_reason",
+   "fieldtype": "Small Text",
+   "label": "Price Override Reason"
+  },
+  {
+   "default": "0",
+   "fieldname": "credit_limit_override",
+   "fieldtype": "Check",
+   "label": "Credit Limit Override"
+  },
+  {
+   "fieldname": "credit_override_reason",
+   "fieldtype": "Small Text",
+   "label": "Credit Override Reason"
   },
   {
    "fieldname": "amended_from",

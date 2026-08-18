@@ -13,6 +13,7 @@
   "secondary_phone",
   "legacy_customer_id",
   "address",
+  "price_type",
   "credit_limit",
   "active",
   "notes"
@@ -45,6 +46,13 @@
    "fieldname": "address",
    "fieldtype": "Small Text",
    "label": "Address"
+  },
+  {
+   "default": "RETAIL",
+   "fieldname": "price_type",
+   "fieldtype": "Select",
+   "label": "Price Type",
+   "options": "RETAIL\nPROFESSIONAL"
   },
   {
    "default": "0",

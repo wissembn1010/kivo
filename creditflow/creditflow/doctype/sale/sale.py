@@ -11,244 +11,476 @@ VALID_PAYMENT_METHODS = {"CASH", "BANK_TRANSFER", "CHEQUE", "OTHER"}
 
 
 class Sale(Document):
-	def validate(self):
-		self.validate_items_and_calculate_total()
-		self.validate_business_and_customer()
-		self.validate_sale_payment_terms()
+        def validate(self):
+                self.validate_items_and_calculate_total()
+                self.validate_business_and_customer()
+                self.validate_sale_payment_terms()
+                self.validate_price_overrides()
+                self.validate_minimum_selling_prices()
+                self.validate_credit_limit()
 
-	def validate_business_and_customer(self):
-		if not self.business or not frappe.db.exists("Business", self.business):
-			frappe.throw(_("Business does not exist."))
+        def validate_business_and_customer(self):
+                if not self.business or not frappe.db.exists("Business", self.business):
+                        frappe.throw(_("Business does not exist."))
 
-		if self.get_effective_sale_mode() == "CASH" and not self.customer:
-			return
+                if self.get_effective_sale_mode() == "CASH" and not self.customer:
+                        return
 
-		if not self.customer or not frappe.db.exists("Customer", self.customer):
-			frappe.throw(_("Customer does not exist."))
+                if not self.customer or not frappe.db.exists("Customer", self.customer):
+                        frappe.throw(_("Customer does not exist."))
 
-		customer_business = frappe.db.get_value("Customer", self.customer, "business")
-		if customer_business != self.business:
-			frappe.throw(_("Customer must belong to the same Business as the Sale."))
+                customer_business = frappe.db.get_value("Customer", self.customer, "business")
+                if customer_business != self.business:
+                        frappe.throw(_("Customer must belong to the same Business as the Sale."))
 
-	def before_submit(self):
-		self.validate()
-		required_by_product = self.get_required_quantity_by_product()
-		self.lock_products(required_by_product)
-		self.validate_available_stock(required_by_product)
-		self.create_credit_transaction()
-		self.create_stock_movements()
+        def before_submit(self):
+                self.validate()
+                required_by_product = self.get_required_quantity_by_product()
+                self.lock_products(required_by_product)
+                self.validate_available_stock(required_by_product)
+                self.create_credit_transaction()
+                self.create_stock_movements()
 
-	def before_cancel(self):
-		frappe.throw(
-			_("Posted Sales cannot be cancelled. They must be reversed using a reversal workflow.")
-		)
+        def before_cancel(self):
+                frappe.throw(
+                        _("Posted Sales cannot be cancelled. They must be reversed using a reversal workflow.")
+                )
 
-	def validate_items_and_calculate_total(self):
-		if not self.items:
-			frappe.throw(_("Sale must contain at least one item."))
+        def validate_items_and_calculate_total(self):
+                if not self.items:
+                        frappe.throw(_("Sale must contain at least one item."))
 
-		total = Decimal("0")
+                total = Decimal("0")
 
-		for row in self.items:
-			product_business = frappe.db.get_value("Product", row.product, "business")
-			if not product_business:
-				frappe.throw(_("Product in row {0} does not exist.").format(row.idx))
-			if product_business != self.business:
-				frappe.throw(
-					_("Product in row {0} must belong to the same Business as the Sale.").format(
-						row.idx
-					)
-				)
+                for row in self.items:
+                        product_business = frappe.db.get_value("Product", row.product, "business")
+                        if not product_business:
+                                frappe.throw(_("Product in row {0} does not exist.").format(row.idx))
+                        if product_business != self.business:
+                                frappe.throw(
+                                        _("Product in row {0} must belong to the same Business as the Sale.").format(
+                                                row.idx
+                                        )
+                                )
 
-			quantity = self.to_decimal(row.quantity, _("Quantity"), row.idx)
-			unit_price = self.get_unit_price(row, row.idx)
-			row.unit_price = unit_price.quantize(MONEY_PRECISION, rounding=ROUND_HALF_UP)
+                        quantity = self.to_decimal(row.quantity, _("Quantity"), row.idx)
 
-			if quantity <= 0:
-				frappe.throw(_("Quantity in row {0} must be greater than 0.").format(row.idx))
-			if unit_price < 0:
-				frappe.throw(
-					_("Unit Price in row {0} must be greater than or equal to 0.").format(row.idx)
-				)
+                        discount_percent = self.to_decimal(
+                                row.discount_percent or 0,
+                                _("Discount %"),
+                                row.idx,
+                        )
 
-			total += quantity * unit_price
+                        if discount_percent < 0 or discount_percent > 100:
+                                frappe.throw(
+                                        _("Discount % in row {0} must be between 0 and 100.").format(
+                                                row.idx
+                                        )
+                                )
 
-		self.total_amount = total.quantize(MONEY_PRECISION, rounding=ROUND_HALF_UP)
+                        # Backward compatibility with Step 3:
+                        # legacy/API rows may provide only unit_price.
+                        # Preserve its full Decimal precision for calculations
+                        # and round only the displayed unit_price/final total.
+                        if (
+                                row.base_price in (None, "")
+                                and row.unit_price not in (None, "")
+                                and discount_percent == 0
+                        ):
+                                unit_price = self.to_decimal(
+                                        row.unit_price,
+                                        _("Unit Price"),
+                                        row.idx,
+                                )
 
-	def validate_sale_payment_terms(self):
-		sale_mode = self.get_effective_sale_mode()
-		if sale_mode not in VALID_SALE_MODES:
-			frappe.throw(_("Sale Mode is not supported."))
+                                row.unit_price = unit_price.quantize(
+                                        MONEY_PRECISION,
+                                        rounding=ROUND_HALF_UP,
+                                )
+                        else:
+                                base_price = self.get_base_price(row, row.idx)
 
-		total = Decimal(str(self.total_amount or 0)).quantize(
-			MONEY_PRECISION, rounding=ROUND_HALF_UP
-		)
-		amount_paid = self.to_money_decimal(self.amount_paid or 0, _("Amount Paid"))
+                                row.base_price = base_price.quantize(
+                                        MONEY_PRECISION,
+                                        rounding=ROUND_HALF_UP,
+                                )
 
-		if sale_mode == "CASH":
-			if amount_paid != total:
-				frappe.throw(_("Cash Sales must have Amount Paid equal to Total Amount."))
-			if self.payment_method and self.payment_method != "CASH":
-				frappe.throw(_("Cash Sales must use the CASH payment method."))
-			self.amount_paid = total
-			self.outstanding_amount = Decimal("0").quantize(
-				MONEY_PRECISION, rounding=ROUND_HALF_UP
-			)
-			if amount_paid > 0 and not self.payment_method:
-				self.payment_method = "CASH"
-		elif sale_mode == "CREDIT":
-			if amount_paid != 0:
-				frappe.throw(_("Credit Sales must have Amount Paid equal to 0."))
-			if not self.customer:
-				frappe.throw(_("Customer is required for Credit Sales."))
-			self.amount_paid = Decimal("0").quantize(
-				MONEY_PRECISION, rounding=ROUND_HALF_UP
-			)
-			self.outstanding_amount = total
-		else:
-			if not self.customer:
-				frappe.throw(_("Customer is required for Mixed Sales."))
-			if amount_paid <= 0:
-				frappe.throw(_("Mixed Sales must have Amount Paid greater than 0."))
-			if amount_paid >= total:
-				frappe.throw(_("Mixed Sales must have Amount Paid less than Total Amount."))
-			if amount_paid < 0:
-				frappe.throw(_("Amount Paid must be greater than or equal to 0."))
-			if not self.payment_method:
-				frappe.throw(_("Payment Method is required for Mixed Sales."))
-			self.amount_paid = amount_paid
-			self.outstanding_amount = (total - amount_paid).quantize(
-				MONEY_PRECISION, rounding=ROUND_HALF_UP
-			)
+                                unit_price = self.calculate_unit_price(
+                                        base_price,
+                                        discount_percent,
+                                        row.idx,
+                                )
 
-		if amount_paid > total:
-			frappe.throw(_("Amount Paid cannot be greater than Total Amount."))
+                                row.unit_price = unit_price.quantize(
+                                        MONEY_PRECISION,
+                                        rounding=ROUND_HALF_UP,
+                                )
 
-		if self.amount_paid and self.payment_method and self.payment_method not in VALID_PAYMENT_METHODS:
-			frappe.throw(_("Payment Method is not supported."))
+                        if quantity <= 0:
+                                frappe.throw(_("Quantity in row {0} must be greater than 0.").format(row.idx))
+                        if unit_price < 0:
+                                frappe.throw(
+                                        _("Unit Price in row {0} must be greater than or equal to 0.").format(row.idx)
+                                )
 
-		if self.amount_paid and self.amount_paid > 0 and not self.payment_method:
-			self.payment_method = "CASH" if sale_mode == "CASH" else self.payment_method
+                        total += quantity * unit_price
 
-		if not self.amount_paid:
-			self.payment_reference = self.payment_reference or ""
+                self.total_amount = total.quantize(MONEY_PRECISION, rounding=ROUND_HALF_UP)
 
-		self.sale_mode = sale_mode
-		self.amount_paid = self.to_money_decimal(self.amount_paid or 0, _("Amount Paid"))
-		self.outstanding_amount = self.to_money_decimal(
-			self.outstanding_amount or 0, _("Outstanding Amount")
-		)
+        def validate_sale_payment_terms(self):
+                sale_mode = self.get_effective_sale_mode()
+                if sale_mode not in VALID_SALE_MODES:
+                        frappe.throw(_("Sale Mode is not supported."))
 
-	def get_required_quantity_by_product(self):
-		required_by_product = {}
-		for row in self.items:
-			required_by_product.setdefault(row.product, Decimal("0"))
-			required_by_product[row.product] += self.to_decimal(
-				row.quantity, _("Quantity"), row.idx
-			)
-		return required_by_product
+                total = Decimal(str(self.total_amount or 0)).quantize(
+                        MONEY_PRECISION, rounding=ROUND_HALF_UP
+                )
+                amount_paid = self.to_money_decimal(self.amount_paid or 0, _("Amount Paid"))
 
-	def lock_products(self, required_by_product):
-		for product in sorted(required_by_product):
-			frappe.db.sql(
-				"SELECT name FROM `tabProduct` WHERE name = %s FOR UPDATE",
-				product,
-			)
+                if sale_mode == "CASH":
+                        if amount_paid != total:
+                                frappe.throw(_("Cash Sales must have Amount Paid equal to Total Amount."))
+                        if self.payment_method and self.payment_method != "CASH":
+                                frappe.throw(_("Cash Sales must use the CASH payment method."))
+                        self.amount_paid = total
+                        self.outstanding_amount = Decimal("0").quantize(
+                                MONEY_PRECISION, rounding=ROUND_HALF_UP
+                        )
+                        if amount_paid > 0 and not self.payment_method:
+                                self.payment_method = "CASH"
+                elif sale_mode == "CREDIT":
+                        if amount_paid != 0:
+                                frappe.throw(_("Credit Sales must have Amount Paid equal to 0."))
+                        if not self.customer:
+                                frappe.throw(_("Customer is required for Credit Sales."))
+                        self.amount_paid = Decimal("0").quantize(
+                                MONEY_PRECISION, rounding=ROUND_HALF_UP
+                        )
+                        self.outstanding_amount = total
+                else:
+                        if not self.customer:
+                                frappe.throw(_("Customer is required for Mixed Sales."))
+                        if amount_paid <= 0:
+                                frappe.throw(_("Mixed Sales must have Amount Paid greater than 0."))
+                        if amount_paid >= total:
+                                frappe.throw(_("Mixed Sales must have Amount Paid less than Total Amount."))
+                        if amount_paid < 0:
+                                frappe.throw(_("Amount Paid must be greater than or equal to 0."))
+                        if not self.payment_method:
+                                frappe.throw(_("Payment Method is required for Mixed Sales."))
+                        self.amount_paid = amount_paid
+                        self.outstanding_amount = (total - amount_paid).quantize(
+                                MONEY_PRECISION, rounding=ROUND_HALF_UP
+                        )
 
-	def validate_available_stock(self, required_by_product):
-		for product, required_quantity in required_by_product.items():
-			available_quantity = self.get_available_stock(product)
-			if available_quantity < required_quantity:
-				frappe.throw(
-					_(
-						"Insufficient stock for Product {0}: available {1}, required {2}."
-					).format(product, available_quantity, required_quantity)
-				)
+                if amount_paid > total:
+                        frappe.throw(_("Amount Paid cannot be greater than Total Amount."))
 
-	def get_available_stock(self, product):
-		result = frappe.db.sql(
-			"""
-			SELECT COALESCE(
-				SUM(
-					CASE
-						WHEN direction = 'IN' THEN quantity
-						WHEN direction = 'OUT' THEN -quantity
-						ELSE 0
-					END
-				),
-				0
-			)
-			FROM `tabStock Movement`
-			WHERE business = %s
-			  AND product = %s
-			  AND docstatus = 1
-			""",
-			(self.business, product),
-		)
-		return Decimal(str(result[0][0] or 0))
+                if self.amount_paid and self.payment_method and self.payment_method not in VALID_PAYMENT_METHODS:
+                        frappe.throw(_("Payment Method is not supported."))
 
-	def create_credit_transaction(self):
-		unpaid_amount = self.get_unpaid_amount()
-		if unpaid_amount <= 0:
-			return
-		transaction = frappe.get_doc(
-			{
-				"doctype": "Credit Transaction",
-				"business": self.business,
-				"customer": self.customer,
-				"transaction_type": "SALE",
-				"direction": "DEBIT",
-				"amount": unpaid_amount,
-				"transaction_date": self.business_date,
-				"source_sale": self.name,
-			}
-		)
-		transaction.flags.creditflow_system_generated = True
-		transaction.insert(ignore_permissions=True)
-		transaction.submit()
+                if self.amount_paid and self.amount_paid > 0 and not self.payment_method:
+                        self.payment_method = "CASH" if sale_mode == "CASH" else self.payment_method
 
-	def create_stock_movements(self):
-		for row in self.items:
-			movement = frappe.get_doc(
-				{
-					"doctype": "Stock Movement",
-					"business": self.business,
-					"product": row.product,
-					"direction": "OUT",
-					"quantity": row.quantity,
-					"movement_reason": "SALE",
-					"business_date": self.business_date,
-					"source_sale": self.name,
-				}
-			)
-			movement.flags.creditflow_system_generated = True
-			movement.insert(ignore_permissions=True)
-			movement.submit()
+                if not self.amount_paid:
+                        self.payment_reference = self.payment_reference or ""
 
-	@staticmethod
-	def to_decimal(value, label, row_index):
-		try:
-			return Decimal(str(value))
-		except (InvalidOperation, TypeError, ValueError):
-			frappe.throw(_("{0} in row {1} must be a valid number.").format(label, row_index))
+                self.sale_mode = sale_mode
+                self.amount_paid = self.to_money_decimal(self.amount_paid or 0, _("Amount Paid"))
+                self.outstanding_amount = self.to_money_decimal(
+                        self.outstanding_amount or 0, _("Outstanding Amount")
+                )
 
-	def to_money_decimal(self, value, label):
-		try:
-			return Decimal(str(value)).quantize(MONEY_PRECISION, rounding=ROUND_HALF_UP)
-		except (InvalidOperation, TypeError, ValueError):
-			frappe.throw(_("{0} must be a valid number.").format(label))
+        def get_required_quantity_by_product(self):
+                required_by_product = {}
+                for row in self.items:
+                        required_by_product.setdefault(row.product, Decimal("0"))
+                        required_by_product[row.product] += self.to_decimal(
+                                row.quantity, _("Quantity"), row.idx
+                        )
+                return required_by_product
 
-	def get_effective_sale_mode(self):
-		return (self.sale_mode or "CREDIT").strip().upper()
+        def lock_products(self, required_by_product):
+                for product in sorted(required_by_product):
+                        frappe.db.sql(
+                                "SELECT name FROM `tabProduct` WHERE name = %s FOR UPDATE",
+                                product,
+                        )
 
-	def get_unit_price(self, row, row_index):
-		if row.unit_price not in (None, ""):
-			return self.to_decimal(row.unit_price, _("Unit Price"), row_index)
+        def validate_available_stock(self, required_by_product):
+                for product, required_quantity in required_by_product.items():
+                        available_quantity = self.get_available_stock(product)
+                        if available_quantity < required_quantity:
+                                frappe.throw(
+                                        _(
+                                                "Insufficient stock for Product {0}: available {1}, required {2}."
+                                        ).format(product, available_quantity, required_quantity)
+                                )
 
-		unit_price = frappe.db.get_value("Product", row.product, "selling_price")
-		return self.to_decimal(unit_price or 0, _("Unit Price"), row_index)
+        def get_available_stock(self, product):
+                result = frappe.db.sql(
+                        """
+                        SELECT COALESCE(
+                                SUM(
+                                        CASE
+                                                WHEN direction = 'IN' THEN quantity
+                                                WHEN direction = 'OUT' THEN -quantity
+                                                ELSE 0
+                                        END
+                                ),
+                                0
+                        )
+                        FROM `tabStock Movement`
+                        WHERE business = %s
+                          AND product = %s
+                          AND docstatus = 1
+                        """,
+                        (self.business, product),
+                )
+                return Decimal(str(result[0][0] or 0))
 
-	def get_unpaid_amount(self):
-		total = Decimal(str(self.total_amount or 0))
-		amount_paid = Decimal(str(self.amount_paid or 0))
-		return (total - amount_paid).quantize(MONEY_PRECISION, rounding=ROUND_HALF_UP)
+        def create_credit_transaction(self):
+                unpaid_amount = self.get_unpaid_amount()
+                if unpaid_amount <= 0:
+                        return
+                transaction = frappe.get_doc(
+                        {
+                                "doctype": "Credit Transaction",
+                                "business": self.business,
+                                "customer": self.customer,
+                                "transaction_type": "SALE",
+                                "direction": "DEBIT",
+                                "amount": unpaid_amount,
+                                "transaction_date": self.business_date,
+                                "source_sale": self.name,
+                        }
+                )
+                transaction.flags.creditflow_system_generated = True
+                transaction.insert(ignore_permissions=True)
+                transaction.submit()
+
+        def create_stock_movements(self):
+                for row in self.items:
+                        movement = frappe.get_doc(
+                                {
+                                        "doctype": "Stock Movement",
+                                        "business": self.business,
+                                        "product": row.product,
+                                        "direction": "OUT",
+                                        "quantity": row.quantity,
+                                        "movement_reason": "SALE",
+                                        "business_date": self.business_date,
+                                        "source_sale": self.name,
+                                }
+                        )
+                        movement.flags.creditflow_system_generated = True
+                        movement.insert(ignore_permissions=True)
+                        movement.submit()
+
+        @staticmethod
+        def to_decimal(value, label, row_index):
+                try:
+                        return Decimal(str(value))
+                except (InvalidOperation, TypeError, ValueError):
+                        frappe.throw(_("{0} in row {1} must be a valid number.").format(label, row_index))
+
+        def to_money_decimal(self, value, label):
+                try:
+                        return Decimal(str(value)).quantize(MONEY_PRECISION, rounding=ROUND_HALF_UP)
+                except (InvalidOperation, TypeError, ValueError):
+                        frappe.throw(_("{0} must be a valid number.").format(label))
+
+        def get_effective_sale_mode(self):
+                return (self.sale_mode or "CREDIT").strip().upper()
+
+        def get_unpaid_amount(self):
+                total = Decimal(str(self.total_amount or 0))
+                amount_paid = Decimal(str(self.amount_paid or 0))
+                return (total - amount_paid).quantize(MONEY_PRECISION, rounding=ROUND_HALF_UP)
+
+        def get_unit_price(self, row, row_index):
+                if row.unit_price not in (None, ""):
+                        return self.to_decimal(row.unit_price, _("Unit Price"), row_index)
+
+                unit_price = frappe.db.get_value("Product", row.product, "selling_price")
+                return self.to_decimal(unit_price or 0, _("Unit Price"), row_index)
+
+        def get_base_price(self, row, row_index):
+                """Resolve configured pricing while preserving legacy/manual prices."""
+
+                # New Step 4A rows explicitly carry their automatic base price.
+                if row.base_price not in (None, ""):
+                        return self.to_decimal(
+                                row.base_price,
+                                _("Base Price"),
+                                row_index,
+                        )
+
+                # Backward compatibility:
+                # historical integrations/tests may provide only unit_price.
+                # With no base_price recorded, treat that value as manual pricing.
+                if row.unit_price not in (None, ""):
+                        return self.to_decimal(
+                                row.unit_price,
+                                _("Unit Price"),
+                                row_index,
+                        )
+
+                customer_price_type = "RETAIL"
+
+                if self.customer:
+                        customer_price_type = (
+                                frappe.db.get_value(
+                                        "Customer",
+                                        self.customer,
+                                        "price_type",
+                                )
+                                or "RETAIL"
+                        )
+
+                if customer_price_type == "PROFESSIONAL":
+                        professional_price = (
+                                frappe.db.get_value(
+                                        "Product",
+                                        row.product,
+                                        "professional_price",
+                                )
+                                or 0
+                        )
+
+                        if Decimal(str(professional_price)) > 0:
+                                return self.to_decimal(
+                                        professional_price,
+                                        _("Professional Price"),
+                                        row_index,
+                                )
+
+                selling_price = (
+                        frappe.db.get_value(
+                                "Product",
+                                row.product,
+                                "selling_price",
+                        )
+                        or 0
+                )
+
+                return self.to_decimal(
+                        selling_price,
+                        _("Selling Price"),
+                        row_index,
+                )
+
+        def calculate_unit_price(self, base_price, discount_percent, row_index):
+                """Calculate unit price from base price and discount percent."""
+                discount_decimal = self.to_decimal(discount_percent, _("Discount %"), row_index) / Decimal("100")
+                unit_price = base_price * (Decimal("1") - discount_decimal)
+                return unit_price.quantize(MONEY_PRECISION, rounding=ROUND_HALF_UP)
+
+        def validate_minimum_selling_prices(self):
+                """Validate that unit prices meet minimum selling prices (STAFF cannot sell below minimum)."""
+                user_roles = frappe.get_roles()
+                is_owner = "OWNER" in user_roles or frappe.session.user == "Administrator"
+
+                for row in self.items:
+                        minimum_price = frappe.db.get_value("Product", row.product, "minimum_selling_price") or Decimal("0")
+                        unit_price = self.to_decimal(row.unit_price, _("Unit Price"), row.idx)
+
+                        if minimum_price > 0 and unit_price < minimum_price:
+                                if not is_owner:
+                                        frappe.throw(
+                                                _(
+                                                        "Unit Price in row {0} is below minimum selling price of {1}. "
+                                                        "Price Override requires owner approval."
+                                                ).format(row.idx, minimum_price)
+                                        )
+                                elif not self.price_override:
+                                        frappe.throw(
+                                                _("Price override requested but price_override flag not set."),
+                                        )
+                                elif not self.price_override_reason:
+                                        frappe.throw(
+                                                _("Price override reason is required when selling below minimum price."),
+                                        )
+
+        def validate_credit_limit(self):
+                """Validate that credit sales do not exceed customer's credit limit (STAFF cannot exceed limit)."""
+                sale_mode = self.get_effective_sale_mode()
+
+                # Credit limit only applies to CREDIT and MIXED sales
+                if sale_mode == "CASH":
+                        return
+
+                if not self.customer:
+                        return
+
+                customer = frappe.get_doc("Customer", self.customer)
+                credit_limit = Decimal(str(customer.credit_limit or 0))
+
+                # If no credit limit set, no restriction
+                if credit_limit <= 0:
+                        return
+
+                # Get current customer debt from Credit Transactions
+                current_debt = self.get_customer_current_debt(self.customer)
+
+                # Calculate projected debt with this sale
+                outstanding = self.to_money_decimal(self.outstanding_amount or 0, _("Outstanding Amount"))
+                projected_debt = current_debt + outstanding
+
+                user_roles = frappe.get_roles()
+                is_owner = "OWNER" in user_roles or frappe.session.user == "Administrator"
+
+                if projected_debt > credit_limit:
+                        if not is_owner:
+                                frappe.throw(
+                                        _(
+                                                "Sale exceeds customer's credit limit. "
+                                                "Current debt: {0}, Additional credit: {1}, Limit: {2}. "
+                                                "Credit limit override requires owner approval."
+                                        ).format(current_debt, outstanding, credit_limit)
+                                )
+                        elif not self.credit_limit_override:
+                                frappe.throw(
+                                        _("Credit limit override requested but credit_limit_override flag not set."),
+                                )
+                        elif not self.credit_override_reason:
+                                frappe.throw(
+                                        _("Credit override reason is required when exceeding credit limit."),
+                                )
+
+        def get_customer_current_debt(self, customer):
+                """Calculate current customer debt for this Business."""
+                result = frappe.db.sql(
+                        """
+                        SELECT COALESCE(
+                                SUM(
+                                        CASE
+                                                WHEN direction = 'DEBIT' THEN amount
+                                                WHEN direction = 'CREDIT' THEN -amount
+                                                ELSE 0
+                                        END
+                                ),
+                                0
+                        )
+                        FROM `tabCredit Transaction`
+                        WHERE customer = %s
+                          AND business = %s
+                          AND docstatus = 1
+                        """,
+                        (customer, self.business),
+                )
+
+                return self.to_money_decimal(
+                        result[0][0] or 0,
+                        _("Customer Debt"),
+                )
+
+        def validate_price_overrides(self):
+                """Ensure only OWNER can set price/credit overrides."""
+                user_roles = frappe.get_roles()
+                is_owner = "OWNER" in user_roles or frappe.session.user == "Administrator"
+
+                if (self.price_override or self.credit_limit_override) and not is_owner:
+                        frappe.throw(
+                                _("Only OWNER users can set pricing or credit limit overrides.")
+                        )
