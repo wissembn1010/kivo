@@ -1,0 +1,18 @@
+{
+ "doctype":"DocType","name":"Sale Return Item","module":"CreditFlow","istable":1,"editable_grid":1,"engine":"InnoDB",
+ "field_order":["original_sale_item","product","product_name","quantity","uom","conversion_factor","base_quantity","unit_price","tva_rate","return_ht","return_tva","return_ttc"],
+ "fields":[
+  {"fieldname":"original_sale_item","fieldtype":"Link","options":"Sale Item","label":"Original Sale Item","reqd":1,"in_list_view":1},
+  {"fieldname":"product","fieldtype":"Link","options":"Product","label":"Product","read_only":1,"in_list_view":1},
+  {"fieldname":"product_name","fieldtype":"Data","label":"Product Name","read_only":1},
+  {"fieldname":"quantity","fieldtype":"Float","label":"Return Quantity","reqd":1,"in_list_view":1},
+  {"fieldname":"uom","fieldtype":"Link","options":"CreditFlow UOM","label":"UOM","read_only":1,"in_list_view":1},
+  {"fieldname":"conversion_factor","fieldtype":"Float","label":"Conversion Factor","precision":"6","read_only":1},
+  {"fieldname":"base_quantity","fieldtype":"Float","label":"Base Quantity","precision":"6","read_only":1},
+  {"fieldname":"unit_price","fieldtype":"Currency","label":"Net Unit Price HT","precision":"3","read_only":1},
+  {"fieldname":"tva_rate","fieldtype":"Percent","label":"TVA Rate","precision":"3","read_only":1},
+  {"fieldname":"return_ht","fieldtype":"Currency","label":"Return HT","precision":"3","read_only":1,"in_list_view":1},
+  {"fieldname":"return_tva","fieldtype":"Currency","label":"Return TVA","precision":"3","read_only":1},
+  {"fieldname":"return_ttc","fieldtype":"Currency","label":"Return TTC","precision":"3","read_only":1,"in_list_view":1}
+ ],"permissions":[]
+}

@@ -17,6 +17,8 @@
   "source_sale",
   "source_purchase",
   "source_sale_reversal",
+  "source_sale_return",
+  "source_sale_return_item",
   "source_purchase_reversal",
   "legacy_reference",
   "reversal_of",
@@ -91,6 +93,12 @@
    "label": "Source Sale Reversal",
    "options": "Sale Reversal",
    "read_only": 1
+  },
+  {
+   "fieldname": "source_sale_return", "fieldtype": "Link", "label": "Source Sale Return", "options": "Sale Return", "read_only": 1
+  },
+  {
+   "fieldname": "source_sale_return_item", "fieldtype": "Link", "label": "Source Sale Return Item", "options": "Sale Return Item", "read_only": 1, "unique": 1
   },
   {
    "fieldname": "source_purchase_reversal",

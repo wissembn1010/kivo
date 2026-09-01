@@ -6,7 +6,14 @@ from frappe.model.document import Document
 
 
 EVENT_DIRECTIONS = {"SALE": {"DEBIT"}, "PAYMENT": {"CREDIT"}, "RETURN": {"CREDIT"}, "OPENING_BALANCE": {"DEBIT", "CREDIT"}}
-SOURCE_FIELDS = ("source_sale", "source_payment", "source_sale_reversal", "source_payment_reversal")
+SOURCE_FIELDS = (
+	"source_doctype",
+	"source_sale",
+	"source_payment",
+	"source_sale_reversal",
+	"source_sale_return",
+	"source_payment_reversal",
+)
 
 
 class CreditTransaction(Document):
@@ -82,6 +89,8 @@ class CreditTransaction(Document):
 		self.validate_unique_source("source_payment_reversal", reversal.name)
 
 	def validate_sale_return(self):
+		if self.source_sale_return:
+			return self.validate_partial_sale_return()
 		self.require_only_source("source_sale_reversal")
 		if not self.reversal_of:
 			frappe.throw(_("RETURN Credit Transactions must reference the original transaction."))
@@ -91,6 +100,17 @@ class CreditTransaction(Document):
 			frappe.throw(_("Credit Transaction Business must match its source."))
 		self.validate_original_transaction("source_sale", sale.name, "SALE", "DEBIT")
 		self.validate_unique_source("source_sale_reversal", reversal.name)
+
+	def validate_partial_sale_return(self):
+		self.require_only_source("source_sale_return")
+		if self.reversal_of:
+			frappe.throw(_("Partial Sale Return ledger entries cannot set Reversal Of."))
+		return_doc = frappe.get_doc("Sale Return", self.source_sale_return)
+		if return_doc.docstatus == 2 or return_doc.business != self.business or return_doc.customer != self.customer:
+			frappe.throw(_("Credit Transaction must match its Sale Return source."))
+		if Decimal(str(return_doc.debt_reduction)) != Decimal(str(self.amount)):
+			frappe.throw(_("Credit Transaction Amount must match Sale Return Debt Reduction."))
+		self.validate_unique_source("source_sale_return", return_doc.name)
 
 	def validate_common_source_values(self, source, amount_field):
 		if source.docstatus == 2 or source.business != self.business or source.customer != self.customer:

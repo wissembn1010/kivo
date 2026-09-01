@@ -36,8 +36,8 @@ fixtures = [
 # ------------------
 
 # include js, css files in header of desk.html
-# app_include_css = "/assets/creditflow/css/creditflow.css"
-# app_include_js = "/assets/creditflow/js/creditflow.js"
+app_include_css = "/assets/creditflow/css/saas-access.css"
+app_include_js = "/assets/creditflow/js/saas-access.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/creditflow/css/creditflow.css"
@@ -55,6 +55,7 @@ fixtures = [
 
 # include js in doctype views
 doctype_js = {
+	"Business": "public/js/business_onboarding.js",
 	"Customer": "public/js/business_defaults.js",
 	"Product": "public/js/business_defaults.js",
 	"Supplier": "public/js/business_defaults.js",
@@ -64,6 +65,7 @@ doctype_js = {
 "Payment": "public/js/business_defaults.js",
 "Purchase": "public/js/business_defaults.js",
 "Sale Reversal": "public/js/business_defaults.js",
+"Sale Return": "public/js/business_defaults.js",
 "Payment Reversal": "public/js/business_defaults.js",
 "Purchase Reversal": "public/js/business_defaults.js",
 "Supplier Payment Reversal": "public/js/business_defaults.js",
@@ -83,10 +85,9 @@ doctype_js = {
 # application home page (will override Website Settings)
 # home_page = "login"
 
-# website user home page (by Role)
-# role_home_page = {
-# 	"Role": "home_page"
-# }
+# website user home page (dynamic for verified self-service tenants)
+get_website_user_home_page = "creditflow.saas_onboarding.get_creditflow_home_page"
+extend_bootinfo = "creditflow.saas_access.extend_bootinfo"
 
 # Generators
 # ----------
@@ -110,7 +111,7 @@ doctype_js = {
 # ------------
 
 # before_install = "creditflow.install.before_install"
-# after_install = "creditflow.install.after_install"
+after_install = "creditflow.install.after_install"
 
 # Uninstallation
 # ------------
@@ -163,11 +164,15 @@ permission_query_conditions = {
 		"Payment",
 		"Purchase",
 		"Sale Reversal",
+		"Sale Return",
+		"Onboarding Import Batch",
 		"Payment Reversal",
 		"Purchase Reversal",
 		"Supplier Payment Reversal",
 		"Credit Transaction",
 		"Stock Movement",
+		"CreditFlow Subscription",
+		"CreditFlow Billing Payment",
 	)
 }
 
@@ -186,6 +191,7 @@ doc_events = {
 	}
 	for doctype in permission_query_conditions
 }
+doc_events["User"] = {"before_validate": "creditflow.permissions.enforce_user_business_limit"}
 
 # Scheduled Tasks
 # ---------------

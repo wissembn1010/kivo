@@ -1,0 +1,131 @@
+{
+ "doctype": "DocType",
+ "name": "CreditFlow Subscription",
+ "module": "CreditFlow",
+ "autoname": "CFSUB-.#####",
+ "naming_rule": "Expression",
+ "engine": "InnoDB",
+ "track_changes": 1,
+ "title_field": "business",
+ "field_order": [
+  "business",
+  "plan",
+  "status",
+  "trial_start",
+  "trial_end",
+  "subscription_start",
+  "current_period_start",
+  "current_period_end",
+  "cancelled_at",
+  "external_provider",
+  "external_customer_id",
+  "external_subscription_id",
+  "last_payment_at",
+  "next_billing_date",
+  "cancel_at_period_end"
+ ],
+ "fields": [
+  {
+   "fieldname": "business",
+   "fieldtype": "Link",
+   "options": "Business",
+   "label": "Business",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "plan",
+   "fieldtype": "Link",
+   "options": "CreditFlow Plan",
+   "label": "Plan",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "options": "TRIAL\nACTIVE\nPAST_DUE\nEXPIRED\nCANCELLED",
+   "label": "Status",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "trial_start",
+   "fieldtype": "Datetime",
+   "label": "Trial Start"
+  },
+  {
+   "fieldname": "trial_end",
+   "fieldtype": "Datetime",
+   "label": "Trial End"
+  },
+  {
+   "fieldname": "subscription_start",
+   "fieldtype": "Datetime",
+   "label": "Subscription Start"
+  },
+  {
+   "fieldname": "current_period_start",
+   "fieldtype": "Datetime",
+   "label": "Current Period Start"
+  },
+  {
+   "fieldname": "current_period_end",
+   "fieldtype": "Datetime",
+   "label": "Current Period End"
+  },
+  {
+   "fieldname": "cancelled_at",
+   "fieldtype": "Datetime",
+   "label": "Cancelled At"
+  },
+  {
+   "fieldname": "external_provider",
+   "fieldtype": "Data",
+   "label": "External Provider"
+  },
+  {
+   "fieldname": "external_customer_id",
+   "fieldtype": "Data",
+   "label": "External Customer ID"
+  },
+  {
+   "fieldname": "external_subscription_id",
+   "fieldtype": "Data",
+   "label": "External Subscription ID"
+  },
+  {
+   "fieldname": "last_payment_at",
+   "fieldtype": "Datetime",
+   "label": "Last Payment At"
+  },
+  {
+   "fieldname": "next_billing_date",
+   "fieldtype": "Date",
+   "label": "Next Billing Date"
+  },
+  {
+   "fieldname": "cancel_at_period_end",
+   "fieldtype": "Check",
+   "label": "Cancel at Period End",
+   "default": "0"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "OWNER",
+   "read": 1,
+   "report": 1
+  }
+ ]
+}

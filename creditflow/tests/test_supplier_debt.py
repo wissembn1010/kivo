@@ -191,6 +191,7 @@ class IntegrationTestSupplierDebt(IntegrationTestCase):
 	def test_dashboard_total_supplier_debt_correct(self):
 		# Capture baseline to avoid interference from pre-existing development-site data
 		baseline = dashboard.total_supplier_debt()["value"]
+		payments_baseline = dashboard.supplier_payments_today()["value"]
 		self.add_opening_balance("150.000")
 		purchase = self.make_purchase(quantity="5", unit_cost="10")
 		purchase.insert()
@@ -201,4 +202,6 @@ class IntegrationTestSupplierDebt(IntegrationTestCase):
 		# Expected delta: opening 150 + purchase 50 - payment 60 = +140
 		expected_delta = Decimal("140.000")
 		self.assertEqual(dashboard.total_supplier_debt()["value"], baseline + expected_delta)
-		self.assertEqual(dashboard.supplier_payments_today()["value"], Decimal("60.000"))
+		self.assertEqual(
+			dashboard.supplier_payments_today()["value"], payments_baseline + Decimal("60.000")
+		)

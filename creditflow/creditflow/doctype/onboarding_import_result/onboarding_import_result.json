@@ -1,0 +1,18 @@
+{
+ "doctype":"DocType",
+ "name":"Onboarding Import Result",
+ "module":"CreditFlow",
+ "istable":1,
+ "editable_grid":1,
+ "field_order":["source_row","import_entity","source_identifier","result_status","created_doctype","created_document","message"],
+ "fields":[
+  {"fieldname":"source_row","fieldtype":"Int","label":"Source Row","read_only":1,"in_list_view":1},
+  {"fieldname":"import_entity","fieldtype":"Data","label":"Import Entity","read_only":1,"in_list_view":1},
+  {"fieldname":"source_identifier","fieldtype":"Data","label":"Source Identifier","read_only":1,"in_list_view":1},
+  {"fieldname":"result_status","fieldtype":"Select","options":"SUCCESS\nFAILED\nROLLED BACK","label":"Result Status","read_only":1,"in_list_view":1},
+  {"fieldname":"created_doctype","fieldtype":"Link","options":"DocType","label":"Created DocType","read_only":1},
+  {"fieldname":"created_document","fieldtype":"Dynamic Link","options":"created_doctype","label":"Created Document","read_only":1},
+  {"fieldname":"message","fieldtype":"Small Text","label":"Message","read_only":1}
+ ],
+ "permissions":[]
+}

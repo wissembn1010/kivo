@@ -11,6 +11,7 @@
    "amount",
    "payment_method",
    "reference",
+   "source_purchase",
    "notes",
    "amended_from"
   ],
@@ -47,14 +48,23 @@
     "fieldname": "payment_method",
     "fieldtype": "Select",
     "label": "Payment Method",
-    "options": "CASH\nBANK_TRANSFER\nCHEQUE\nOTHER",
+    "options": "CASH\nBANK_TRANSFER\nCHEQUE\nTRAITE\nOTHER",
     "reqd": 1
    },
    {
     "fieldname": "reference",
     "fieldtype": "Data",
-    "label": "Reference"
-   },
+   "label": "Reference"
+  },
+  {
+   "fieldname": "source_purchase",
+   "fieldtype": "Link",
+   "label": "Source Purchase",
+   "no_copy": 1,
+   "options": "Purchase",
+   "read_only": 1,
+   "unique": 1
+  },
    {
     "fieldname": "notes",
     "fieldtype": "Small Text",

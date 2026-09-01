@@ -7,6 +7,9 @@
  "field_order": [
   "product",
   "quantity",
+  "uom",
+  "conversion_factor",
+  "base_quantity",
   "unit_cost"
  ],
  "fields": [
@@ -24,6 +27,27 @@
    "label": "Quantity",
    "in_list_view": 1,
    "reqd": 1
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "CreditFlow UOM",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "conversion_factor",
+   "fieldtype": "Float",
+   "label": "Conversion Factor",
+   "precision": "6",
+   "read_only": 1
+  },
+  {
+   "fieldname": "base_quantity",
+   "fieldtype": "Float",
+   "label": "Base Quantity",
+   "precision": "6",
+   "read_only": 1
   },
   {
    "fieldname": "unit_cost",

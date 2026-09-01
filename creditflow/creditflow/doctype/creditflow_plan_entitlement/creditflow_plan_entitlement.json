@@ -1,0 +1,9 @@
+{
+ "doctype":"DocType","name":"CreditFlow Plan Entitlement","module":"CreditFlow","istable":1,"editable_grid":1,
+ "field_order":["entitlement_key","value_type","value"],
+ "fields":[
+  {"fieldname":"entitlement_key","fieldtype":"Data","label":"Entitlement Key","reqd":1,"in_list_view":1},
+  {"fieldname":"value_type","fieldtype":"Select","options":"BOOLEAN\nINTEGER\nDECIMAL\nTEXT\nJSON","label":"Value Type","reqd":1,"default":"BOOLEAN","in_list_view":1},
+  {"fieldname":"value","fieldtype":"Small Text","label":"Value","in_list_view":1}
+ ],"permissions":[]
+}

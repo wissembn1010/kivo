@@ -9,6 +9,8 @@
   "customer",
   "amount",
   "business_date",
+  "payment_method",
+  "reference",
   "notes",
   "amended_from"
  ],
@@ -23,6 +25,7 @@
   {
    "fieldname": "customer",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Customer",
    "options": "Customer",
    "reqd": 1
@@ -30,6 +33,7 @@
   {
    "fieldname": "amount",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Amount",
    "precision": "3",
    "reqd": 1
@@ -38,8 +42,24 @@
    "default": "Today",
    "fieldname": "business_date",
    "fieldtype": "Date",
-   "label": "Business Date",
+   "in_list_view": 1,
+   "label": "Payment Date",
    "reqd": 1
+  },
+  {
+   "default": "CASH",
+   "fieldname": "payment_method",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Payment Method",
+   "options": "CASH\nBANK_TRANSFER\nCHEQUE\nCARD\nOTHER",
+   "reqd": 1
+  },
+  {
+   "fieldname": "reference",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Reference"
   },
   {
    "fieldname": "notes",

@@ -12,9 +12,12 @@ PROTECTED_DOCTYPES = (
 	"Sale",
 	"Payment",
 	"Purchase",
+	"Supplier Payment",
+	"Supplier Transaction",
 	"Sale Reversal",
 	"Payment Reversal",
 	"Purchase Reversal",
+	"Supplier Payment Reversal",
 	"Credit Transaction",
 	"Stock Movement",
 )
@@ -96,7 +99,12 @@ class IntegrationTestBusinessIsolation(IntegrationTestCase):
 		frappe.set_user(user)
 		for doctype in PROTECTED_DOCTYPES:
 			if (
-				doctype in ("Sale Reversal", "Payment Reversal", "Purchase Reversal")
+				doctype in (
+					"Sale Reversal",
+					"Payment Reversal",
+					"Purchase Reversal",
+					"Supplier Payment Reversal",
+				)
 				and "OWNER" not in frappe.get_roles(user)
 			):
 				with self.assertRaises(frappe.PermissionError):

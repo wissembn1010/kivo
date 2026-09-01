@@ -20,6 +20,7 @@ class IntegrationTestPaymentReversal(IntegrationTestCase):
 				"business": self.business.name,
 			}
 		).insert()
+		self.add_opening_balance()
 
 	def make_business(self, business_name):
 		return frappe.get_doc(

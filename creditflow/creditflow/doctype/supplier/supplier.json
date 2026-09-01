@@ -9,6 +9,7 @@
   "supplier_name",
   "phone",
   "address",
+  "notes",
   "active"
  ],
  "fields": [
@@ -35,6 +36,9 @@
    "fieldname": "address",
    "fieldtype": "Small Text",
    "label": "Address"
+  },
+  {
+   "fieldname": "notes", "fieldtype": "Small Text", "label": "Notes"
   },
   {
    "default": "1",

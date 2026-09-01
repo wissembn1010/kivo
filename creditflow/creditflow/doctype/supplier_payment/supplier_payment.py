@@ -13,6 +13,7 @@ class SupplierPayment(Document):
 		self.validate_business_and_supplier()
 		self.validate_amount()
 		self.validate_payment_method()
+		self.validate_source_purchase()
 
 	def validate_business_and_supplier(self):
 		if not self.business or not frappe.db.exists("Business", self.business):
@@ -35,9 +36,30 @@ class SupplierPayment(Document):
 		self.amount = amount
 
 	def validate_payment_method(self):
-		allowed = {"CASH", "BANK_TRANSFER", "CHEQUE", "OTHER"}
+		allowed = {"CASH", "BANK_TRANSFER", "CHEQUE", "TRAITE", "OTHER"}
 		if self.payment_method and self.payment_method not in allowed:
 			frappe.throw(_("Payment Method is invalid."))
+
+	def validate_source_purchase(self):
+		if not self.source_purchase:
+			return
+		if not self.flags.get("creditflow_purchase_generated"):
+			frappe.throw(_("Purchase-linked Supplier Payments can only be created by a Purchase."))
+
+		purchase = frappe.get_doc("Purchase", self.source_purchase)
+		if (
+			purchase.docstatus == 2
+			or purchase.business != self.business
+			or purchase.supplier != self.supplier
+			or Decimal(str(purchase.paid_amount or 0)) != Decimal(str(self.amount))
+		):
+			frappe.throw(_("Supplier Payment must match its source Purchase."))
+
+		filters = {"source_purchase": self.source_purchase, "docstatus": ["!=", 2]}
+		if not self.is_new():
+			filters["name"] = ["!=", self.name]
+		if frappe.db.exists("Supplier Payment", filters):
+			frappe.throw(_("A Supplier Payment already exists for this Purchase."))
 
 	def before_submit(self):
 		self.validate()

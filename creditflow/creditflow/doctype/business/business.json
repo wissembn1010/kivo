@@ -5,35 +5,20 @@
  "creation": "2026-08-12 18:51:46.760420",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": [
-  "business_details_section",
-  "business_name",
-  "phone",
-  "address"
- ],
+ "field_order": ["business_details_section", "business_name", "phone", "country", "email", "address", "tax_identifier", "commercial_registration", "onboarding_section", "onboarding_status", "onboarded_at", "onboarding_completed_at"],
  "fields": [
-  {
-   "fieldname": "business_details_section",
-   "fieldtype": "Section Break",
-   "label": "Business Details"
-  },
-  {
-   "fieldname": "business_name",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Business Name",
-   "reqd": 1
-  },
-  {
-   "fieldname": "phone",
-   "fieldtype": "Data",
-   "label": "Phone"
-  },
-  {
-   "fieldname": "address",
-   "fieldtype": "Small Text",
-   "label": "Address"
-  }
+  {"fieldname": "business_details_section", "fieldtype": "Section Break", "label": "Business Details"},
+  {"fieldname": "business_name", "fieldtype": "Data", "in_list_view": 1, "label": "Business Name", "reqd": 1},
+  {"fieldname": "phone", "fieldtype": "Data", "label": "Phone"},
+  {"fieldname": "country", "fieldtype": "Link", "label": "Country", "options": "Country"},
+  {"fieldname": "email", "fieldtype": "Data", "label": "Email", "options": "Email"},
+  {"fieldname": "address", "fieldtype": "Small Text", "label": "Address"},
+  {"fieldname": "tax_identifier", "fieldtype": "Data", "label": "Matricule Fiscal"},
+  {"fieldname": "commercial_registration", "fieldtype": "Data", "label": "Commercial Registration"},
+  {"fieldname": "onboarding_section", "fieldtype": "Section Break", "label": "SaaS Onboarding"},
+  {"fieldname": "onboarding_status", "fieldtype": "Select", "label": "Onboarding Status", "options": "\nPROFILE_PENDING\nCOMPLETED", "read_only": 1},
+  {"fieldname": "onboarded_at", "fieldtype": "Datetime", "label": "Onboarded At", "read_only": 1},
+  {"fieldname": "onboarding_completed_at", "fieldtype": "Datetime", "label": "Onboarding Completed At", "read_only": 1}
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
@@ -44,28 +29,9 @@
  "name": "Business",
  "owner": "Administrator",
  "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  },
-  {
-   "create": 1,
-   "read": 1,
-   "role": "OWNER",
-   "write": 1
-  },
-  {
-   "read": 1,
-   "role": "STAFF"
-  }
+  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1},
+  {"create": 1, "read": 1, "role": "OWNER", "write": 1},
+  {"read": 1, "role": "STAFF"}
  ],
  "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,

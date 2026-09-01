@@ -1,7 +1,7 @@
 {
  "app": "creditflow",
  "charts": [],
- "content": "[{\"id\":\"creditflow_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h2\\\">CreditFlow</span>\",\"col\":12}},{\"id\":\"kpi_0\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Customer Debt\",\"col\":3}},{\"id\":\"kpi_1\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Supplier Debt\",\"col\":3}},{\"id\":\"kpi_2\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Sales Today\",\"col\":3}},{\"id\":\"kpi_3\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Cash Collected Today\",\"col\":3}},{\"id\":\"kpi_4\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Payments Today\",\"col\":3}},{\"id\":\"kpi_5\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Supplier Payments Today\",\"col\":3}},{\"id\":\"kpi_6\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Purchases Today\",\"col\":3}},{\"id\":\"kpi_negative\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Negative Stock Products\",\"col\":3}},{\"id\":\"quick_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Quick Entry</span>\",\"col\":12}},{\"id\":\"quick_0\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Sale\",\"col\":4}},{\"id\":\"quick_1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Payment\",\"col\":4}},{\"id\":\"quick_2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Purchase\",\"col\":4}},{\"id\":\"sections_spacer\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"section_0\",\"type\":\"card\",\"data\":{\"card_name\":\"Operations\",\"col\":3}},{\"id\":\"section_1\",\"type\":\"card\",\"data\":{\"card_name\":\"Master Data\",\"col\":3}},{\"id\":\"section_2\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":3}},{\"id\":\"section_3\",\"type\":\"card\",\"data\":{\"card_name\":\"Corrections\",\"col\":3}}]",
+ "content": "[{\"id\":\"creditflow_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h2\\\">CreditFlow</span>\",\"col\":12}},{\"id\":\"kpi_0\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Customer Debt\",\"col\":3}},{\"id\":\"kpi_1\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Supplier Debt\",\"col\":3}},{\"id\":\"kpi_2\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Net Sales Today\",\"col\":3}},{\"id\":\"kpi_3\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Cash Collected Today\",\"col\":3}},{\"id\":\"kpi_4\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Net Sales This Month\",\"col\":3}},{\"id\":\"kpi_5\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Purchases This Month\",\"col\":3}},{\"id\":\"kpi_6\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Returns This Month\",\"col\":3}},{\"id\":\"kpi_negative\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Low / Out of Stock Products\",\"col\":3}},{\"id\":\"quick_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Quick Entry</span>\",\"col\":12}},{\"id\":\"quick_0\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Sale\",\"col\":4}},{\"id\":\"quick_1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Payment\",\"col\":4}},{\"id\":\"quick_2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Purchase\",\"col\":4}},{\"id\":\"sections_spacer\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"section_0\",\"type\":\"card\",\"data\":{\"card_name\":\"Operations\",\"col\":3}},{\"id\":\"section_1\",\"type\":\"card\",\"data\":{\"card_name\":\"Master Data\",\"col\":3}},{\"id\":\"section_2\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":3}},{\"id\":\"section_3\",\"type\":\"card\",\"data\":{\"card_name\":\"Corrections\",\"col\":3}}]",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
@@ -17,7 +17,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Operations",
-   "link_count": 6,
+   "link_count":  7,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -88,6 +88,9 @@
    "type": "Link"
   },
   {
+   "dependencies": "", "hidden": 0, "is_query_report": 0, "label": "CSV Import & Onboarding", "link_count": 0, "link_to": "creditflow-import", "link_type": "Page", "onboard": 0, "type": "Link"
+  },
+  {
    "description": "Customers, products, and suppliers",
    "hidden": 0,
    "is_query_report": 0,
@@ -134,7 +137,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Reports",
-   "link_count": 3,
+   "link_count": 8,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -170,6 +173,21 @@
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Sales Report", "link_count": 0, "link_to": "Sales Report", "link_type": "Report", "onboard": 0, "type": "Link"
+  },
+  {
+   "dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Purchases Report", "link_count": 0, "link_to": "Purchases Report", "link_type": "Report", "onboard": 0, "type": "Link"
+  },
+  {
+   "dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Customer Statement", "link_count": 0, "link_to": "Customer Statement", "link_type": "Report", "onboard": 0, "type": "Link"
+  },
+  {
+   "dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Supplier Statement", "link_count": 0, "link_to": "Supplier Statement", "link_type": "Report", "onboard": 0, "type": "Link"
+  },
+  {
+   "dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Product Performance", "link_count": 0, "link_to": "Product Performance", "link_type": "Report", "onboard": 0, "type": "Link"
   },
   {
    "description": "Append-only reversal workflows",
@@ -227,28 +245,28 @@
    "number_card_name": "Total Supplier Debt"
   },
   {
-   "label": "Sales Today",
-   "number_card_name": "Sales Today"
+   "label": "Net Sales Today",
+   "number_card_name": "Net Sales Today"
   },
   {
     "label": "Cash Collected Today",
     "number_card_name": "Cash Collected Today"
   },
   {
-   "label": "Payments Today",
-   "number_card_name": "Payments Today"
+   "label": "Net Sales This Month",
+   "number_card_name": "Net Sales This Month"
   },
   {
-   "label": "Supplier Payments Today",
-   "number_card_name": "Supplier Payments Today"
+   "label": "Purchases This Month",
+   "number_card_name": "Purchases This Month"
   },
   {
-   "label": "Purchases Today",
-   "number_card_name": "Purchases Today"
+   "label": "Returns This Month",
+   "number_card_name": "Returns This Month"
   },
   {
-   "label": "Negative Stock Products",
-   "number_card_name": "Negative Stock Products"
+   "label": "Low / Out of Stock Products",
+   "number_card_name": "Low / Out of Stock Products"
   }
  ],
  "owner": "Administrator",

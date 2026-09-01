@@ -1,0 +1,65 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:uom_code",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "uom_code",
+  "uom_name",
+  "active"
+ ],
+ "fields": [
+  {
+   "fieldname": "uom_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "UOM Code",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "uom_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "UOM Name",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "label": "Active"
+  }
+ ],
+ "grid_page_length": 50,
+ "links": [],
+ "module": "CreditFlow",
+ "name": "CreditFlow UOM",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "OWNER",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "STAFF"
+  }
+ ],
+ "row_format": "Dynamic",
+ "show_title_field_in_link": 1,
+ "sort_field": "uom_code",
+ "sort_order": "ASC",
+ "title_field": "uom_name",
+ "states": []
+}

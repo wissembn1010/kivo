@@ -66,31 +66,36 @@
     "fieldname": "source_purchase",
     "fieldtype": "Link",
     "label": "Source Purchase",
-    "options": "Purchase"
+    "options": "Purchase",
+    "read_only": 1
    },
    {
     "fieldname": "source_supplier_payment",
     "fieldtype": "Link",
     "label": "Source Supplier Payment",
-    "options": "Supplier Payment"
+    "options": "Supplier Payment",
+    "read_only": 1
    },
    {
     "fieldname": "source_purchase_reversal",
     "fieldtype": "Link",
     "label": "Source Purchase Reversal",
-    "options": "Purchase Reversal"
+    "options": "Purchase Reversal",
+    "read_only": 1
    },
    {
     "fieldname": "source_supplier_payment_reversal",
     "fieldtype": "Link",
     "label": "Source Supplier Payment Reversal",
-    "options": "Supplier Payment Reversal"
+    "options": "Supplier Payment Reversal",
+    "read_only": 1
    },
    {
     "fieldname": "reversal_of",
     "fieldtype": "Link",
     "label": "Reversal Of",
-    "options": "Supplier Transaction"
+    "options": "Supplier Transaction",
+    "read_only": 1
    },
    {
     "fieldname": "notes",
@@ -141,11 +146,8 @@
     "write": 1
    },
    {
-    "create": 1,
     "read": 1,
-    "role": "STAFF",
-    "submit": 1,
-    "write": 1
+    "role": "STAFF"
    }
   ],
   "row_format": "Dynamic",

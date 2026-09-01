@@ -19,6 +19,8 @@ class SaleReversal(Document):
 			frappe.throw(_("Only a submitted Sale can be reversed."))
 		if self.business != original_sale.business:
 			frappe.throw(_("Sale Reversal Business must match the Original Sale Business."))
+		if frappe.db.exists("Sale Return", {"original_sale": original_sale.name, "docstatus": 1}):
+			frappe.throw(_("A Sale with submitted partial returns cannot be fully reversed."))
 
 	def validate_not_already_reversed(self):
 		filters = {"original_sale": self.original_sale, "docstatus": 1}

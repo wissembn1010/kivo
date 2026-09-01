@@ -4,6 +4,9 @@ Customer credit, payment and debt management system
 
 ### Installation
 
+Pilot onboarding and operations: [docs/ONBOARDING.md](docs/ONBOARDING.md)
+
+
 You can install this app using the [bench](https://github.com/frappe/bench) CLI:
 
 ```bash

@@ -80,13 +80,6 @@
     "role": "OWNER",
     "submit": 1,
     "write": 1
-   },
-   {
-    "create": 1,
-    "read": 1,
-    "role": "STAFF",
-    "submit": 1,
-    "write": 1
    }
   ],
   "row_format": "Dynamic",

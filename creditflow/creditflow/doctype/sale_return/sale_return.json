@@ -1,0 +1,28 @@
+{
+ "doctype":"DocType","name":"Sale Return","module":"CreditFlow","autoname":"SRET-.#####","naming_rule":"Expression","is_submittable":1,"engine":"InnoDB","track_changes":1,
+ "field_order":["business","original_sale","customer","return_date","reason","notes","items","return_ht","return_tva","return_ttc","debt_reduction","refund_amount","refund_status","refund_method","refund_reference","refund_date","amended_from"],
+ "fields":[
+  {"fieldname":"business","fieldtype":"Link","options":"Business","label":"Business","reqd":1,"read_only":1},
+  {"fieldname":"original_sale","fieldtype":"Link","options":"Sale","label":"Original Sale","reqd":1,"in_list_view":1},
+  {"fieldname":"customer","fieldtype":"Link","options":"Customer","label":"Customer","read_only":1,"in_list_view":1},
+  {"fieldname":"return_date","fieldtype":"Date","label":"Return Date","default":"Today","reqd":1,"in_list_view":1},
+  {"fieldname":"reason","fieldtype":"Small Text","label":"Return Reason","reqd":1},
+  {"fieldname":"notes","fieldtype":"Small Text","label":"Notes"},
+  {"fieldname":"items","fieldtype":"Table","options":"Sale Return Item","label":"Return Items","reqd":1},
+  {"fieldname":"return_ht","fieldtype":"Currency","label":"Return HT","precision":"3","read_only":1},
+  {"fieldname":"return_tva","fieldtype":"Currency","label":"Return TVA","precision":"3","read_only":1},
+  {"fieldname":"return_ttc","fieldtype":"Currency","label":"Return TTC","precision":"3","read_only":1,"in_list_view":1},
+  {"fieldname":"debt_reduction","fieldtype":"Currency","label":"Debt Reduction","precision":"3","read_only":1},
+  {"fieldname":"refund_amount","fieldtype":"Currency","label":"Refund Amount","precision":"3","read_only":1},
+  {"fieldname":"refund_status","fieldtype":"Select","label":"Refund Status","options":"NO_REFUND\nREFUND_DUE\nREFUNDED","read_only":1,"allow_on_submit":1,"in_list_view":1},
+  {"fieldname":"refund_method","fieldtype":"Select","label":"Refund Method","options":"CASH\nBANK_TRANSFER\nOTHER","allow_on_submit":1},
+  {"fieldname":"refund_reference","fieldtype":"Data","label":"Refund Reference","allow_on_submit":1},
+  {"fieldname":"refund_date","fieldtype":"Date","label":"Refund Date","allow_on_submit":1},
+  {"fieldname":"amended_from","fieldtype":"Link","options":"Sale Return","label":"Amended From","read_only":1,"no_copy":1,"print_hide":1}
+ ],
+ "permissions":[
+  {"role":"System Manager","read":1,"write":1,"create":1,"submit":1,"cancel":1,"delete":1,"print":1,"email":1,"report":1,"export":1,"share":1,"amend":1},
+  {"role":"OWNER","read":1,"write":1,"create":1,"submit":1,"print":1},
+  {"role":"STAFF","read":1,"print":1}
+ ]
+}

@@ -50,6 +50,7 @@ class PurchaseReversal(Document):
 		try:
 			self.create_reversal_movements(original_movements)
 			self.create_supplier_transaction(original_transaction)
+			self.reverse_automatic_supplier_payment()
 		except Exception:
 			frappe.db.rollback(save_point=save_point)
 			raise
@@ -170,6 +171,40 @@ class PurchaseReversal(Document):
 		transaction.flags.creditflow_system_generated = True
 		transaction.insert(ignore_permissions=True)
 		transaction.submit()
+
+	def reverse_automatic_supplier_payment(self):
+		purchase = frappe.get_doc("Purchase", self.original_purchase)
+		payment_name = purchase.automatic_supplier_payment or frappe.db.get_value(
+			"Supplier Payment",
+			{"source_purchase": purchase.name, "docstatus": 1},
+			"name",
+		)
+		if not payment_name:
+			return
+
+		existing_reversal = frappe.db.get_value(
+			"Supplier Payment Reversal",
+			{"original_supplier_payment": payment_name, "docstatus": 1},
+			"name",
+		)
+		if existing_reversal:
+			self.automatic_supplier_payment_reversal = existing_reversal
+			return
+
+		reversal = frappe.get_doc(
+			{
+				"doctype": "Supplier Payment Reversal",
+				"business": purchase.business,
+				"original_supplier_payment": payment_name,
+				"business_date": self.business_date,
+				"reason": _("Automatic payment reversal for Purchase Reversal {0}").format(
+					self.name
+				),
+			}
+		)
+		reversal.insert(ignore_permissions=True)
+		reversal.submit()
+		self.automatic_supplier_payment_reversal = reversal.name
 
 	def before_cancel(self):
 		frappe.throw(_("Submitted Purchase Reversals cannot be cancelled."))

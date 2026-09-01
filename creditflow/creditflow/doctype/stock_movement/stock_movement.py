@@ -4,11 +4,13 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from creditflow.uom import get_row_base_quantity
 
-SYSTEM_REASONS = {"PURCHASE", "SALE", "REVERSAL"}
+
+SYSTEM_REASONS = {"PURCHASE", "SALE", "CUSTOMER_RETURN", "REVERSAL"}
 MANUAL_REASONS = {"OPENING_STOCK", "MANUAL_ADJUSTMENT"}
 VALID_DIRECTIONS = {"IN", "OUT"}
-SOURCE_FIELDS = ("source_sale", "source_purchase", "source_sale_reversal", "source_purchase_reversal")
+SOURCE_FIELDS = ("source_sale", "source_purchase", "source_sale_reversal", "source_sale_return", "source_sale_return_item", "source_purchase_reversal")
 
 
 class StockMovement(Document):
@@ -51,6 +53,8 @@ class StockMovement(Document):
 			self.validate_source_movement("Sale", "source_sale", "OUT")
 		elif self.movement_reason == "PURCHASE":
 			self.validate_source_movement("Purchase", "source_purchase", "IN")
+		elif self.movement_reason == "CUSTOMER_RETURN":
+			self.validate_customer_return()
 		else:
 			self.validate_reversal_movement()
 
@@ -66,7 +70,13 @@ class StockMovement(Document):
 		source = frappe.get_doc(doctype, source_name)
 		if source.docstatus == 2 or source.business != self.business:
 			frappe.throw(_("Stock Movement does not match its source {0}.").format(doctype))
-		matching_rows = [row for row in source.items if row.product == self.product and Decimal(str(row.quantity)) == Decimal(str(self.quantity))]
+		movement_quantity = Decimal(str(self.quantity))
+		matching_rows = [
+			row
+			for row in source.items
+			if row.product == self.product
+			and get_row_base_quantity(row) == movement_quantity
+		]
 		if not matching_rows:
 			frappe.throw(_("Stock Movement Product and Quantity must match a source item row."))
 		filters = {source_field: source_name, "product": self.product, "quantity": self.quantity, "docstatus": ["!=", 2]}
@@ -74,6 +84,25 @@ class StockMovement(Document):
 			filters["name"] = ["!=", self.name]
 		if frappe.db.count("Stock Movement", filters) >= len(matching_rows):
 			frappe.throw(_("A Stock Movement already exists for this source item row."))
+
+	def validate_customer_return(self):
+		if not self.source_sale_return or not self.source_sale_return_item:
+			frappe.throw(_("Customer Return Stock Movements require their Sale Return row source."))
+		if any(self.get(field) for field in SOURCE_FIELDS if field not in {"source_sale_return", "source_sale_return_item"}):
+			frappe.throw(_("Stock Movement source fields do not match CUSTOMER_RETURN."))
+		if self.direction != "IN" or self.reversal_of:
+			frappe.throw(_("Customer Return Stock Movement must restore stock with direction IN."))
+		return_doc = frappe.get_doc("Sale Return", self.source_sale_return)
+		rows = [row for row in return_doc.items if row.name == self.source_sale_return_item]
+		if return_doc.docstatus == 2 or return_doc.business != self.business or len(rows) != 1:
+			frappe.throw(_("Stock Movement must match its Sale Return source."))
+		row = rows[0]
+		if row.product != self.product or Decimal(str(row.base_quantity)) != Decimal(str(self.quantity)):
+			frappe.throw(_("Stock Movement Product and Quantity must match its Sale Return row."))
+		filters = {"source_sale_return_item": row.name, "docstatus": ["!=", 2]}
+		if not self.is_new(): filters["name"] = ["!=", self.name]
+		if frappe.db.exists("Stock Movement", filters):
+			frappe.throw(_("A Stock Movement already exists for this Sale Return row."))
 
 	def validate_reversal_movement(self):
 		if not self.reversal_of:

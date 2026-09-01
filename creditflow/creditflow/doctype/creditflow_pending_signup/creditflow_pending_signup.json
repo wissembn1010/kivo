@@ -1,0 +1,31 @@
+{
+ "actions": [],
+ "autoname": "format:CFPEND-{#####}",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["email", "first_name", "last_name", "business_name", "phone", "country", "status", "token_hash", "consumed_token_hash", "token_expires_at", "last_verification_sent_at", "resend_window_start", "resend_count", "provisioned_user", "business", "subscription"],
+ "fields": [
+  {"fieldname":"email","fieldtype":"Data","label":"Email","options":"Email","reqd":1,"unique":1,"in_list_view":1},
+  {"fieldname":"first_name","fieldtype":"Data","label":"First Name","reqd":1},
+  {"fieldname":"last_name","fieldtype":"Data","label":"Last Name","reqd":1},
+  {"fieldname":"business_name","fieldtype":"Data","label":"Business Name","reqd":1},
+  {"fieldname":"phone","fieldtype":"Data","label":"Phone"},
+  {"fieldname":"country","fieldtype":"Link","label":"Country","options":"Country"},
+  {"fieldname":"status","fieldtype":"Select","label":"Status","options":"PENDING\nPROVISIONED\nEXPIRED","reqd":1,"default":"PENDING","in_list_view":1},
+  {"fieldname":"token_hash","fieldtype":"Data","label":"Verification Token Hash","read_only":1,"unique":1,"hidden":1},
+  {"fieldname":"consumed_token_hash","fieldtype":"Data","label":"Consumed Token Hash","read_only":1,"hidden":1},
+  {"fieldname":"token_expires_at","fieldtype":"Datetime","label":"Token Expires At","read_only":1},
+  {"fieldname":"last_verification_sent_at","fieldtype":"Datetime","label":"Last Verification Sent At","read_only":1},
+  {"fieldname":"resend_window_start","fieldtype":"Datetime","label":"Resend Window Start","read_only":1,"hidden":1},
+  {"fieldname":"resend_count","fieldtype":"Int","label":"Resend Count","read_only":1,"default":0,"hidden":1},
+  {"fieldname":"provisioned_user","fieldtype":"Link","label":"Provisioned User","options":"User","read_only":1},
+  {"fieldname":"business","fieldtype":"Link","label":"Business","options":"Business","read_only":1},
+  {"fieldname":"subscription","fieldtype":"Link","label":"Subscription","options":"CreditFlow Subscription","read_only":1}
+ ],
+ "index_web_pages_for_search": 0,
+ "module": "CreditFlow",
+ "name": "CreditFlow Pending Signup",
+ "permissions": [{"role":"System Manager","read":1,"report":1}],
+ "sort_field": "creation",
+ "sort_order": "DESC"
+}

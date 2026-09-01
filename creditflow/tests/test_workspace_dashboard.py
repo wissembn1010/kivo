@@ -144,18 +144,18 @@ class IntegrationTestWorkspaceDashboard(IntegrationTestCase):
 
 		for card_name in (
 			"Total Customer Debt",
-			"Sales Today",
+			"Net Sales Today",
 			"Cash Collected Today",
-			"Payments Today",
-			"Purchases Today",
-			"Negative Stock Products",
+			"Net Sales This Month",
+			"Purchases This Month",
+			"Low / Out of Stock Products",
 		):
 			self.assertTrue(frappe.db.exists("Number Card", card_name), card_name)
 
 	def test_staff_kpis_are_limited_to_assigned_business(self):
 		frappe.set_user(self.staff)
 		self.assertEqual(dashboard.total_customer_debt()["value"], Decimal("10.345"))
-		self.assertEqual(dashboard.cash_collected_today()["value"], Decimal("12.345"))
+		self.assertEqual(dashboard.cash_collected_today()["value"], Decimal("15.555"))
 		self.assertEqual(dashboard.sales_today()["value"], Decimal("12.345"))
 		self.assertEqual(dashboard.payments_today()["value"], Decimal("3.210"))
 		self.assertEqual(dashboard.purchases_today()["value"], Decimal("9.876"))
@@ -169,7 +169,7 @@ class IntegrationTestWorkspaceDashboard(IntegrationTestCase):
 		)
 		self.assertEqual(
 			dashboard.cash_collected_today()["value"],
-			self.admin_baseline["cash_collected"] + Decimal("112.345"),
+			self.admin_baseline["cash_collected"] + Decimal("118.765"),
 		)
 		self.assertEqual(
 			dashboard.sales_today()["value"],

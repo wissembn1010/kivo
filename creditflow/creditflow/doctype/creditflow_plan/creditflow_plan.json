@@ -1,0 +1,17 @@
+{
+ "doctype":"DocType","name":"CreditFlow Plan","module":"CreditFlow","autoname":"field:plan_code","naming_rule":"By fieldname","engine":"InnoDB","track_changes":1,"title_field":"plan_name",
+ "field_order":["plan_name","plan_code","enabled","monthly_price","annual_price","description","entitlements"],
+ "fields":[
+  {"fieldname":"plan_name","fieldtype":"Data","label":"Plan Name","reqd":1,"in_list_view":1},
+  {"fieldname":"plan_code","fieldtype":"Data","label":"Plan Code","reqd":1,"unique":1,"in_list_view":1},
+  {"fieldname":"enabled","fieldtype":"Check","label":"Enabled","default":"1","in_list_view":1},
+  {"fieldname":"monthly_price","fieldtype":"Currency","label":"Monthly Price","precision":"3","non_negative":1},
+  {"fieldname":"annual_price","fieldtype":"Currency","label":"Annual Price","precision":"3","non_negative":1},
+  {"fieldname":"description","fieldtype":"Small Text","label":"Description"},
+  {"fieldname":"entitlements","fieldtype":"Table","options":"CreditFlow Plan Entitlement","label":"Entitlements"}
+ ],
+ "permissions":[
+  {"role":"System Manager","read":1,"write":1,"create":1,"delete":1,"report":1,"export":1},
+  {"role":"OWNER","read":1,"report":1}
+ ]
+}

@@ -9,6 +9,7 @@
   "business",
   "business_date",
   "reason",
+  "automatic_supplier_payment_reversal",
   "amended_from"
  ],
  "fields": [
@@ -38,6 +39,14 @@
    "fieldtype": "Small Text",
    "label": "Reason",
    "reqd": 1
+  },
+  {
+   "fieldname": "automatic_supplier_payment_reversal",
+   "fieldtype": "Link",
+   "label": "Automatic Supplier Payment Reversal",
+   "no_copy": 1,
+   "options": "Supplier Payment Reversal",
+   "read_only": 1
   },
   {
    "fieldname": "amended_from",

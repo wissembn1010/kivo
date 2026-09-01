@@ -1,0 +1,28 @@
+{
+ "doctype":"DocType","name":"CreditFlow Billing Payment","module":"CreditFlow","autoname":"CFPAY-.#####","naming_rule":"Expression","engine":"InnoDB","track_changes":1,"title_field":"internal_order_id",
+ "field_order":["business","subscription","plan","provider","internal_order_id","provider_payment_id","amount","currency","billing_cycle","status","checkout_url","provider_status","provider_response","created_at","paid_at","failed_at","billing_period_start","billing_period_end","last_reconciled_at","reconciliation_count","last_reconciliation_message"],
+ "fields":[
+  {"fieldname":"business","fieldtype":"Link","options":"Business","label":"Business","reqd":1,"in_list_view":1},
+  {"fieldname":"subscription","fieldtype":"Link","options":"CreditFlow Subscription","label":"Subscription"},
+  {"fieldname":"plan","fieldtype":"Link","options":"CreditFlow Plan","label":"Plan","reqd":1},
+  {"fieldname":"provider","fieldtype":"Select","options":"KONNECT","label":"Provider","reqd":1},
+  {"fieldname":"internal_order_id","fieldtype":"Data","label":"Internal Order ID","reqd":1,"unique":1,"in_list_view":1},
+  {"fieldname":"provider_payment_id","fieldtype":"Data","label":"Provider Payment ID","unique":1,"read_only":1},
+  {"fieldname":"amount","fieldtype":"Currency","label":"Amount","precision":"3","reqd":1},
+  {"fieldname":"currency","fieldtype":"Data","label":"Currency","reqd":1,"default":"TND"},
+  {"fieldname":"billing_cycle","fieldtype":"Select","options":"MONTHLY\nANNUAL","label":"Billing Cycle","reqd":1},
+  {"fieldname":"status","fieldtype":"Select","options":"PENDING\nSUCCEEDED\nFAILED\nEXPIRED\nCANCELLED\nREFUNDED","label":"Status","reqd":1,"default":"PENDING","in_list_view":1},
+  {"fieldname":"checkout_url","fieldtype":"Data","label":"Checkout URL","read_only":1},
+  {"fieldname":"provider_status","fieldtype":"Data","label":"Provider Status","read_only":1},
+  {"fieldname":"provider_response","fieldtype":"Long Text","label":"Safe Provider Metadata","read_only":1},
+  {"fieldname":"created_at","fieldtype":"Datetime","label":"Created At","read_only":1},
+  {"fieldname":"paid_at","fieldtype":"Datetime","label":"Paid At","read_only":1},
+  {"fieldname":"failed_at","fieldtype":"Datetime","label":"Failed/Expired At","read_only":1},
+  {"fieldname":"billing_period_start","fieldtype":"Datetime","label":"Billing Period Start","read_only":1},
+  {"fieldname":"billing_period_end","fieldtype":"Datetime","label":"Billing Period End","read_only":1},
+  {"fieldname":"last_reconciled_at","fieldtype":"Datetime","label":"Last Reconciled At","read_only":1},
+  {"fieldname":"reconciliation_count","fieldtype":"Int","label":"Reconciliation Count","read_only":1,"default":0},
+  {"fieldname":"last_reconciliation_message","fieldtype":"Small Text","label":"Last Reconciliation Message","read_only":1}
+ ],
+ "permissions":[{"role":"System Manager","read":1,"report":1,"export":1},{"role":"OWNER","read":1,"report":1}]
+}

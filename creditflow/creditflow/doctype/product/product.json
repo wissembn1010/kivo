@@ -11,9 +11,12 @@
   "product_name",
   "legacy_product_id",
   "primary_unit",
+  "uom_conversions",
   "selling_price",
   "professional_price",
   "minimum_selling_price",
+  "tva_rate",
+  "minimum_stock",
   "active",
   "reference"
  ],
@@ -45,9 +48,11 @@
   },
   {
    "fieldname": "primary_unit",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "Primary Unit",
-   "options": "UNIT\nKG\nM\nL\nBOX\nPACK\nOTHER"
+   "options": "CreditFlow UOM",
+   "default": "UNIT",
+   "reqd": 1
   },
   {
    "default": "0",
@@ -68,6 +73,21 @@
    "label": "Minimum Selling Price"
   },
   {
+   "default": "0",
+   "description": "TVA percentage applied to new Sale Items. Use 0 for exempt or zero-rated products.",
+   "fieldname": "tva_rate",
+   "fieldtype": "Percent",
+   "label": "TVA Rate",
+   "precision": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "minimum_stock",
+   "fieldtype": "Float",
+   "label": "Minimum Stock",
+   "precision": "3"
+  },
+  {
    "default": "1",
    "fieldname": "active",
    "fieldtype": "Check",
@@ -79,6 +99,12 @@
    "label": "Reference",
    "reqd": 1,
    "unique": 1
+  },
+  {
+   "fieldname": "uom_conversions",
+   "fieldtype": "Table",
+   "label": "UOM Conversions",
+   "options": "Product UOM Conversion"
   }
  ],
  "grid_page_length": 50,

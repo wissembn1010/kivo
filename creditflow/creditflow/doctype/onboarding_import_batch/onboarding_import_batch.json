@@ -1,0 +1,22 @@
+{
+ "doctype":"DocType","name":"Onboarding Import Batch","module":"CreditFlow","autoname":"IMPB-.#####","naming_rule":"Expression","engine":"InnoDB","track_changes":1,
+ "field_order":["business","import_type","filename","status","file_hash","import_key","input_row_count","row_count","success_count","failure_count","total_amount","errors","created_records","imported_by","imported_on"],
+ "fields":[
+  {"fieldname":"business","fieldtype":"Link","options":"Business","label":"Business","reqd":1,"in_list_view":1},
+  {"fieldname":"import_type","fieldtype":"Select","options":"CUSTOMERS\nSUPPLIERS\nPRODUCTS\nOPENING_STOCK\nOPENING_CUSTOMER_DEBT\nOPENING_SUPPLIER_DEBT","label":"Import Type","reqd":1,"in_list_view":1},
+  {"fieldname":"filename","fieldtype":"Data","label":"Original Filename","read_only":1},
+  {"fieldname":"status","fieldtype":"Select","options":"SUCCESS\nFAILED","label":"Final Status","read_only":1,"in_list_view":1},
+  {"fieldname":"file_hash","fieldtype":"Data","label":"File Hash","reqd":1,"read_only":1},
+  {"fieldname":"import_key","fieldtype":"Data","label":"Import Key","reqd":1,"read_only":1,"unique":1},
+  {"fieldname":"input_row_count","fieldtype":"Int","label":"Input Row Count","read_only":1},
+  {"fieldname":"row_count","fieldtype":"Int","label":"Row Count","read_only":1},
+  {"fieldname":"success_count","fieldtype":"Int","label":"Success Count","read_only":1},
+  {"fieldname":"failure_count","fieldtype":"Int","label":"Failure Count","read_only":1},
+  {"fieldname":"total_amount","fieldtype":"Currency","precision":"3","label":"Total / Quantity","read_only":1},
+  {"fieldname":"errors","fieldtype":"Long Text","label":"Structured Errors","read_only":1},
+  {"fieldname":"created_records","fieldtype":"Table","options":"Onboarding Import Result","label":"Row Results","read_only":1},
+  {"fieldname":"imported_by","fieldtype":"Link","options":"User","label":"Imported By","read_only":1},
+  {"fieldname":"imported_on","fieldtype":"Datetime","label":"Imported On","read_only":1}
+ ],
+ "permissions":[{"role":"System Manager","read":1,"report":1,"export":1},{"role":"OWNER","read":1,"report":1}]
+}

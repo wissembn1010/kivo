@@ -1,0 +1,1 @@
+{"add_total_row":1,"apply_user_permissions":1,"disabled":0,"doctype":"Report","is_standard":"Yes","module":"CreditFlow","name":"Purchases Report","ref_doctype":"Purchase","report_name":"Purchases Report","report_type":"Script Report","roles":[{"role":"OWNER"},{"role":"STAFF"},{"role":"System Manager"}]}

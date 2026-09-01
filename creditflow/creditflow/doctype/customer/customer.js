@@ -27,5 +27,12 @@ frappe.ui.form.on("Customer", {
                 business_date: frappe.datetime.get_today()
             });
         }, __("Create"));
+
+        frm.add_custom_button(__("Payments"), () => {
+            frappe.set_route("List", "Payment", {
+                business: frm.doc.business,
+                customer: frm.doc.name
+            });
+        }, __("View"));
     }
 });

@@ -97,6 +97,7 @@ class IntegrationTestPayment(IntegrationTestCase):
 			self.make_payment(customer=self.other_customer.name).validate()
 
 	def test_credit_transaction_failure_has_no_partial_side_effects(self):
+		self.add_opening_balance("100.000")
 		payment = self.make_payment()
 		payment.insert()
 
@@ -113,6 +114,7 @@ class IntegrationTestPayment(IntegrationTestCase):
 		self.assertEqual(frappe.db.get_value("Payment", payment.name, "docstatus"), 0)
 
 	def test_posted_payment_cannot_be_cancelled(self):
+		self.add_opening_balance("100.000")
 		payment = self.make_payment()
 		payment.insert()
 		payment.submit()

@@ -8,12 +8,26 @@
   "business",
   "customer",
   "business_date",
+  "invoice_number",
+  "seller_business_name",
+  "seller_address",
+  "seller_phone",
+  "seller_email",
+  "seller_tax_identifier",
+  "seller_commercial_registration",
+  "invoice_customer_name",
+  "invoice_customer_address",
+  "invoice_customer_phone",
+  "legacy_fiscal_data",
   "sale_mode",
   "amount_paid",
   "outstanding_amount",
   "payment_method",
   "payment_reference",
   "items",
+  "total_ht",
+  "total_tva",
+  "total_ttc",
   "total_amount",
   "notes",
   "overrides_section",
@@ -36,6 +50,45 @@
    "fieldtype": "Link",
    "label": "Customer",
    "options": "Customer"
+  },
+  {
+   "fieldname": "invoice_number",
+   "fieldtype": "Data",
+   "label": "Invoice Number",
+   "read_only": 1,
+   "unique": 1,
+   "no_copy": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "seller_business_name", "fieldtype": "Data", "label": "Seller Business Name", "read_only": 1, "hidden": 1
+  },
+  {
+   "fieldname": "seller_address", "fieldtype": "Small Text", "label": "Seller Address", "read_only": 1, "hidden": 1
+  },
+  {
+   "fieldname": "seller_phone", "fieldtype": "Data", "label": "Seller Phone", "read_only": 1, "hidden": 1
+  },
+  {
+   "fieldname": "seller_email", "fieldtype": "Data", "label": "Seller Email", "read_only": 1, "hidden": 1
+  },
+  {
+   "fieldname": "seller_tax_identifier", "fieldtype": "Data", "label": "Seller Matricule Fiscal", "read_only": 1, "hidden": 1
+  },
+  {
+   "fieldname": "seller_commercial_registration", "fieldtype": "Data", "label": "Seller Commercial Registration", "read_only": 1, "hidden": 1
+  },
+  {
+   "fieldname": "invoice_customer_name", "fieldtype": "Data", "label": "Invoice Customer Name", "read_only": 1, "hidden": 1
+  },
+  {
+   "fieldname": "invoice_customer_address", "fieldtype": "Small Text", "label": "Invoice Customer Address", "read_only": 1, "hidden": 1
+  },
+  {
+   "fieldname": "invoice_customer_phone", "fieldtype": "Data", "label": "Invoice Customer Phone", "read_only": 1, "hidden": 1
+  },
+  {
+   "default": "0", "fieldname": "legacy_fiscal_data", "fieldtype": "Check", "label": "Legacy Fiscal Data", "read_only": 1, "hidden": 1
   },
   {
    "default": "Today",
@@ -83,6 +136,30 @@
    "fieldname": "payment_reference",
    "fieldtype": "Data",
    "label": "Payment Reference"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_ht",
+   "fieldtype": "Currency",
+   "label": "Total HT",
+   "precision": "3",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "total_tva",
+   "fieldtype": "Currency",
+   "label": "Total TVA",
+   "precision": "3",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "total_ttc",
+   "fieldtype": "Currency",
+   "label": "Total TTC",
+   "precision": "3",
+   "read_only": 1
   },
   {
    "default": "0",
