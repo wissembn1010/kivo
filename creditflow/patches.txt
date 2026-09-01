@@ -8,3 +8,4 @@ creditflow.patches.v16_0.backfill_customer_payment_methods
 creditflow.patches.v16_0.backfill_legacy_sale_fiscal_snapshots
 # Patches added in this section will be executed after doctypes are migrated
 creditflow.patches.v16_0.seed_creditflow_plans
+creditflow.patches.v16_0.seed_tej_references

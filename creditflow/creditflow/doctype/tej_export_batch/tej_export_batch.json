@@ -1,0 +1,16 @@
+{
+ "doctype":"DocType","name":"TEJ Export Batch","module":"CreditFlow","autoname":"TEJ-.YYYY.-.#####","sort_field":"creation","sort_order":"DESC",
+ "field_order":["business","declaration_year","declaration_month","declaration_type","status","created_at","created_by","records","record_count","total_withholding_base","total_withheld_amount","generated_filename","xml_file","xml_checksum","xml_generation_status","xsd_validation_status","validation_errors","submission_state","submission_notes","correction_of"],
+ "fields":[
+  {"fieldname":"business","fieldtype":"Link","options":"Business","label":"Business","reqd":1,"in_list_view":1},
+  {"fieldname":"declaration_year","fieldtype":"Int","label":"Declaration Year","reqd":1,"in_list_view":1},
+  {"fieldname":"declaration_month","fieldtype":"Date","label":"Declaration Month","reqd":1,"description":"Use the first day of the monthly period","in_list_view":1},
+  {"default":"INITIAL","fieldname":"declaration_type","fieldtype":"Select","options":"INITIAL\nCORRECTIVE","label":"Declaration Type","reqd":1},
+  {"default":"DRAFT","fieldname":"status","fieldtype":"Select","options":"DRAFT\nEXPORT_READY\nVALIDATION_FAILED","label":"Status","read_only":1,"in_list_view":1},
+  {"fieldname":"created_at","fieldtype":"Datetime","label":"Created At","read_only":1},{"fieldname":"created_by","fieldtype":"Link","options":"User","label":"Created By","read_only":1},
+  {"fieldname":"records","fieldtype":"Table","options":"TEJ Export Batch Item","label":"Withholding Records","reqd":1},
+  {"fieldname":"record_count","fieldtype":"Int","label":"Record Count","read_only":1},{"fieldname":"total_withholding_base","fieldtype":"Currency","precision":"3","label":"Total Base","read_only":1},{"fieldname":"total_withheld_amount","fieldtype":"Currency","precision":"3","label":"Total Withheld","read_only":1},
+  {"fieldname":"generated_filename","fieldtype":"Data","label":"Generated Filename","read_only":1},{"fieldname":"xml_file","fieldtype":"Attach","label":"Validated XML","read_only":1},{"fieldname":"xml_checksum","fieldtype":"Data","label":"SHA-256","read_only":1},{"fieldname":"xml_generation_status","fieldtype":"Select","options":"\nGENERATED\nFAILED","label":"XML Generation","read_only":1},{"fieldname":"xsd_validation_status","fieldtype":"Select","options":"\nVALID\nINVALID","label":"XSD Validation","read_only":1},{"fieldname":"validation_errors","fieldtype":"Long Text","label":"Validation Errors","read_only":1},
+  {"default":"NOT_SUBMITTED","fieldname":"submission_state","fieldtype":"Select","options":"NOT_SUBMITTED\nSUBMITTED\nACCEPTED\nREJECTED","label":"Manual Submission State"},{"fieldname":"submission_notes","fieldtype":"Small Text","label":"Submission Notes"},{"fieldname":"correction_of","fieldtype":"Link","options":"TEJ Export Batch","label":"Correction Of"}],
+ "permissions":[{"role":"System Manager","read":1,"create":1,"write":1,"delete":1,"export":1},{"role":"OWNER","read":1,"create":1,"write":1,"delete":1,"export":1}]
+}

@@ -230,6 +230,15 @@
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "description":"Retenues à la source et déclarations officielles TEJ","hidden":0,"is_query_report":0,"label":"Fiscal","link_count":2,"onboard":0,"type":"Card Break"
+  },
+  {
+   "dependencies":"","hidden":0,"is_query_report":0,"label":"Retenues à la source","link_count":0,"link_to":"Withholding Tax","link_type":"DocType","onboard":0,"type":"Link"
+  },
+  {
+   "dependencies":"","hidden":0,"is_query_report":0,"label":"TEJ Exports","link_count":0,"link_to":"TEJ Export Batch","link_type":"DocType","onboard":0,"type":"Link"
   }
  ],
  "modified_by": "Administrator",

@@ -8,7 +8,16 @@
   "business",
   "supplier_name",
   "phone",
+  "email",
   "address",
+  "tej_identity_section",
+  "tej_identifier_type",
+  "tax_identifier",
+  "taxpayer_category",
+  "resident",
+  "date_of_birth",
+  "tej_country_code",
+  "activity",
   "notes",
   "active"
  ],
@@ -32,11 +41,20 @@
    "fieldtype": "Data",
    "label": "Phone"
   },
+  {"fieldname":"email","fieldtype":"Data","label":"Email","options":"Email"},
   {
    "fieldname": "address",
    "fieldtype": "Small Text",
    "label": "Address"
   },
+  {"fieldname":"tej_identity_section","fieldtype":"Section Break","label":"TEJ Beneficiary Identity"},
+  {"fieldname":"tej_identifier_type","fieldtype":"Select","label":"TEJ Identifier Type","options":"\n1\n2\n3\n4\n5","description":"1 Fiscal ID, 2 CIN, 3 Passport, 4 Residence Card, 5 Other foreign fiscal ID"},
+  {"fieldname":"tax_identifier","fieldtype":"Data","label":"Identification Number"},
+  {"fieldname":"taxpayer_category","fieldtype":"Select","label":"Taxpayer Category","options":"\nPP\nPM"},
+  {"default":"1","fieldname":"resident","fieldtype":"Check","label":"Resident in Tunisia"},
+  {"fieldname":"date_of_birth","fieldtype":"Date","label":"Date of Birth"},
+  {"fieldname":"tej_country_code","fieldtype":"Link","label":"TEJ Country Code","options":"TEJ Country Code"},
+  {"fieldname":"activity","fieldtype":"Data","label":"Activity"},
   {
    "fieldname": "notes", "fieldtype": "Small Text", "label": "Notes"
   },

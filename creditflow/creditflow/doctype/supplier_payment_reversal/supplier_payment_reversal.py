@@ -46,6 +46,7 @@ class SupplierPaymentReversal(Document):
 		frappe.db.savepoint(save_point)
 		try:
 			self.create_reversal_transaction(original_payment, original_transaction)
+			self.reverse_withholding_effect(original_payment)
 		except Exception:
 			frappe.db.rollback(save_point=save_point)
 			raise
@@ -84,6 +85,21 @@ class SupplierPaymentReversal(Document):
 		transaction.flags.creditflow_system_generated = True
 		transaction.insert(ignore_permissions=True)
 		transaction.submit()
+
+	def reverse_withholding_effect(self, original_payment):
+		withholding_name = frappe.db.get_value(
+			"Withholding Tax", {"source_supplier_payment": original_payment.name, "docstatus": 1}, "name"
+		)
+		if not withholding_name:
+			return
+		withholding = frappe.get_doc("Withholding Tax", withholding_name)
+		if withholding.status == "REVERSED":
+			frappe.throw(_("The withholding fiscal effect has already been reversed."))
+		tej_state = "EXPORTED_THEN_REVERSED" if withholding.tej_state == "EXPORTED" else withholding.tej_state
+		withholding.db_set(
+			{"status": "REVERSED", "reversed_by": self.name, "certificate_state": "REVERSED", "tej_state": tej_state},
+			update_modified=False,
+		)
 
 	def before_cancel(self):
 		frappe.throw(_("Submitted Supplier Payment Reversals cannot be cancelled."))

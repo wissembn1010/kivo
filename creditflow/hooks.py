@@ -69,6 +69,7 @@ doctype_js = {
 "Payment Reversal": "public/js/business_defaults.js",
 "Purchase Reversal": "public/js/business_defaults.js",
 "Supplier Payment Reversal": "public/js/business_defaults.js",
+"TEJ Export Batch": "public/js/business_defaults.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -173,6 +174,8 @@ permission_query_conditions = {
 		"Stock Movement",
 		"CreditFlow Subscription",
 		"CreditFlow Billing Payment",
+		"Withholding Tax",
+		"TEJ Export Batch",
 	)
 }
 

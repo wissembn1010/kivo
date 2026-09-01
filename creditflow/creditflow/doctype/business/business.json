@@ -5,7 +5,7 @@
  "creation": "2026-08-12 18:51:46.760420",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": ["business_details_section", "business_name", "phone", "country", "email", "address", "tax_identifier", "commercial_registration", "onboarding_section", "onboarding_status", "onboarded_at", "onboarding_completed_at"],
+ "field_order": ["business_details_section", "business_name", "phone", "country", "email", "address", "tax_identifier", "taxpayer_category", "commercial_registration", "onboarding_section", "onboarding_status", "onboarded_at", "onboarding_completed_at"],
  "fields": [
   {"fieldname": "business_details_section", "fieldtype": "Section Break", "label": "Business Details"},
   {"fieldname": "business_name", "fieldtype": "Data", "in_list_view": 1, "label": "Business Name", "reqd": 1},
@@ -14,6 +14,7 @@
   {"fieldname": "email", "fieldtype": "Data", "label": "Email", "options": "Email"},
   {"fieldname": "address", "fieldtype": "Small Text", "label": "Address"},
   {"fieldname": "tax_identifier", "fieldtype": "Data", "label": "Matricule Fiscal"},
+  {"default":"PM","fieldname":"taxpayer_category","fieldtype":"Select","label":"Taxpayer Category","options":"PP\nPM"},
   {"fieldname": "commercial_registration", "fieldtype": "Data", "label": "Commercial Registration"},
   {"fieldname": "onboarding_section", "fieldtype": "Section Break", "label": "SaaS Onboarding"},
   {"fieldname": "onboarding_status", "fieldtype": "Select", "label": "Onboarding Status", "options": "\nPROFILE_PENDING\nCOMPLETED", "read_only": 1},

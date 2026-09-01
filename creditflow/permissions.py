@@ -23,6 +23,8 @@ DEFAULTED_DOCTYPES = {
 	"Supplier Payment Reversal",
 	"CreditFlow Subscription",
 	"CreditFlow Billing Payment",
+	"Withholding Tax",
+	"TEJ Export Batch",
 }
 
 
