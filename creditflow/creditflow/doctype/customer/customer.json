@@ -111,11 +111,13 @@
   {
    "create": 1,
    "read": 1,
+   "report": 1,
    "role": "OWNER",
    "write": 1
   },
   {
    "read": 1,
+   "report": 1,
    "role": "STAFF"
   }
  ],

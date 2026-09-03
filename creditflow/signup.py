@@ -10,6 +10,7 @@ from frappe.utils import add_to_date, get_datetime, get_url, now_datetime, valid
 from frappe.utils.password import check_password
 
 from creditflow.permissions import get_user_business
+from creditflow.i18n import normalize_language
 from creditflow.subscription import create_trial_subscription, get_default_trial_plan
 
 SIGNUP_RATE_LIMIT = 10
@@ -18,10 +19,19 @@ VERIFICATION_ATTEMPT_LIMIT = 20
 RESEND_RATE_LIMIT = 5
 RESEND_COOLDOWN_SECONDS = 60
 TOKEN_LIFETIME_MINUTES = 45
-SIGNUP_REDIRECT = "/app/creditflow"
+SIGNUP_REDIRECT = "/app/kivo"
 ONBOARDING_ROUTE = "/creditflow-onboarding"
 GENERIC_SIGNUP_MESSAGE = _("If this email can be registered, a verification message will arrive shortly.")
 GENERIC_RESEND_MESSAGE = _("If a pending registration exists, a new verification message will arrive shortly.")
+
+
+def _clean_rpc_unsupported_fields(unsupported, expected_cmd, error_message):
+    """Remove only Frappe's command-routing field from public RPC kwargs."""
+    unsupported = dict(unsupported)
+    if unsupported.get("cmd") == expected_cmd:
+        unsupported.pop("cmd")
+    if unsupported:
+        frappe.throw(error_message)
 
 
 def _clean_required(value, label, max_length=140):
@@ -54,24 +64,25 @@ def _new_token():
     return secrets.token_urlsafe(32)
 
 
-def _verification_url(token):
+def _verification_url(token, language=None):
+    language_query = f"&_lang={normalize_language(language)}" if language else ""
     public_base_url = (frappe.conf.get("creditflow_public_base_url") or "").rstrip("/")
     if public_base_url:
         if not public_base_url.startswith("https://") and not frappe.conf.developer_mode:
-            frappe.throw(_("CreditFlow public URLs require HTTPS."))
-        return f"{public_base_url}/verify-signup?token={token}"
-    return get_url(f"/verify-signup?token={token}", allow_header_override=False)
+            frappe.throw(_("Kivo public URLs require HTTPS."))
+        return f"{public_base_url}/verify-signup?token={token}{language_query}"
+    return get_url(f"/verify-signup?token={token}{language_query}", allow_header_override=False)
 
 
-def _send_verification_email(email, token):
+def _send_verification_email(email, token, language="en"):
     frappe.sendmail(
         recipients=[email],
-        subject=_("Verify your CreditFlow email"),
+        subject=_("Verify your Kivo email", lang=language),
         message=_(
-            "<p>Confirm your email to create your CreditFlow Business and start your 14-day trial.</p>"
+            "<p>Confirm your email to create your Kivo Business and start your 14-day trial.</p>"
             "<p><a href=\"{0}\">Verify email and continue</a></p>"
             "<p>This single-use link expires in {1} minutes.</p>"
-        ).format(_verification_url(token), TOKEN_LIFETIME_MINUTES),
+        , lang=language).format(_verification_url(token, language), TOKEN_LIFETIME_MINUTES),
         now=True,
     )
 
@@ -93,10 +104,11 @@ def _set_fresh_token(pending, is_resend=False):
     return token
 
 
-def _create_user(first_name, last_name, email, password):
+def _create_user(first_name, last_name, email, password, language="en"):
     user = frappe.get_doc({
         "doctype": "User", "email": email, "first_name": first_name, "last_name": last_name,
         "enabled": 1, "new_password": password, "send_welcome_email": 0, "user_type": "System User",
+        "language": normalize_language(language),
     })
     user.flags.no_welcome_mail = True
     return user.insert(ignore_permissions=True)
@@ -116,7 +128,7 @@ def _assign_owner(user, business):
     frappe.clear_cache(user=user.name)
 
 
-def create_self_service_tenant(first_name, last_name, email, password, business_name, phone=None, country=None, **unsupported):
+def create_self_service_tenant(first_name, last_name, email, password, business_name, phone=None, country=None, language="en", **unsupported):
     """Trusted provisioning engine. Public callers must pass through token verification."""
     if unsupported:
         frappe.throw(_("Unsupported signup fields."))
@@ -140,7 +152,7 @@ def create_self_service_tenant(first_name, last_name, email, password, business_
     previous_user = frappe.session.user
     frappe.db.savepoint(savepoint)
     try:
-        user = _create_user(first_name, last_name, email, password)
+        user = _create_user(first_name, last_name, email, password, language)
         business = _create_business(business_name, email, phone, country)
         _assign_owner(user, business)
         frappe.set_user(user.name)
@@ -164,15 +176,15 @@ def request_signup(first_name, last_name, email, business_name, phone=None, coun
     pending = frappe.get_doc({
         "doctype": "CreditFlow Pending Signup", "email": email, "first_name": first_name,
         "last_name": last_name, "business_name": business_name, "phone": phone, "country": country,
-        "status": "PENDING",
+        "status": "PENDING", "language": normalize_language(getattr(frappe.local, "lang", None)),
     }).insert(ignore_permissions=True)
     token = _set_fresh_token(pending)
     try:
-        _send_verification_email(email, token)
+        _send_verification_email(email, token, pending.language)
         sent = True
     except Exception:
         frappe.clear_messages()
-        frappe.log_error(title="CreditFlow verification email delivery failed", message="Verification email delivery failed; no tenant was provisioned.")
+        frappe.log_error(title="Kivo verification email delivery failed", message="Verification email delivery failed; no tenant was provisioned.")
         sent = False
     return {"ok": True, "sent": sent, "message": GENERIC_SIGNUP_MESSAGE}
 
@@ -219,7 +231,7 @@ def verify_and_provision(token, password, **unsupported):
             frappe.throw(_("This verification link has expired."))
         result = create_self_service_tenant(
             pending.first_name, pending.last_name, pending.email, password, pending.business_name,
-            pending.phone, pending.country,
+            pending.phone, pending.country, pending.language,
         )
         pending.reload()
         pending.status = "PROVISIONED"
@@ -253,7 +265,7 @@ def resend_signup_verification(email):
         return {"ok": True, "message": GENERIC_RESEND_MESSAGE}
     token = _set_fresh_token(pending, is_resend=True)
     try:
-        _send_verification_email(email, token)
+        _send_verification_email(email, token, pending.language)
     except Exception:
         frappe.clear_messages()
     return {"ok": True, "message": GENERIC_RESEND_MESSAGE}
@@ -262,7 +274,12 @@ def resend_signup_verification(email):
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 @rate_limit(limit=SIGNUP_RATE_LIMIT, seconds=SIGNUP_RATE_WINDOW_SECONDS, methods="POST")
 def signup(first_name, last_name, email, business_name, phone=None, country=None, **unsupported):
-    request_signup(first_name, last_name, email, business_name, phone, country, **unsupported)
+    _clean_rpc_unsupported_fields(
+        unsupported,
+        expected_cmd="creditflow.signup.signup",
+        error_message=_("Unsupported signup fields."),
+    )
+    request_signup(first_name, last_name, email, business_name, phone, country)
     return {"ok": True, "message": GENERIC_SIGNUP_MESSAGE}
 
 
@@ -275,4 +292,9 @@ def resend_verification(email):
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 @rate_limit(limit=VERIFICATION_ATTEMPT_LIMIT, seconds=60 * 60, methods="POST")
 def complete_verification(token, password, **unsupported):
-    return verify_and_provision(token, password, **unsupported)
+    _clean_rpc_unsupported_fields(
+        unsupported,
+        expected_cmd="creditflow.signup.complete_verification",
+        error_message=_("Unsupported verification fields."),
+    )
+    return verify_and_provision(token, password)

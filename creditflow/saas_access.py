@@ -11,11 +11,11 @@ def _banner(summary):
         days = summary.get("days_remaining") or 0
         return _("{0} days left in your trial").format(days)
     if state == "PAST_DUE":
-        return _("Payment issue — CreditFlow is currently read-only")
+        return _("Payment issue — Kivo is currently read-only")
     if state == "EXPIRED":
-        return _("Trial/subscription expired — CreditFlow is read-only")
+        return _("Trial/subscription expired — Kivo is read-only")
     if state == "CANCELLED":
-        return _("Subscription cancelled — CreditFlow is read-only")
+        return _("Subscription cancelled — Kivo is read-only")
     return None
 
 
@@ -44,7 +44,7 @@ def get_owner_subscription_summary():
         frappe.throw(_("Only a Business OWNER can view subscription details."), frappe.PermissionError)
     business = get_user_business()
     if not business:
-        frappe.throw(_("Your user is not assigned to a CreditFlow Business."), frappe.PermissionError)
+        frappe.throw(_("Your user is not assigned to a Kivo Business."), frappe.PermissionError)
     return get_subscription_summary(business)
 
 

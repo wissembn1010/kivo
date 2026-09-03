@@ -126,12 +126,25 @@ class IntegrationTestWorkspaceDashboard(IntegrationTestCase):
 		movement.db_insert()
 
 	def test_workspace_metadata_and_targets_are_installed(self):
-		workspace = frappe.get_doc("Workspace", "CreditFlow")
+		workspace = frappe.get_doc("Workspace", "Kivo")
 		self.assertEqual(workspace.module, "CreditFlow")
+		self.assertEqual(workspace.title, "Kivo")
+		self.assertEqual(workspace.app, "creditflow")
 		self.assertEqual({row.role for row in workspace.roles}, {"OWNER", "STAFF"})
 		self.assertEqual(
 			{row.label for row in workspace.shortcuts},
-			{"New Sale", "New Payment", "New Purchase"},
+			{
+				"New Sale",
+				"New Customer Payment",
+				"New Purchase",
+				"New Customer",
+				"New Supplier",
+				"New Product",
+			},
+		)
+		self.assertEqual(
+			{row.label for row in workspace.links if row.type == "Card Break"},
+			{"Sales", "Purchases", "Inventory", "Fiscal", "Reports", "Settings"},
 		)
 
 		for row in workspace.links:
@@ -141,6 +154,8 @@ class IntegrationTestWorkspaceDashboard(IntegrationTestCase):
 				self.assertTrue(frappe.db.exists("DocType", row.link_to), row.link_to)
 			elif row.link_type == "Report":
 				self.assertTrue(frappe.db.exists("Report", row.link_to), row.link_to)
+			elif row.link_type == "Page":
+				self.assertTrue(frappe.db.exists("Page", row.link_to), row.link_to)
 
 		for card_name in (
 			"Total Customer Debt",
@@ -151,6 +166,98 @@ class IntegrationTestWorkspaceDashboard(IntegrationTestCase):
 			"Low / Out of Stock Products",
 		):
 			self.assertTrue(frappe.db.exists("Number Card", card_name), card_name)
+
+	def test_kivo_sidebar_uses_business_workflows_and_real_targets(self):
+		sidebar = frappe.get_doc("Workspace Sidebar", "Kivo")
+		self.assertEqual(sidebar.app, "creditflow")
+		self.assertEqual(sidebar.module, "CreditFlow")
+		self.assertEqual(
+			{row.label for row in sidebar.items if row.type == "Section Break"},
+			{"Sales", "Purchases", "Inventory", "Fiscal", "Reports", "Settings"},
+		)
+		for row in sidebar.items:
+			if row.type != "Link" or row.link_type == "URL":
+				continue
+			self.assertTrue(frappe.db.exists(row.link_type, row.link_to), row.link_to)
+
+		url_items = {row.label: row.url for row in sidebar.items if row.link_type == "URL"}
+		self.assertEqual(url_items, {"Language": "/kivo-language", "Subscription & Billing": "/creditflow-subscription"})
+
+	def test_primary_navigation_hides_internal_models(self):
+		technical = {
+			"Credit Transaction",
+			"Supplier Transaction",
+			"TEJ Operation Code",
+			"TEJ Country Code",
+			"CreditFlow Pending Signup",
+			"CreditFlow Plan Entitlement",
+			"CreditFlow Subscription",
+			"CreditFlow Billing Payment",
+			"CreditFlow Plan",
+		}
+		workspace_targets = {
+			row.link_to for row in frappe.get_doc("Workspace", "Kivo").links if row.type == "Link"
+		}
+		sidebar_targets = {
+			row.link_to for row in frappe.get_doc("Workspace Sidebar", "Kivo").items if row.type == "Link"
+		}
+		self.assertFalse(technical & workspace_targets)
+		self.assertFalse(technical & sidebar_targets)
+
+	def test_owner_can_see_kivo_workspace_and_fiscal_destinations(self):
+		from frappe.desk.desktop import get_workspaces
+
+		frappe.set_user(self.owner)
+		workspace_names = {row.name for row in get_workspaces()["pages"]}
+		self.assertIn("Kivo", workspace_names)
+		self.assertTrue(frappe.has_permission("Withholding Tax", "read"))
+		self.assertTrue(frappe.has_permission("TEJ Export Batch", "read"))
+
+	def test_owner_boot_payload_uses_live_kivo_sidebar(self):
+		from frappe.boot import get_bootinfo
+
+		frappe.set_user(self.owner)
+		bootinfo = get_bootinfo()
+		self.assertIn("kivo", bootinfo.workspace_sidebar_item)
+		sidebar = bootinfo.workspace_sidebar_item["kivo"]
+		self.assertEqual(sidebar["label"], "Kivo")
+		self.assertEqual(sidebar["app"], "creditflow")
+		self.assertEqual(
+			[item["label"] for item in sidebar["items"] if not item["child"]],
+			["Dashboard", "Sales", "Purchases", "Inventory", "Fiscal", "Reports", "Settings"],
+		)
+		self.assertNotIn("Credit Transaction", {item["link_to"] for item in sidebar["items"]})
+
+
+	def test_owner_can_load_every_sidebar_report_through_desk_api(self):
+		from frappe.desk import query_report
+
+		reports = (
+			"Sales Report",
+			"Purchases Report",
+			"Customer Balances",
+			"Supplier Balances",
+			"Customer Statement",
+			"Supplier Statement",
+			"Product Performance",
+			"Stock On Hand",
+		)
+		frappe.set_user(self.owner)
+		for report_name in reports:
+			script = query_report.get_script(report_name)
+			self.assertIn("frappe.query_reports", script["script"])
+			self.assertIn(report_name, script["script"])
+
+		for report_name in reports:
+			reference_doctype = frappe.db.get_value("Report", report_name, "ref_doctype")
+			self.assertTrue(frappe.has_permission(reference_doctype, "report"), report_name)
+
+		for report_name in reports:
+			if report_name in {"Customer Statement", "Supplier Statement"}:
+				continue
+			result = query_report.run(report_name, filters={})
+			self.assertTrue(result["columns"], report_name)
+
 
 	def test_staff_kpis_are_limited_to_assigned_business(self):
 		frappe.set_user(self.staff)

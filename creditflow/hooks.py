@@ -1,5 +1,5 @@
 app_name = "creditflow"
-app_title = "CreditFlow"
+app_title = "Kivo"
 app_publisher = "Wissen Benali"
 app_description = "Customer credit, payment and debt management system"
 app_email = "wissemwork10@gmail.com"
@@ -14,6 +14,7 @@ fixtures = [
 		"dt": "Custom Field",
 		"filters": [["name", "=", "User-creditflow_business"]],
 	},
+	{"dt": "Language", "filters": [["name", "=", "ar-TN"]]},
 ]
 
 # Apps
@@ -36,8 +37,13 @@ fixtures = [
 # ------------------
 
 # include js, css files in header of desk.html
-app_include_css = "/assets/creditflow/css/saas-access.css"
+app_include_css = ["/assets/creditflow/css/saas-access.css", "/assets/creditflow/css/kivo-i18n.css"]
+web_include_css = "/assets/creditflow/css/kivo-i18n.css"
 app_include_js = "/assets/creditflow/js/saas-access.js"
+
+standard_navbar_items = [
+	{"item_label": "Language", "item_type": "Route", "route": "/kivo-language", "icon": "language"},
+]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/creditflow/css/creditflow.css"
@@ -88,6 +94,7 @@ doctype_js = {
 
 # website user home page (dynamic for verified self-service tenants)
 get_website_user_home_page = "creditflow.saas_onboarding.get_creditflow_home_page"
+update_website_context = "creditflow.website.update_website_context"
 extend_bootinfo = "creditflow.saas_access.extend_bootinfo"
 
 # Generators

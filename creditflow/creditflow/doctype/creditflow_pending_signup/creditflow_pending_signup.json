@@ -3,7 +3,7 @@
  "autoname": "format:CFPEND-{#####}",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": ["email", "first_name", "last_name", "business_name", "phone", "country", "status", "token_hash", "consumed_token_hash", "token_expires_at", "last_verification_sent_at", "resend_window_start", "resend_count", "provisioned_user", "business", "subscription"],
+ "field_order": ["email", "first_name", "last_name", "business_name", "phone", "country", "language", "status", "token_hash", "consumed_token_hash", "token_expires_at", "last_verification_sent_at", "resend_window_start", "resend_count", "provisioned_user", "business", "subscription"],
  "fields": [
   {"fieldname":"email","fieldtype":"Data","label":"Email","options":"Email","reqd":1,"unique":1,"in_list_view":1},
   {"fieldname":"first_name","fieldtype":"Data","label":"First Name","reqd":1},
@@ -11,6 +11,7 @@
   {"fieldname":"business_name","fieldtype":"Data","label":"Business Name","reqd":1},
   {"fieldname":"phone","fieldtype":"Data","label":"Phone"},
   {"fieldname":"country","fieldtype":"Link","label":"Country","options":"Country"},
+  {"fieldname":"language","fieldtype":"Link","label":"Language","options":"Language","read_only":1},
   {"fieldname":"status","fieldtype":"Select","label":"Status","options":"PENDING\nPROVISIONED\nEXPIRED","reqd":1,"default":"PENDING","in_list_view":1},
   {"fieldname":"token_hash","fieldtype":"Data","label":"Verification Token Hash","read_only":1,"unique":1,"hidden":1},
   {"fieldname":"consumed_token_hash","fieldtype":"Data","label":"Consumed Token Hash","read_only":1,"hidden":1},

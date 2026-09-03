@@ -5,7 +5,7 @@
   "fieldname": "creditflow_business",
   "fieldtype": "Link",
   "insert_after": "username",
-  "label": "CreditFlow Business",
+  "label": "Kivo Business",
   "module": "CreditFlow",
   "name": "User-creditflow_business",
   "options": "Business"

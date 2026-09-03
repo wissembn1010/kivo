@@ -3,6 +3,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import frappe
+from frappe.handler import execute_cmd
 from frappe.tests import IntegrationTestCase
 from frappe.utils import add_to_date, get_datetime, now_datetime
 
@@ -15,6 +16,7 @@ class IntegrationTestVerifiedSignupOnboarding(IntegrationTestCase):
         frappe.set_user("Administrator")
         self.token_id = uuid4().hex[:12]
         self.email = f"verified-{self.token_id}@example.com"
+        self.rpc_count = 0
         self.password = f"Secure-{self.token_id}!42"
         self.sent_tokens = []
         self.mail_patch = patch("creditflow.signup._send_verification_email", side_effect=self._capture_mail)
@@ -24,7 +26,7 @@ class IntegrationTestVerifiedSignupOnboarding(IntegrationTestCase):
         self.mail_patch.stop()
         frappe.set_user("Administrator")
 
-    def _capture_mail(self, email, token):
+    def _capture_mail(self, email, token, language="en"):
         self.sent_tokens.append((email, token))
 
     def payload(self, **updates):
@@ -40,6 +42,24 @@ class IntegrationTestVerifiedSignupOnboarding(IntegrationTestCase):
 
     def verify(self, token=None, password=None):
         return signup_service.verify_and_provision(token or self.sent_tokens[-1][1], password or self.password)
+
+    def rpc(self, cmd, **fields):
+        previous_form_dict = frappe.local.form_dict
+        previous_request = getattr(frappe.local, "request", None)
+        previous_request_ip = frappe.local.request_ip
+        self.rpc_count += 1
+        frappe.local.form_dict = frappe._dict(cmd=cmd, **fields)
+        frappe.local.request_ip = f"192.0.2.{self.rpc_count}"
+        frappe.local.request = frappe._dict(method="POST", headers={}, remote_addr="127.0.0.1")
+        try:
+            return execute_cmd(cmd)
+        finally:
+            frappe.local.form_dict = previous_form_dict
+            frappe.local.request_ip = previous_request_ip
+            if previous_request is None:
+                del frappe.local.request
+            else:
+                frappe.local.request = previous_request
 
     def test_01_request_creates_only_pending_state(self):
         result, token = self.request()
@@ -168,7 +188,7 @@ class IntegrationTestVerifiedSignupOnboarding(IntegrationTestCase):
         self.assertEqual(get_creditflow_home_page(self.email), "creditflow-onboarding")
         result = complete_business_profile(business_name="Legal Name", phone="123", address="Tunis")
         business = frappe.get_doc("Business", business_name)
-        self.assertEqual(result["redirect_to"], "/app/creditflow")
+        self.assertEqual(result["redirect_to"], "/app/kivo")
         self.assertEqual(business.onboarding_status, "COMPLETED"); self.assertTrue(business.onboarding_completed_at)
         self.assertIsNone(get_creditflow_home_page(self.email))
 
@@ -223,3 +243,55 @@ class IntegrationTestVerifiedSignupOnboarding(IntegrationTestCase):
         for fn in (signup_service.create_self_service_tenant, signup_service.request_signup,
                    signup_service.verify_and_provision, signup_service._create_business, signup_service._assign_owner):
             self.assertNotIn(fn, frappe.whitelisted)
+
+    def test_21_signup_rpc_accepts_only_its_frappe_command_metadata(self):
+        payload = self.payload()
+        with patch("creditflow.signup.request_signup", return_value={"ok": True}) as request_signup:
+            result = self.rpc("creditflow.signup.signup", **payload)
+        self.assertTrue(result["ok"])
+        request_signup.assert_called_once_with(
+            payload["first_name"], payload["last_name"], payload["email"],
+            payload["business_name"], payload["phone"], None,
+        )
+
+    def test_22_verification_rpc_accepts_only_its_frappe_command_metadata(self):
+        with patch("creditflow.signup.verify_and_provision", return_value={"ok": True}) as provision:
+            result = self.rpc(
+                "creditflow.signup.complete_verification", token="opaque-token", password=self.password,
+            )
+        self.assertTrue(result["ok"])
+        provision.assert_called_once_with("opaque-token", self.password)
+
+    def test_23_signup_rpc_rejects_custom_and_privileged_fields(self):
+        attacks = {
+            "custom_field": "unexpected", "roles": ["System Manager"], "role": "System Manager",
+            "user_type": "System User", "enabled": 1, "creditflow_business": "BUS-X",
+            "subscription": "SUB-X", "plan": "PRO", "owner": "Administrator",
+        }
+        for field, value in attacks.items():
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(frappe.ValidationError, "Unsupported signup fields"):
+                    self.rpc("creditflow.signup.signup", **self.payload(), **{field: value})
+
+        # frappe.call removes this framework-reserved field; direct invocation must reject it too.
+        with self.assertRaisesRegex(frappe.ValidationError, "Unsupported signup fields"):
+            signup_service.signup(**self.payload(), ignore_permissions=True)
+
+    def test_24_verification_rpc_rejects_custom_and_privileged_fields(self):
+        attacks = {
+            "custom_field": "unexpected", "roles": ["System Manager"], "role": "System Manager",
+            "user_type": "System User", "enabled": 1, "creditflow_business": "BUS-X",
+            "subscription": "SUB-X", "plan": "PRO", "owner": "Administrator",
+        }
+        for field, value in attacks.items():
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(frappe.ValidationError, "Unsupported verification fields"):
+                    self.rpc(
+                        "creditflow.signup.complete_verification",
+                        token="opaque-token", password=self.password, **{field: value},
+                    )
+
+        with self.assertRaisesRegex(frappe.ValidationError, "Unsupported verification fields"):
+            signup_service.complete_verification(
+                token="opaque-token", password=self.password, ignore_permissions=True,
+            )

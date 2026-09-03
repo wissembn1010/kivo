@@ -88,7 +88,7 @@ def set_and_validate_business(doc, method=None):
 	assigned_business = get_user_business(user)
 	if not assigned_business:
 		frappe.throw(
-			_("Your user is not assigned to a CreditFlow Business."),
+			_("Your user is not assigned to a Kivo Business."),
 			frappe.PermissionError,
 		)
 
@@ -102,7 +102,7 @@ def set_and_validate_business(doc, method=None):
 
 	if document_business != assigned_business:
 		frappe.throw(
-			_("You can only access records for your assigned CreditFlow Business."),
+			_("You can only access records for your assigned Kivo Business."),
 			frappe.PermissionError,
 		)
 
@@ -125,7 +125,7 @@ def enforce_user_business_limit(doc, method=None):
 		return
 	assigned = get_user_business(user)
 	if not assigned or doc.creditflow_business != assigned:
-		frappe.throw(_("Users can only be assigned to your own CreditFlow Business."), frappe.PermissionError)
+		frappe.throw(_("Users can only be assigned to your own Kivo Business."), frappe.PermissionError)
 	from creditflow.subscription import get_entitlement, require_write_access
 
 	require_write_access(assigned)
@@ -145,4 +145,4 @@ def enforce_user_business_limit(doc, method=None):
 		(assigned, doc.name or ""),
 	)[0][0]
 	if count + 1 > limit:
-		frappe.throw(_("Your CreditFlow plan allows a maximum of {0} users.").format(limit), frappe.PermissionError)
+		frappe.throw(_("Your Kivo plan allows a maximum of {0} users.").format(limit), frappe.PermissionError)

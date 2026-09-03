@@ -1,0 +1,9 @@
+.kivo-language-picker { display:flex; align-items:center; gap:.5rem; justify-content:flex-end; margin:.75rem 0; }
+.kivo-language-picker label { margin:0; font-size:.875rem; color:var(--text-muted,#6b7280); }
+.kivo-language-picker select { min-width:8.5rem; border:1px solid var(--border-color,#d1d5db); border-radius:8px; padding:.45rem .65rem; background:var(--card-bg,#fff); color:var(--text-color,#111827); }
+.kivo-language-page { max-width:34rem; margin-inline:auto; }
+html[dir="rtl"] .cf-auth-shell, html[dir="rtl"] .cf-grid { direction:rtl; }
+html[dir="rtl"] .cf-card, html[dir="rtl"] .cf-brand-panel { text-align:start; }
+html[dir="rtl"] input, html[dir="rtl"] textarea { direction:rtl; text-align:start; }
+html[dir="rtl"] input[type="email"], html[dir="rtl"] input[type="password"], html[dir="rtl"] [data-numeric-input] { direction:ltr; text-align:start; }
+html[dir="rtl"] .kivo-language-picker { direction:ltr; }

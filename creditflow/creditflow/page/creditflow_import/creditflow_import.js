@@ -1,5 +1,5 @@
 frappe.pages["creditflow-import"].on_page_load = function (wrapper) {
-  const page = frappe.ui.make_app_page({ parent: wrapper, title: __("CreditFlow CSV Import"), single_column: true });
+  const page = frappe.ui.make_app_page({ parent: wrapper, title: __("Kivo CSV Import"), single_column: true });
   const type = page.add_field({ label: __("Import Type"), fieldtype: "Select", fieldname: "import_type", reqd: 1, options: ["CUSTOMERS", "SUPPLIERS", "PRODUCTS", "OPENING_STOCK", "OPENING_CUSTOMER_DEBT", "OPENING_SUPPLIER_DEBT"].join("\n") });
   const body = $("<div class='frappe-card p-4'><p class='text-muted'>Download a template, choose a CSV, preview every row, then commit only after validation succeeds.</p><input type='file' accept='.csv,text/csv' class='form-control mb-3'><pre class='mt-3'></pre></div>").appendTo(page.body);
   const input = body.find("input")[0]; const output = body.find("pre");

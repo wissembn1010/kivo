@@ -1,0 +1,118 @@
+Kivo,Kivo
+Language,Langue
+Choose your language,Choisissez votre langue
+Your language is saved for your next visit.,Votre langue est enregistrée pour votre prochaine visite.
+Back to Kivo,Retour à Kivo
+Dashboard,Tableau de bord
+Business Snapshot,Aperçu de l’activité
+Money Owed,Créances et dettes
+Inventory Attention,Alertes de stock
+Quick Actions,Actions rapides
+Sales,Ventes
+New Sale,Nouvelle vente
+Customers,Clients
+Customer,Client
+Customer Payments,Paiements clients
+Sale Returns,Retours de vente
+Sale Reversals,Annulations de vente
+Purchases,Achats
+New Purchase,Nouvel achat
+Suppliers,Fournisseurs
+Supplier,Fournisseur
+Supplier Payments,Paiements fournisseurs
+Purchase Reversals,Annulations d’achat
+Inventory,Stock
+Products,Produits
+Product,Produit
+Stock On Hand,Stock disponible
+Stock Movements,Mouvements de stock
+Low Stock,Stock faible
+Fiscal,Fiscalité
+Retenues à la source,Retenues à la source
+TEJ Exports,Exports TEJ
+Reports,Rapports
+Sales Report,Rapport des ventes
+Purchases Report,Rapport des achats
+Customer Balances,Soldes clients
+Supplier Balances,Soldes fournisseurs
+Customer Statement,Relevé client
+Supplier Statement,Relevé fournisseur
+Product Performance,Performance des produits
+Settings,Paramètres
+Business Profile,Profil de l’entreprise
+Import Data,Importer des données
+Units of Measure,Unités de mesure
+Subscription & Billing,Abonnement et facturation
+New,Nouveau
+Save,Enregistrer
+Submit,Soumettre
+Cancel,Annuler
+Delete,Supprimer
+Edit,Modifier
+Print,Imprimer
+Download,Télécharger
+Search,Rechercher
+Filter,Filtrer
+Export,Exporter
+Import,Importer
+Confirm,Confirmer
+Back,Retour
+Continue,Continuer
+Complete setup,Terminer la configuration
+Skip for now,Passer pour le moment
+Quantity,Quantité
+Unit Price,Prix unitaire
+Total,Total
+Discount,Remise
+Tax,Taxe
+Balance,Solde
+Paid,Payé
+Credit,Crédit
+Cash,Espèces
+Transfer,Virement
+Cheque,Chèque
+Card,Carte
+Date,Date
+Status,Statut
+Notes,Notes
+Start your Kivo trial,Démarrez votre essai Kivo
+Start your free trial,Démarrez votre essai gratuit
+Send verification email,Envoyer l’e-mail de vérification
+Verify your Kivo email,Vérifiez votre adresse e-mail Kivo
+Check your email,Vérifiez votre boîte e-mail
+First name,Prénom
+Last name,Nom
+Work email,E-mail professionnel
+Business name,Nom de l’entreprise
+Phone,Téléphone
+Country,Pays
+Optional,Facultatif
+Sign in,Se connecter
+Password,Mot de passe
+Confirm password,Confirmer le mot de passe
+Create my Kivo workspace,Créer mon espace Kivo
+Set up your Business,Configurez votre entreprise
+Period,Période
+From Date,Date de début
+To Date,Date de fin
+Today,Aujourd’hui
+This Week,Cette semaine
+This Month,Ce mois
+Custom,Personnalisé
+Withholding Tax,Retenue à la source
+Matricule fiscal,Matricule fiscal
+Draft,Brouillon
+Submitted,Soumis
+Confirmed,Confirmé
+Reversed,Annulé
+Exported,Exporté
+Accepted,Accepté
+Rejected,Rejeté
+Validation Failed,Échec de validation
+Verify your Kivo email,Vérifiez votre adresse e-mail Kivo
+"<p>Confirm your email to create your Kivo Business and start your 14-day trial.</p><p><a href=""{0}"">Verify email and continue</a></p><p>This single-use link expires in {1} minutes.</p>","<p>Confirmez votre e-mail pour créer votre entreprise Kivo et démarrer votre essai de 14 jours.</p><p><a href=""{0}"">Vérifier l’e-mail et continuer</a></p><p>Ce lien à usage unique expire dans {1} minutes.</p>"
+"<span class=""h2"">Kivo</span><p class=""text-muted"">Your business dashboard</p>",Kivo — Tableau de bord de votre entreprise
+"<span class=""h4"">Business Snapshot</span>",Aperçu de l’activité
+"<span class=""h4"">Money Owed</span>",Créances et dettes
+"<span class=""h4"">Inventory Attention</span>",Alertes de stock
+"<span class=""h4"">Quick Actions</span>",Actions rapides

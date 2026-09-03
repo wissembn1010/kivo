@@ -1,0 +1,28 @@
+<div class="kivo-language-picker" dir="ltr">
+  <label for="kivo-language-select">{{ _("Language") }}</label>
+  <select id="kivo-language-select" aria-label="{{ _('Language') }}">
+    {% for code, display_name in kivo_languages.items() %}
+    <option value="{{ code }}"{% if code == kivo_language %} selected{% endif %}>{{ display_name }}</option>
+    {% endfor %}
+  </select>
+</div>
+<script>
+(() => {
+  const language = {{ kivo_language | tojson }};
+  const direction = {{ kivo_direction | tojson }};
+  document.documentElement.lang = language;
+  document.documentElement.dir = direction;
+  const select = document.getElementById("kivo-language-select");
+  if (!select || select.dataset.bound) return;
+  select.dataset.bound = "1";
+  select.addEventListener("change", async () => {
+    document.cookie = `preferred_language=${encodeURIComponent(select.value)}; Path=/; Max-Age=31536000; SameSite=Lax`;
+    if (window.frappe?.call) {
+      await frappe.call("creditflow.i18n.set_language", {language: select.value});
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set("_lang", select.value);
+    window.location.assign(url.toString());
+  });
+})();
+</script>

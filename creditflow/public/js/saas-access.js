@@ -1,3 +1,16 @@
+if (window.frappe?.boot?.lang === "ar-TN") {
+  const originalIsRtl = frappe.utils.is_rtl.bind(frappe.utils);
+  frappe.utils.is_rtl = (lang = null) => (lang || frappe.boot.lang) === "ar-TN" || originalIsRtl(lang);
+  document.documentElement.lang = "ar-TN";
+  document.documentElement.dir = "rtl";
+  const rtlDesk = frappe.assets?.bundled_asset?.("desk.bundle.css", true);
+  if (rtlDesk && !document.querySelector("link[data-kivo-rtl]")) {
+    const link = document.createElement("link");
+    link.rel = "stylesheet"; link.href = rtlDesk; link.dataset.kivoRtl = "1";
+    document.head.appendChild(link);
+  }
+}
+
 frappe.ready(() => {
   const policy = frappe.boot && frappe.boot.creditflow_saas;
   if (!policy) return;
@@ -14,7 +27,7 @@ frappe.ready(() => {
     frappe.router.on("change", () => setTimeout(() => {
       if (window.cur_frm && policy.protected_doctypes.includes(cur_frm.doctype)) {
         cur_frm.disable_save();
-        cur_frm.set_intro(__("Your CreditFlow subscription is read-only. Your existing data is safe."), "orange");
+        cur_frm.set_intro(__("Your Kivo subscription is read-only. Your existing data is safe."), "orange");
       }
     }, 100));
   }

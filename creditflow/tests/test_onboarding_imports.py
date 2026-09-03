@@ -55,7 +55,7 @@ class IntegrationTestOnboardingImports(IntegrationTestCase):
     def test_clean_install_metadata_is_complete_and_idempotent(self):
         frappe.set_user("Administrator");ensure_security_metadata();seed_default_uoms();ensure_security_metadata();seed_default_uoms()
         for role in ("OWNER","STAFF"):self.assertTrue(frappe.db.exists("Role",role))
-        self.assertTrue(frappe.db.exists("Custom Field","User-creditflow_business"));self.assertTrue(frappe.db.exists("Workspace","CreditFlow"));self.assertTrue(frappe.db.exists("Page","creditflow-import"))
+        self.assertTrue(frappe.db.exists("Custom Field","User-creditflow_business"));self.assertTrue(frappe.db.exists("Workspace","Kivo"));self.assertTrue(frappe.db.exists("Page","creditflow-import"))
         for report in ("Sales Report","Purchases Report","Customer Statement","Supplier Statement","Product Performance","Customer Balances","Stock On Hand"):self.assertTrue(frappe.db.exists("Report",report),report)
         for card in ("Net Sales Today","Net Sales This Month","Cash Collected Today","Total Customer Debt","Total Supplier Debt","Purchases This Month","Returns This Month","Low / Out of Stock Products"):self.assertTrue(frappe.db.exists("Number Card",card),card)
         for fmt in ("Fiscal Invoice","Payment Receipt","Sale Return Receipt"):self.assertTrue(frappe.db.exists("Print Format",fmt),fmt)

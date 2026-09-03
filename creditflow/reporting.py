@@ -19,9 +19,9 @@ def business_filter(filters):
         return filters.get("business")
     assigned = get_user_business()
     if not assigned:
-        frappe.throw(_("Your user is not assigned to a CreditFlow Business."), frappe.PermissionError)
+        frappe.throw(_("Your user is not assigned to a Kivo Business."), frappe.PermissionError)
     if filters.get("business") and filters.business != assigned:
-        frappe.throw(_("You can only report on your assigned CreditFlow Business."), frappe.PermissionError)
+        frappe.throw(_("You can only report on your assigned Kivo Business."), frappe.PermissionError)
     return assigned
 
 

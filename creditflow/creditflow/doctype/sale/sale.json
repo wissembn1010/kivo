@@ -240,6 +240,7 @@
   {
    "create": 1,
    "read": 1,
+   "report": 1,
    "role": "OWNER",
    "submit": 1,
    "write": 1
@@ -247,6 +248,7 @@
   {
    "create": 1,
    "read": 1,
+   "report": 1,
    "role": "STAFF",
    "submit": 1,
    "write": 1

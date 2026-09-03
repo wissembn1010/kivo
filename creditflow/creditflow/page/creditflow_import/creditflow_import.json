@@ -1,1 +1,1 @@
-{"doctype":"Page","name":"creditflow-import","page_name":"creditflow-import","title":"CreditFlow Import","module":"CreditFlow","standard":"Yes","system_page":0,"roles":[{"role":"OWNER"},{"role":"System Manager"}]}
+{"doctype":"Page","name":"creditflow-import","page_name":"creditflow-import","title":"Import Data","module":"CreditFlow","standard":"Yes","system_page":0,"roles":[{"role":"OWNER"},{"role":"System Manager"}]}

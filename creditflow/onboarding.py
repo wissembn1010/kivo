@@ -40,7 +40,7 @@ def _context(import_type, csv_content, requested_business=None):
         if requested_business and requested_business != business:
             frappe.throw(_("CSV imports can only target your assigned Business."), frappe.PermissionError)
         if not business:
-            frappe.throw(_("Your user is not assigned to a CreditFlow Business."), frappe.PermissionError)
+            frappe.throw(_("Your user is not assigned to a Kivo Business."), frappe.PermissionError)
     content = csv_content.decode("utf-8-sig") if isinstance(csv_content, bytes) else str(csv_content or "")
     digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
     return import_type, business, content, digest, f"{business}:{import_type}:{digest}"

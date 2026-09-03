@@ -1,0 +1,14 @@
+[
+ {
+  "based_on": "ar",
+  "date_format": "dd-mm-yyyy",
+  "doctype": "Language",
+  "enabled": 1,
+  "first_day_of_the_week": "Monday",
+  "language_code": "ar-TN",
+  "language_name": "تونسي",
+  "name": "ar-TN",
+  "number_format": "#,###.###",
+  "time_format": "HH:mm:ss"
+ }
+]
