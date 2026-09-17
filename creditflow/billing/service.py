@@ -62,7 +62,13 @@ def _amount(plan, billing_cycle):
     return Decimal(str(amount)).quantize(Decimal("0.001"))
 
 
+def is_paid_checkout_enabled():
+    return frappe.conf.get("creditflow_paid_checkout_enabled") in (1, "1")
+
+
 def create_checkout(plan, billing_cycle="MONTHLY", **unsupported):
+    if not is_paid_checkout_enabled():
+        frappe.throw(_("Paid checkout is disabled on this site."), frappe.PermissionError)
     if unsupported:
         frappe.throw(_("Unsupported checkout fields."))
     business = _owner_business()

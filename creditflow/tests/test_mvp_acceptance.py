@@ -245,7 +245,7 @@ class IntegrationTestMVPAcceptance(IntegrationTestCase):
 				"primary_unit": "UNIT",
 			}
 		).insert()
-		frappe.get_doc(
+		legacy_movement = frappe.get_doc(
 			{
 				"doctype": "Stock Movement",
 				"business": self.business.name,
@@ -255,7 +255,12 @@ class IntegrationTestMVPAcceptance(IntegrationTestCase):
 				"movement_reason": "MANUAL_ADJUSTMENT",
 				"business_date": frappe.utils.today(),
 			}
-		).insert().submit()
+		).insert()
+		with self.assertRaisesRegex(frappe.ValidationError, "Insufficient stock"):
+			legacy_movement.submit()
+		# Synthetic historical negative ledger: report coverage must not rely on
+		# permitting new overdrafts through the posting workflow.
+		frappe.db.set_value("Stock Movement", legacy_movement.name, "docstatus", 1)
 
 		frappe.set_user(self.owner)
 		_, negative_rows = execute_stock_on_hand(

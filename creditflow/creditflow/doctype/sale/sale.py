@@ -13,6 +13,33 @@ VALID_SALE_MODES = {"CASH", "CREDIT", "MIXED"}
 VALID_PAYMENT_METHODS = {"CASH", "BANK_TRANSFER", "CHEQUE", "OTHER"}
 
 
+@frappe.whitelist()
+def preview_totals(business, items, customer=None):
+        """Read-only draft preview using the same fiscal calculation as submission."""
+        sale = frappe.get_doc({
+                "doctype": "Sale", "business": business, "customer": customer, "sale_mode": "CASH",
+        })
+        sale.check_permission("create")
+        sale.validate_business_and_customer()
+        items = frappe.parse_json(items)
+        if not isinstance(items, list) or any(not isinstance(row, dict) for row in items):
+                frappe.throw(_("Items must be a list of sale rows."))
+        # Never accept document identity, parent links, flags or client fiscal snapshots.
+        fields = ("product", "quantity", "uom", "base_price", "unit_price", "discount_percent")
+        for row in items:
+                sale.append("items", {field: row.get(field) for field in fields})
+        if items:
+                sale.validate_items_and_calculate_total()
+        totals = {field: sale.get(field) or Decimal("0") for field in (
+                "total_ht", "total_tva", "total_ttc", "total_amount",
+        )}
+        totals["items"] = [
+                {field: row.get(field) for field in ("line_ht", "tva_rate", "tva_amount", "line_ttc")}
+                for row in sale.get("items", [])
+        ]
+        return totals
+
+
 class Sale(Document):
         def validate(self):
                 self.validate_invoice_number_control()
@@ -317,6 +344,7 @@ class Sale(Document):
                         WHERE business = %s
                           AND product = %s
                           AND docstatus = 1
+                        FOR UPDATE
                         """,
                         (self.business, product),
                 )
@@ -496,8 +524,11 @@ class Sale(Document):
                 if not self.customer:
                         return
 
-                customer = frappe.get_doc("Customer", self.customer)
-                credit_limit = Decimal(str(customer.credit_limit or 0))
+                # Serialize credit decisions with payments/returns; a snapshot read
+                # after waiting on a parent lock can still miss committed ledgers.
+                credit_limit = Decimal(str(frappe.db.get_value(
+                        "Customer", self.customer, "credit_limit", for_update=True
+                ) or 0))
 
                 # If no credit limit set, no restriction
                 if credit_limit <= 0:
@@ -549,6 +580,7 @@ class Sale(Document):
                         WHERE customer = %s
                           AND business = %s
                           AND docstatus = 1
+                        FOR UPDATE
                         """,
                         (customer, self.business),
                 )

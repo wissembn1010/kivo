@@ -65,6 +65,7 @@ class Payment(Document):
 			WHERE business = %s
 			  AND customer = %s
 			  AND docstatus = 1
+			FOR UPDATE
 			""",
 			(self.business, self.customer),
 		)
@@ -73,6 +74,8 @@ class Payment(Document):
 		)
 
 	def validate_not_overpayment(self):
+		# Acquire the shared customer boundary before the current ledger read.
+		frappe.db.sql("SELECT name FROM `tabCustomer` WHERE name = %s FOR UPDATE", self.customer)
 		outstanding = self.get_outstanding_debt()
 		if Decimal(str(self.amount)) > outstanding:
 			frappe.throw(

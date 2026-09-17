@@ -229,26 +229,16 @@ class IntegrationTestSaleReversal(IntegrationTestCase):
 		with self.assertRaises(frappe.ValidationError):
 			reversal.cancel()
 
-	def test_cash_sale_reversal_has_no_debt_effect(self):
+	def test_cash_sale_reversal_requires_sale_return(self):
 		sale = self.make_sale(customer=False, sale_mode="CASH", amount_paid="6")
-		self.assertEqual(frappe.db.count("Credit Transaction", {"source_sale": sale.name}), 0)
-		reversal = self.make_reversal(sale)
-		reversal.insert()
-		reversal.submit()
-		self.assertEqual(frappe.db.count("Credit Transaction", {"source_sale_reversal": reversal.name}), 0)
-		self.assertEqual(self.get_stock(self.product.name), Decimal("10"))
+		with self.assertRaisesRegex(frappe.ValidationError, "Sale Return"):
+			self.make_reversal(sale).insert().submit()
+		self.assertEqual(frappe.db.count("Credit Transaction", {"business": self.business.name}), 0)
+		self.assertEqual(self.get_stock(self.product.name), Decimal("7"))
 
-	def test_mixed_sale_reversal_restores_partial_debt(self):
+	def test_mixed_sale_reversal_preserves_debt_and_requires_sale_return(self):
 		sale = self.make_sale(sale_mode="MIXED", amount_paid="2")
+		with self.assertRaisesRegex(frappe.ValidationError, "Sale Return"):
+			self.make_reversal(sale).insert().submit()
 		self.assertEqual(Decimal(self.customer.get_ledger_balance()), Decimal("4.000"))
-		reversal = self.make_reversal(sale)
-		reversal.insert()
-		reversal.submit()
-		reversal_transaction = frappe.get_all(
-			"Credit Transaction",
-			filters={"source_sale_reversal": reversal.name},
-			fields=["amount", "direction", "transaction_type"],
-		)[0]
-		self.assertEqual(Decimal(str(reversal_transaction.amount)), Decimal("4.000"))
-		self.assertEqual(Decimal(self.customer.get_ledger_balance()), Decimal("0.000"))
-		self.assertEqual(self.get_stock(self.product.name), Decimal("10"))
+		self.assertEqual(self.get_stock(self.product.name), Decimal("7"))

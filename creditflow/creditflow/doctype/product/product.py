@@ -37,6 +37,16 @@ class Product(Document):
         if not self.primary_unit:
             frappe.throw(_("Primary Unit is required."))
 
+        stored = frappe.db.get_value(
+            "Product", self.name, "primary_unit", as_dict=True, cache=False
+        ) if self.name else None
+        if (
+            stored
+            and stored.primary_unit != self.primary_unit
+            and frappe.db.exists("Stock Movement", {"product": self.name})
+        ):
+            frappe.throw(_("Primary Unit cannot be changed after stock history exists."))
+
         active = frappe.db.get_value(
             "CreditFlow UOM",
             self.primary_unit,

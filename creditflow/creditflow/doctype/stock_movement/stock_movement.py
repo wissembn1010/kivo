@@ -20,6 +20,26 @@ class StockMovement(Document):
 		self.validate_direction_and_reason()
 		self.validate_source_integrity()
 
+	def before_submit(self):
+		if self.movement_reason not in MANUAL_REASONS or self.direction != "OUT":
+			return
+		# Serialize with Sales, then read committed stock even from a stale snapshot.
+		frappe.db.sql("SELECT name FROM `tabProduct` WHERE name = %s FOR UPDATE", self.product)
+		available = frappe.db.sql(
+			"""
+			SELECT COALESCE(SUM(CASE WHEN direction = 'IN' THEN quantity
+				WHEN direction = 'OUT' THEN -quantity ELSE 0 END), 0)
+			FROM `tabStock Movement`
+			WHERE business = %s AND product = %s AND docstatus = 1
+			FOR UPDATE
+			""",
+			(self.business, self.product),
+		)[0][0]
+		if Decimal(str(available or 0)) < Decimal(str(self.quantity)):
+			frappe.throw(_("Insufficient stock for Product {0}: available {1}, required {2}.").format(
+				self.product, available, self.quantity
+			))
+
 	def validate_business_and_product(self):
 		if not self.business or not frappe.db.exists("Business", self.business):
 			frappe.throw(_("Business does not exist."))

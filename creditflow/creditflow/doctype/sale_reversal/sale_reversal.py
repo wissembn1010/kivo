@@ -5,6 +5,8 @@ from frappe.model.document import Document
 
 class SaleReversal(Document):
 	def validate(self):
+		if self.docstatus == 1:
+			frappe.db.sql("SELECT name FROM `tabSale` WHERE name = %s FOR UPDATE", self.original_sale)
 		original_sale = self.get_original_sale()
 		self.validate_original_sale(original_sale)
 		self.validate_not_already_reversed()
@@ -15,18 +17,21 @@ class SaleReversal(Document):
 		return frappe.get_doc("Sale", self.original_sale)
 
 	def validate_original_sale(self, original_sale):
+		# Sale Reversal corrects stock/debt; only Sale Return records refunds.
+		if (original_sale.amount_paid or 0) > 0:
+			frappe.throw(_("Sales with an upfront payment must use Sale Return to record any refund."))
 		if original_sale.docstatus != 1:
 			frappe.throw(_("Only a submitted Sale can be reversed."))
 		if self.business != original_sale.business:
 			frappe.throw(_("Sale Reversal Business must match the Original Sale Business."))
-		if frappe.db.exists("Sale Return", {"original_sale": original_sale.name, "docstatus": 1}):
+		if frappe.db.get_value("Sale Return", {"original_sale": original_sale.name, "docstatus": 1}, "name", for_update=self.docstatus == 1):
 			frappe.throw(_("A Sale with submitted partial returns cannot be fully reversed."))
 
 	def validate_not_already_reversed(self):
 		filters = {"original_sale": self.original_sale, "docstatus": 1}
 		if not self.is_new():
 			filters["name"] = ["!=", self.name]
-		if frappe.db.exists("Sale Reversal", filters):
+		if frappe.db.get_value("Sale Reversal", filters, "name", for_update=self.docstatus == 1):
 			frappe.throw(_("This Sale has already been reversed."))
 
 	def before_submit(self):

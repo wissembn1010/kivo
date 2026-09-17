@@ -119,9 +119,10 @@ async function get_product_pricing(row) {
                 return null;
         }
 
+        const product = row.product;
         const { message } = await frappe.db.get_value(
                 "Product",
-                row.product,
+                product,
                 [
                         "selling_price",
                         "professional_price",
@@ -129,7 +130,7 @@ async function get_product_pricing(row) {
                 ]
         );
 
-        if (!message) {
+        if (!message || row.product !== product) {
                 return null;
         }
 
@@ -165,6 +166,10 @@ async function apply_automatic_sale_price(frm, cdt, cdn, force = false) {
                 return;
         }
 
+        const product = row.product;
+        const customer = frm.doc.customer;
+        const request = row.__price_request = (row.__price_request || 0) + 1;
+
         if (
                 frm.doc.customer &&
                 (!frm.__customer_context ||
@@ -173,7 +178,12 @@ async function apply_automatic_sale_price(frm, cdt, cdn, force = false) {
                 await load_customer_context(frm);
         }
 
-        await get_product_pricing(row);
+        const pricing = await get_product_pricing(row);
+        if (!pricing || frm.doc.docstatus !== 0 || row.product !== product ||
+                frm.doc.customer !== customer || row.__price_request !== request ||
+                !(frm.doc.items || []).includes(row)) {
+                return;
+        }
 
         const base_price = selected_base_price(frm, row);
         const discount_percent = flt(row.discount_percent);
@@ -197,8 +207,7 @@ async function apply_automatic_sale_price(frm, cdt, cdn, force = false) {
 
         row.__setting_unit_price = false;
 
-        recalculate_sale_total(frm);
-        update_sale_warnings(frm);
+        await recalculate_sale_total(frm);
 }
 
 async function apply_discount(frm, cdt, cdn) {
@@ -241,8 +250,7 @@ async function apply_discount(frm, cdt, cdn) {
 
         row.__setting_unit_price = false;
 
-        recalculate_sale_total(frm);
-        update_sale_warnings(frm);
+        await recalculate_sale_total(frm);
 }
 
 function update_override_visibility(frm, price_issue, credit_issue) {
@@ -362,6 +370,10 @@ function sync_sale_payment_fields(frm) {
         frm.toggle_reqd("customer", mode !== "CASH");
         frm.set_df_property("outstanding_amount", "read_only", 1);
 
+        if (frm.doc.docstatus !== 0) {
+                return;
+        }
+
         if (mode === "CASH") {
                 set_if_changed(frm, "amount_paid", total.toFixed(3));
                 set_if_changed(frm, "outstanding_amount", "0.000");
@@ -382,16 +394,48 @@ function sync_sale_payment_fields(frm) {
         update_sale_warnings(frm);
 }
 
-function recalculate_sale_total(frm) {
-        recalculate_table_total(
-                frm,
-                "items",
-                "quantity",
-                "unit_price",
-                "total_amount"
-        );
+function sale_preview_inputs(frm) {
+        return {
+                business: frm.doc.business,
+                customer: frm.doc.customer || null,
+                items: (frm.doc.items || []).map(row => Object.fromEntries(
+                        ["product", "quantity", "uom", "base_price", "unit_price", "discount_percent"]
+                                .map(field => [field, row[field] ?? null])
+                )),
+        };
+}
 
+async function recalculate_sale_total(frm) {
+        if (frm.doc.docstatus !== 0) return true;
+        const request = frm.__sale_preview_request = (frm.__sale_preview_request || 0) + 1;
+        const inputs = sale_preview_inputs(frm);
+        // An unfinished new grid row is validated on save by the server.
+        if (!inputs.business || inputs.items.some(row => !row.product || flt(row.quantity) <= 0)) return true;
+        const snapshot = JSON.stringify(inputs);
+        const { message } = await frappe.call({
+                method: "creditflow.creditflow.doctype.sale.sale.preview_totals",
+                args: {...inputs, items: JSON.stringify(inputs.items)},
+        });
+        if (frm.doc.docstatus !== 0) return true;
+        if (request !== frm.__sale_preview_request || snapshot !== JSON.stringify(sale_preview_inputs(frm))) return false;
+        for (const field of ["total_ht", "total_tva", "total_ttc", "total_amount"]) {
+                set_if_changed(frm, field, message[field]);
+        }
+        (frm.doc.items || []).forEach((row, index) => Object.assign(row, message.items[index]));
+        frm.refresh_field("items");
         sync_sale_payment_fields(frm);
+        return true;
+}
+
+// Save must wait for pricing edits, not just for the last totals request.
+function sale_edit(handler) {
+        return function(frm, ...args) {
+                if (frm.doc.docstatus !== 0) return;
+                const pending = frm.__sale_edits ||= new Set();
+                const task = handler(frm, ...args);
+                pending.add(task);
+                return task.finally(() => pending.delete(task));
+        };
 }
 
 function recalculate_purchase_total(frm) {
@@ -412,6 +456,10 @@ frappe.ui.form.on(cur_frm.doctype, {
 
 frappe.ui.form.on("Sale", {
         async refresh(frm) {
+                if (frm.doc.docstatus !== 0) {
+                        sync_sale_payment_fields(frm);
+                        return;
+                }
                 if (frm.doc.customer) {
                         await load_customer_context(frm);
                 } else {
@@ -429,16 +477,17 @@ frappe.ui.form.on("Sale", {
                         }
                 }
 
-                recalculate_sale_total(frm);
+                await recalculate_sale_total(frm);
                 update_sale_warnings(frm);
         },
 
-        validate(frm) {
-                recalculate_sale_total(frm);
-                update_sale_warnings(frm);
+        async validate(frm) {
+                do {
+                        while (frm.__sale_edits?.size) await Promise.all([...frm.__sale_edits]);
+                } while (!(await recalculate_sale_total(frm)) || frm.__sale_edits?.size);
         },
 
-        async customer(frm) {
+        customer: sale_edit(async function(frm) {
                 await load_customer_context(frm);
 
                 for (const row of frm.doc.items || []) {
@@ -456,7 +505,7 @@ frappe.ui.form.on("Sale", {
                 }
 
                 update_sale_warnings(frm);
-        },
+        }),
 
         sale_mode(frm) {
                 sync_sale_payment_fields(frm);
@@ -481,7 +530,7 @@ frappe.ui.form.on("Sale", {
 });
 
 frappe.ui.form.on("Sale Item", {
-        async product(frm, cdt, cdn) {
+        product: sale_edit(async function(frm, cdt, cdn) {
                 const row = locals[cdt][cdn];
 
                 if (!row.product) {
@@ -496,21 +545,21 @@ frappe.ui.form.on("Sale Item", {
                         cdn,
                         true
                 );
-        },
+        }),
 
-        async discount_percent(frm, cdt, cdn) {
+        discount_percent: sale_edit(async function(frm, cdt, cdn) {
                 await apply_discount(frm, cdt, cdn);
-        },
+        }),
 
-        async unit_price(frm, cdt, cdn) {
+        unit_price: sale_edit(async function(frm, cdt, cdn) {
                 const row = locals[cdt][cdn];
 
                 if (row.__setting_unit_price) {
-                        recalculate_sale_total(frm);
                         return;
                 }
 
                 row.__manual_unit_price = true;
+                row.__price_request = (row.__price_request || 0) + 1;
 
                 /*
                  * Manual lower price behaves as a shortcut for setting
@@ -536,9 +585,9 @@ frappe.ui.form.on("Sale Item", {
                         );
                 }
 
-                recalculate_sale_total(frm);
+                await recalculate_sale_total(frm);
                 update_sale_warnings(frm);
-        },
+        }),
 
         quantity(frm) {
                 recalculate_sale_total(frm);

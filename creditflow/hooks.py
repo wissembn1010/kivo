@@ -190,6 +190,7 @@ has_permission = {
 	doctype: "creditflow.permissions.has_permission"
 	for doctype in permission_query_conditions
 }
+has_permission["CreditFlow UOM"] = "creditflow.creditflow.doctype.creditflow_uom.creditflow_uom.has_permission"
 
 # Document Events
 # ---------------
@@ -202,6 +203,26 @@ doc_events = {
 	for doctype in permission_query_conditions
 }
 doc_events["User"] = {"before_validate": "creditflow.permissions.enforce_user_business_limit"}
+
+# Child permissions need a persistence guard as parent saves call db_update
+# directly without running child validation events.
+from creditflow.child_permissions import CHILD_RELATIONSHIPS as _CHILD_RELATIONSHIPS
+
+extend_doctype_class = {
+	doctype: ["creditflow.child_permissions.ChildAuthorizationMixin"]
+	for doctype in _CHILD_RELATIONSHIPS
+}
+for _child_type, (_parent_type, _) in _CHILD_RELATIONSHIPS.items():
+	doc_events[_child_type] = {
+		"before_change": "creditflow.child_permissions.validate_child_change",
+		"on_trash": "creditflow.child_permissions.validate_child_change",
+	}
+	_parent_events = doc_events.setdefault(_parent_type, {})
+	for _event in ("before_validate", "before_update_after_submit"):
+		_existing = _parent_events.get(_event)
+		_parent_events[_event] = ([_existing] if _existing else []) + [
+			"creditflow.child_permissions.validate_child_rows"
+		]
 
 # Scheduled Tasks
 # ---------------
@@ -263,7 +284,7 @@ doc_events["User"] = {"before_validate": "creditflow.permissions.enforce_user_bu
 # Request Events
 # ----------------
 # before_request = ["creditflow.utils.before_request"]
-# after_request = ["creditflow.utils.after_request"]
+after_request = ["creditflow.website.normalize_kivo_public_response"]
 
 # Job Events
 # ----------

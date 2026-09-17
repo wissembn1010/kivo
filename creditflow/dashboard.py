@@ -58,7 +58,6 @@ def cash_collected_today(filters=None):
       SELECT sale.business,sale.amount_paid amount FROM `tabSale` sale WHERE sale.docstatus=1 AND sale.business_date=%(today)s AND sale.payment_method='CASH'
       UNION ALL SELECT payment.business,payment.amount FROM `tabPayment` payment WHERE payment.docstatus=1 AND payment.business_date=%(today)s AND payment.payment_method='CASH'
       UNION ALL SELECT reversal.business,-payment.amount FROM `tabPayment Reversal` reversal INNER JOIN `tabPayment` payment ON payment.name=reversal.original_payment WHERE reversal.docstatus=1 AND reversal.business_date=%(today)s AND payment.payment_method='CASH'
-      UNION ALL SELECT reversal.business,-sale.amount_paid FROM `tabSale Reversal` reversal INNER JOIN `tabSale` sale ON sale.name=reversal.original_sale WHERE reversal.docstatus=1 AND reversal.business_date=%(today)s AND sale.payment_method='CASH'
       UNION ALL SELECT ret.business,-ret.refund_amount FROM `tabSale Return` ret WHERE ret.docstatus=1 AND ret.refund_status='REFUNDED' AND ret.refund_method='CASH' AND ret.refund_date=%(today)s
     ) activity WHERE 1=1 {scope}""",v)[0][0]
     return _card(val,["List","Payment"])

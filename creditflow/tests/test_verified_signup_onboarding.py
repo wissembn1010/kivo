@@ -73,7 +73,9 @@ class IntegrationTestVerifiedSignupOnboarding(IntegrationTestCase):
         self.assertFalse(frappe.db.exists("CreditFlow Subscription", {"owner": self.email}))
 
     def test_02_valid_token_provisions_exactly_one_tenant_and_trial(self):
-        _, token = self.request(); result = self.verify(token)
+        _, token = self.request()
+        frappe.set_user("Guest")
+        result = self.verify(token)
         pending = frappe.get_doc("CreditFlow Pending Signup", {"email": self.email})
         user = frappe.get_doc("User", self.email)
         subscription = frappe.get_doc("CreditFlow Subscription", pending.subscription)
@@ -106,7 +108,9 @@ class IntegrationTestVerifiedSignupOnboarding(IntegrationTestCase):
         self.assertFalse(frappe.db.exists("User", self.email)); self.assertFalse(frappe.db.exists("Business", {"email":self.email}))
 
     def test_05_consumed_token_replay_is_safe_and_idempotent(self):
-        _, token = self.request(); first = self.verify(token); second = self.verify(token)
+        _, token = self.request()
+        frappe.set_user("Guest")
+        first = self.verify(token); second = self.verify(token)
         self.assertTrue(first["ok"]); self.assertTrue(second["already_verified"])
         pending = frappe.get_doc("CreditFlow Pending Signup", {"email":self.email})
         self.assertEqual(frappe.db.count("Business", {"email":self.email}), 1)
@@ -230,11 +234,36 @@ class IntegrationTestVerifiedSignupOnboarding(IntegrationTestCase):
 
     def test_19_verification_failure_rolls_back_all_tenant_records(self):
         _, token = self.request()
+        frappe.set_user("Guest")
         with patch("creditflow.signup.create_trial_subscription", side_effect=frappe.ValidationError("forced subscription failure")):
             with self.assertRaisesRegex(frappe.ValidationError, "forced subscription failure"):
                 self.verify(token)
         self.assertFalse(frappe.db.exists("User",self.email)); self.assertFalse(frappe.db.exists("Business", {"email":self.email}))
-        self.assertEqual(frappe.db.get_value("CreditFlow Pending Signup", {"email":self.email}, "status"), "PENDING")
+        pending = frappe.get_doc("CreditFlow Pending Signup", {"email":self.email})
+        self.assertEqual(pending.status, "PENDING")
+        self.assertEqual(pending.token_hash, signup_service._token_hash(token))
+        self.assertFalse(pending.consumed_token_hash)
+        result = self.verify(token)
+        pending.reload()
+        self.assertTrue(result["ok"])
+        self.assertEqual(pending.status, "PROVISIONED")
+        self.assertFalse(pending.token_hash)
+        self.assertTrue(pending.consumed_token_hash)
+
+    def test_unverified_guest_cannot_invoke_internal_tenant_engine(self):
+        frappe.set_user("Guest")
+        with self.assertRaisesRegex(frappe.PermissionError, "own Kivo Business"):
+            signup_service.create_self_service_tenant(
+                self.payload()["first_name"],
+                self.payload()["last_name"],
+                self.email,
+                self.password,
+                self.payload()["business_name"],
+            )
+        self.assertFalse(frappe.db.exists("User", self.email))
+        self.assertFalse(frappe.db.exists("Business", {"email": self.email}))
+        self.assertIsNone(signup_service._provisioning_context())
+
 
     def test_20_whitelist_surface_contains_no_privileged_internal(self):
         self.assertIn(signup_service.signup, frappe.whitelisted)

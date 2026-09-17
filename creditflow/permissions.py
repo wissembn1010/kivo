@@ -57,6 +57,21 @@ def get_permission_query_conditions(user=None, doctype=None):
 	return f"`tab{doctype}`.`{field}` = {frappe.db.escape(business)}"
 
 
+def _has_stored_business_access(doc, assigned_business, *, for_update=False):
+	"""Authorize persisted ownership before considering any incoming Business."""
+	if not doc.name:
+		return True
+	field = "name" if doc.doctype == "Business" else "business"
+	# Neither __islocal nor _doc_before_save is trusted: generic APIs accept
+	# document payloads. An uncached locking read also closes the check/use race.
+	stored = frappe.db.get_value(
+		doc.doctype, doc.name, field, as_dict=True, cache=False, for_update=for_update
+	)
+	return stored is None or (
+		stored[field] == assigned_business and doc.get(field) == stored[field]
+	)
+
+
 def has_permission(doc, ptype=None, user=None, **kwargs):
 	user = user or frappe.session.user
 	if has_cross_business_access(user):
@@ -72,6 +87,10 @@ def has_permission(doc, ptype=None, user=None, **kwargs):
 
 	assigned_business = get_user_business(user)
 	if not assigned_business:
+		return False
+	if not _has_stored_business_access(
+		doc, assigned_business, for_update=ptype in {"create", "write", "submit", "cancel", "delete", "amend"}
+	):
 		return False
 
 	document_business = doc.name if doc.doctype == "Business" else doc.get("business")
@@ -89,6 +108,14 @@ def set_and_validate_business(doc, method=None):
 	if not assigned_business:
 		frappe.throw(
 			_("Your user is not assigned to a Kivo Business."),
+			frappe.PermissionError,
+		)
+
+	# Recheck under a row lock at validation, including trusted generated saves
+	# that skip Frappe's role-permission check. Ordinary users cannot move rows.
+	if not _has_stored_business_access(doc, assigned_business, for_update=True):
+		frappe.throw(
+			_("You cannot modify or transfer a record belonging to another Kivo Business."),
 			frappe.PermissionError,
 		)
 
@@ -114,6 +141,37 @@ def set_and_validate_business(doc, method=None):
 		require_write_access(assigned_business)
 
 
+def _is_verified_initial_owner_assignment(doc):
+	"""Validate the narrow capability created by the verified signup service."""
+	from creditflow.signup import _provisioning_context
+
+	context = _provisioning_context()
+	if not context or not context.allow_initial_owner_assignment:
+		return False
+	roles = {row.role for row in (doc.get("roles") or [])}
+	if CREDITFLOW_ROLES.intersection(roles) != {"OWNER"}:
+		return False
+	if (
+		doc.name != context.email
+		or doc.email != context.email
+		or doc.name != context.created_user
+		or doc.creditflow_business != context.created_business
+		or frappe.db.get_value("User", doc.name, "creditflow_business")
+	):
+		return False
+	pending = frappe.db.get_value(
+		"CreditFlow Pending Signup",
+		context.pending,
+		["email", "status", "token_hash"],
+		as_dict=True,
+	)
+	if not pending or pending.email != context.email or pending.status != "PENDING":
+		return False
+	if pending.token_hash != context.token_digest:
+		return False
+	return frappe.db.get_value("Business", context.created_business, "email") == context.email
+
+
 def enforce_user_business_limit(doc, method=None):
 	"""Enforce max_users for enabled OWNER/STAFF users assigned to a Business."""
 	user = frappe.session.user
@@ -123,6 +181,9 @@ def enforce_user_business_limit(doc, method=None):
 	eligible = bool(doc.enabled and doc.creditflow_business and CREDITFLOW_ROLES.intersection(roles))
 	if not eligible:
 		return
+	if _is_verified_initial_owner_assignment(doc):
+		return
+
 	assigned = get_user_business(user)
 	if not assigned or doc.creditflow_business != assigned:
 		frappe.throw(_("Users can only be assigned to your own Kivo Business."), frappe.PermissionError)

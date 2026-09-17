@@ -31,6 +31,58 @@ class IntegrationTestSaleFiscalInvoice(IntegrationTestCase):
     def item(self, product, quantity, price, discount=0, uom=None):
         return {"product": product.name, "quantity": quantity, "unit_price": price, "discount_percent": discount, "uom": uom}
 
+    def test_form_preview_matches_submit_and_reload(self):
+        from creditflow.creditflow.doctype.sale.sale import preview_totals
+
+        for mode in ("CASH", "MIXED"):
+            items = [self.item(self.products[2], 1, 100)]
+            preview = preview_totals(self.business.name, items, self.customer.name)
+            self.assertEqual(preview["total_amount"], Decimal("119.000"))
+            sale = self.sale(items, mode=mode, paid=preview["total_amount"] if mode == "CASH" else 50)
+            sale.reload()
+            self.assertEqual(Decimal(str(sale.total_amount)), preview["total_amount"])
+            self.assertEqual(Decimal(str(sale.outstanding_amount)), Decimal(0 if mode == "CASH" else 69))
+
+    def test_form_preview_discount_rounding_and_no_writes(self):
+        from creditflow.creditflow.doctype.sale.sale import preview_totals
+
+        doctypes = ("Sale", "Sale Item", "Stock Movement", "Credit Transaction")
+        before = {dt: frappe.db.count(dt) for dt in doctypes}
+        items = [self.item(self.products[1], 1, 100), self.item(self.products[2], 2, 100, 10)]
+        preview = preview_totals(self.business.name, frappe.as_json(items), self.customer.name)
+        self.assertEqual(preview["total_amount"], Decimal("321.200"))
+        items = [dict(self.item(self.products[2], 100, 1), base_price="1.005", discount_percent="0.5", tva_rate=0, line_ttc=0)]
+        preview = preview_totals(self.business.name, items, self.customer.name)
+        # Discounted unit prices round first, as in the existing Sale controller.
+        self.assertEqual(preview["total_amount"], Decimal("119.000"))
+        self.assertEqual(preview["items"][0]["tva_rate"], Decimal(19))
+        # Legacy unit-price-only rows retain full precision until line rounding.
+        preview = preview_totals(self.business.name, [self.item(self.products[2], 100, "0.999975")])
+        self.assertEqual(preview["total_amount"], Decimal("118.998"))
+        self.assertEqual({dt: frappe.db.count(dt) for dt in doctypes}, before)
+
+    def test_form_preview_enforces_role_and_linked_tenants(self):
+        from creditflow.creditflow.doctype.sale.sale import preview_totals
+
+        token = uuid4().hex[:10]
+        other = frappe.get_doc({"doctype": "Business", "business_name": f"Preview Other {token}"}).insert()
+        customer = frappe.get_doc({"doctype": "Customer", "business": other.name, "customer_name": "Other"}).insert()
+        product = frappe.get_doc({"doctype": "Product", "business": other.name, "product_name": "Other", "reference": f"PREVIEW-{token}"}).insert()
+        user = frappe.get_doc({"doctype": "User", "email": f"preview-{token}@example.com", "first_name": "Preview", "send_welcome_email": 0, "creditflow_business": self.business.name}).insert()
+        user.add_roles("STAFF")
+        frappe.set_user(user.name)
+        items = [self.item(self.products[2], 1, 100)]
+        self.assertEqual(preview_totals(self.business.name, items)["total_amount"], Decimal("119.000"))
+        with self.assertRaises(frappe.PermissionError):
+            preview_totals(other.name, [self.item(product, 1, 100)])
+        with self.assertRaisesRegex(frappe.ValidationError, "same Business"):
+            preview_totals(self.business.name, items, customer.name)
+        with self.assertRaisesRegex(frappe.ValidationError, "same Business"):
+            preview_totals(self.business.name, [self.item(product, 1, 100)])
+        frappe.set_user("Guest")
+        with self.assertRaises(frappe.PermissionError):
+            preview_totals(self.business.name, items)
+
     def test_zero_and_standard_tva_snapshots(self):
         zero = self.sale([self.item(self.products[0], 2, 100)])
         self.assertEqual((Decimal(str(zero.total_ht)), Decimal(str(zero.total_tva)), Decimal(str(zero.total_ttc))), (Decimal("200.000"), Decimal("0.000"), Decimal("200.000")))

@@ -102,6 +102,26 @@ class IntegrationTestPermissionHardening(IntegrationTestCase):
 			}
 		)
 
+	def test_owner_staff_and_guest_cannot_cross_assign_users(self):
+		for actor in (self.owner_a, self.staff_a, "Guest"):
+			with self.subTest(actor=actor):
+				frappe.set_user(actor)
+				email = f"cross-assign-{frappe.scrub(actor)}-{self.suffix}@example.com"
+				user = frappe.get_doc(
+					{
+						"doctype": "User",
+						"email": email,
+						"first_name": "Cross Assign",
+						"send_welcome_email": 0,
+						"creditflow_business": self.business_b.name,
+						"roles": [{"role": "OWNER"}],
+					}
+				)
+				with self.assertRaisesRegex(frappe.PermissionError, "own Kivo Business"):
+					user.insert(ignore_permissions=True)
+				self.assertFalse(frappe.db.exists("User", email))
+
+
 	def test_staff_cannot_directly_create_economic_ledgers(self):
 		frappe.set_user(self.staff_a)
 		attempts = (

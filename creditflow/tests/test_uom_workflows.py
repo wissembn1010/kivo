@@ -144,6 +144,41 @@ class IntegrationTestUOMWorkflows(IntegrationTestCase):
 		self.assert_snapshot(purchase, "UNIT", "10", "1", "10")
 		self.assertEqual(self.get_stock(), Decimal("10"))
 
+	def test_base_uom_cannot_change_after_stock_history(self):
+		self.add_stock("10")
+		before = frappe.db.get_value("Product", self.product.name, ["primary_unit", "modified"])
+		self.product.primary_unit = "KG"
+		with self.assertRaisesRegex(frappe.ValidationError, "stock history"):
+			self.product.save()
+		self.assertEqual(frappe.db.get_value("Product", self.product.name, ["primary_unit", "modified"]), before)
+		self.assertEqual(self.get_stock(), Decimal("10"))
+
+	def test_zero_stock_does_not_unlock_base_uom(self):
+		self.add_stock("10")
+		sale = self.make_sale("10")
+		self.assertEqual(self.get_stock(), Decimal("0"))
+		from frappe import client
+		result = client.bulk_update(frappe.as_json([{
+			"doctype": "Product", "docname": self.product.name, "primary_unit": "KG",
+		}]))
+		self.assertEqual(len(result["failed_docs"]), 1)
+		self.assertIn("stock history", result["failed_docs"][0]["exc"])
+		self.assertEqual(self.product.reload().primary_unit, "UNIT")
+		self.assert_snapshot(sale.reload(), "UNIT", "10", "1", "10")
+		self.assertEqual(self.get_stock(), Decimal("0"))
+
+	def test_unused_base_uom_and_other_product_edits_remain_allowed(self):
+		self.product.primary_unit = "KG"
+		self.product.save()
+		self.assertEqual(self.product.reload().primary_unit, "KG")
+		self.add_stock("10")
+		self.product.product_name = "Updated description"
+		self.product.uom_conversions[0].conversion_factor = 6
+		self.product.save()
+		self.assertEqual(self.product.reload().product_name, "Updated description")
+		self.assertEqual(self.product.uom_conversions[0].conversion_factor, 6)
+		self.assertEqual(self.product.primary_unit, "KG")
+
 	def test_alternate_uom_purchase_snapshots_and_posts_base_quantity(self):
 		purchase = self.make_purchase("10", "BOX")
 		self.assert_snapshot(purchase, "BOX", "10", "12", "120")

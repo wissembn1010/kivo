@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import secrets
+from contextlib import contextmanager
 
 import frappe
 from frappe import _
@@ -16,6 +17,36 @@ from creditflow.subscription import create_trial_subscription, get_default_trial
 SIGNUP_RATE_LIMIT = 10
 SIGNUP_RATE_WINDOW_SECONDS = 60 * 60
 VERIFICATION_ATTEMPT_LIMIT = 20
+PROVISIONING_FLAG = "creditflow_verified_signup_provisioning"
+
+
+@contextmanager
+def _verified_signup_provisioning(pending, token_digest):
+    """Bind the initial OWNER assignment to one locked, verified signup."""
+    previous = frappe.flags.get(PROVISIONING_FLAG)
+    context = frappe._dict(
+        pending=pending.name,
+        email=pending.email,
+        nonce=object(),
+        token_digest=token_digest,
+        created_user=None,
+        created_business=None,
+        allow_initial_owner_assignment=False,
+    )
+    frappe.flags[PROVISIONING_FLAG] = context
+    try:
+        yield context
+    finally:
+        if previous is None:
+            frappe.flags.pop(PROVISIONING_FLAG, None)
+        else:
+            frappe.flags[PROVISIONING_FLAG] = previous
+
+def _provisioning_context():
+    return frappe.flags.get(PROVISIONING_FLAG)
+
+
+
 RESEND_RATE_LIMIT = 5
 RESEND_COOLDOWN_SECONDS = 60
 TOKEN_LIFETIME_MINUTES = 45
@@ -110,21 +141,44 @@ def _create_user(first_name, last_name, email, password, language="en"):
         "enabled": 1, "new_password": password, "send_welcome_email": 0, "user_type": "System User",
         "language": normalize_language(language),
     })
+    context = _provisioning_context()
+    if context:
+        user.flags.verified_signup_nonce = context.nonce
     user.flags.no_welcome_mail = True
     return user.insert(ignore_permissions=True)
 
 
 def _create_business(business_name, email, phone=None, country=None):
-    return frappe.get_doc({
+    business = frappe.get_doc({
         "doctype": "Business", "business_name": business_name, "email": email, "phone": phone,
         "country": country, "onboarding_status": "PROFILE_PENDING", "onboarded_at": now_datetime(),
-    }).insert(ignore_permissions=True)
+    })
+    context = _provisioning_context()
+    if context:
+        business.flags.verified_signup_nonce = context.nonce
+    return business.insert(ignore_permissions=True)
 
 
 def _assign_owner(user, business):
+    context = _provisioning_context()
+    if context:
+        if (
+            context.email != user.name
+            or context.created_user != user.name
+            or context.created_business != business.name
+            or business.email != context.email
+            or user.flags.get("verified_signup_nonce") is not context.nonce
+            or business.flags.get("verified_signup_nonce") is not context.nonce
+        ):
+            frappe.throw(_("Verified signup provisioning context does not match."), frappe.PermissionError)
+        context.allow_initial_owner_assignment = True
     user.creditflow_business = business.name
     user.append_roles("OWNER")
-    user.save(ignore_permissions=True)
+    try:
+        user.save(ignore_permissions=True)
+    finally:
+        if context:
+            context.allow_initial_owner_assignment = False
     frappe.clear_cache(user=user.name)
 
 
@@ -153,7 +207,16 @@ def create_self_service_tenant(first_name, last_name, email, password, business_
     frappe.db.savepoint(savepoint)
     try:
         user = _create_user(first_name, last_name, email, password, language)
+        context = _provisioning_context()
+        if context:
+            if context.email != user.name:
+                frappe.throw(_("Verified signup provisioning context does not match."), frappe.PermissionError)
+            context.created_user = user.name
         business = _create_business(business_name, email, phone, country)
+        if context:
+            if business.email != context.email:
+                frappe.throw(_("Verified signup provisioning context does not match."), frappe.PermissionError)
+            context.created_business = business.name
         _assign_owner(user, business)
         frappe.set_user(user.name)
         subscription = create_trial_subscription(business.name, get_default_trial_plan())
@@ -229,10 +292,11 @@ def verify_and_provision(token, password, **unsupported):
             pending.status = "EXPIRED"
             pending.save(ignore_permissions=True)
             frappe.throw(_("This verification link has expired."))
-        result = create_self_service_tenant(
-            pending.first_name, pending.last_name, pending.email, password, pending.business_name,
-            pending.phone, pending.country, pending.language,
-        )
+        with _verified_signup_provisioning(pending, token_digest):
+            result = create_self_service_tenant(
+                pending.first_name, pending.last_name, pending.email, password, pending.business_name,
+                pending.phone, pending.country, pending.language,
+            )
         pending.reload()
         pending.status = "PROVISIONED"
         pending.consumed_token_hash = token_digest

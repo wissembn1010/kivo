@@ -46,10 +46,8 @@
    "write": 1
   },
   {
-   "create": 1,
    "read": 1,
-   "role": "OWNER",
-   "write": 1
+   "role": "OWNER"
   },
   {
    "read": 1,

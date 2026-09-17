@@ -1,0 +1,104 @@
+Kivo,Kivo
+Language,اللغة
+Choose your language,اختر لغتك
+Your language is saved for your next visit.,سيتم حفظ لغتك للزيارة القادمة.
+Back to Kivo,العودة إلى Kivo
+Home,الصفحة الرئيسية
+Dashboard,لوحة المعلومات
+Business Snapshot,ملخص النشاط
+Money Owed,المبالغ المستحقة
+Inventory Attention,تنبيهات المخزون
+Quick Actions,إجراءات سريعة
+Sales,المبيعات
+New Sale,عملية بيع جديدة
+Customers,العملاء
+Customer,العميل
+Customer Payments,دفعات العملاء
+Sale Returns,مرتجعات المبيعات
+Sale Reversals,إلغاءات المبيعات
+Purchases,المشتريات
+New Purchase,عملية شراء جديدة
+Suppliers,المورّدون
+Supplier,المورّد
+Supplier Payments,دفعات المورّدين
+Purchase Reversals,إلغاءات المشتريات
+Inventory,المخزون
+Products,المنتجات
+Product,المنتج
+Stock On Hand,المخزون المتاح
+Stock Movements,حركات المخزون
+Low Stock,مخزون منخفض
+Fiscal,الجباية
+Retenues à la source,الضريبة المحجوزة من المصدر
+Withholding Tax,الضريبة المحجوزة من المصدر
+TEJ Exports,صادرات TEJ
+Reports,التقارير
+Sales Report,تقرير المبيعات
+Purchases Report,تقرير المشتريات
+Customer Balances,أرصدة العملاء
+Supplier Balances,أرصدة المورّدين
+Customer Statement,كشف حساب العميل
+Supplier Statement,كشف حساب المورّد
+Product Performance,أداء المنتجات
+Settings,الإعدادات
+Business Profile,ملف المؤسسة
+Import Data,استيراد البيانات
+Units of Measure,وحدات القياس
+Subscription & Billing,الاشتراك والفوترة
+Complete setup,إكمال الإعداد
+Skip for now,التخطي الآن
+Quantity,الكمية
+Unit Price,سعر الوحدة
+Total,الإجمالي
+Discount,الخصم
+Tax,الضريبة
+Balance,الرصيد
+Paid,مدفوع
+Credit,آجل
+Cash,نقداً
+Transfer,تحويل بنكي
+Cheque,شيك
+Card,بطاقة
+Date,التاريخ
+Status,الحالة
+Notes,ملاحظات
+Start your Kivo trial,ابدأ تجربتك مع Kivo
+Start your free trial,ابدأ تجربتك المجانية
+Send verification email,إرسال رسالة التحقق
+Verify your Kivo email,تحقق من بريدك الإلكتروني في Kivo
+Check your email,تحقق من بريدك الإلكتروني
+First name,الاسم
+Last name,اللقب
+Work email,البريد الإلكتروني المهني
+Business name,اسم المؤسسة
+Phone,الهاتف
+Country,البلد
+Optional,اختياري
+Sign in,تسجيل الدخول
+Password,كلمة المرور
+Confirm password,تأكيد كلمة المرور
+Create my Kivo workspace,إنشاء مساحة Kivo
+Set up your Business,إعداد مؤسستك
+Period,الفترة
+From Date,من تاريخ
+To Date,إلى تاريخ
+Today,اليوم
+This Week,هذا الأسبوع
+This Month,هذا الشهر
+Custom,مخصص
+Matricule fiscal,المعرّف الجبائي
+Draft,مسودة
+Submitted,تم الإرسال
+Confirmed,مؤكد
+Reversed,ملغى
+Exported,تم التصدير
+Accepted,مقبول
+Rejected,مرفوض
+Validation Failed,فشل التحقق
+Verify your Kivo email,تحقق من بريدك الإلكتروني في Kivo
+"<p>Confirm your email to create your Kivo Business and start your 14-day trial.</p><p><a href=""{0}"">Verify email and continue</a></p><p>This single-use link expires in {1} minutes.</p>","<p>أكد بريدك الإلكتروني لإنشاء مؤسستك في Kivo وبدء الفترة التجريبية لمدة 14 يوماً.</p><p><a href=""{0}"">تأكيد البريد والمتابعة</a></p><p>تنتهي صلاحية هذا الرابط أحادي الاستخدام خلال {1} دقيقة.</p>"
+"<span class=""h2"">Kivo</span><p class=""text-muted"">Your business dashboard</p>",Kivo — لوحة معلومات مؤسستك
+"<span class=""h4"">Business Snapshot</span>",ملخص النشاط
+"<span class=""h4"">Money Owed</span>",المبالغ المستحقة
+"<span class=""h4"">Inventory Attention</span>",تنبيهات المخزون
+"<span class=""h4"">Quick Actions</span>",إجراءات سريعة

@@ -22,6 +22,9 @@ class FakeKonnect:
 
 class IntegrationTestKonnectBilling(IntegrationTestCase):
     def setUp(self):
+        checkout_config = patch.dict(frappe.conf, {"creditflow_paid_checkout_enabled": 1})
+        checkout_config.start()
+        self.addCleanup(checkout_config.stop)
         frappe.set_user("Administrator"); self.token=uuid4().hex[:10]
         self.business=frappe.get_doc({"doctype":"Business","business_name":f"Billing {self.token}"}).insert()
         self.other=frappe.get_doc({"doctype":"Business","business_name":f"Other Billing {self.token}"}).insert()
@@ -92,3 +95,124 @@ class IntegrationTestKonnectBilling(IntegrationTestCase):
         with patch.object(FakeKonnect,"create_checkout",side_effect=TimeoutError("down")):
             result=create_checkout(self.plan.name)
         self.assertEqual(result["status"],"PENDING");self.assertTrue(frappe.db.exists("CreditFlow Billing Payment",result["payment"]));self.assertIsNone(result["checkout_url"])
+
+    def test_checkout_requires_explicit_server_opt_in(self):
+        from creditflow.billing.api import start_checkout
+
+        before = frappe.db.count("CreditFlow Billing Payment")
+        for value in (None, 0, "0", False, "false", "true", 2):
+            with self.subTest(value=value), patch.dict(frappe.conf, {"creditflow_paid_checkout_enabled": value}):
+                if value is None:
+                    frappe.conf.pop("creditflow_paid_checkout_enabled", None)
+                for command in (create_checkout, start_checkout):
+                    with self.assertRaisesRegex(frappe.PermissionError, "Paid checkout is disabled"):
+                        command(self.plan.name)
+        self.assertEqual(FakeKonnect.checkout_calls, [])
+
+        self.assertEqual(frappe.db.count("CreditFlow Billing Payment"), before)
+        self.assertEqual(frappe.db.get_value("CreditFlow Subscription", self.subscription.name, "status"), "TRIAL")
+
+    def test_unpaid_page_and_summary_api_match_entitlements_and_expiry(self):
+        from frappe.handler import execute_cmd
+        from frappe.utils import set_request
+        from frappe.website.serve import get_response_without_exception_handling as get_response
+        from creditflow.subscription import clear_request_cache, require_feature
+
+        frappe.set_user("Administrator")
+        self.plan.append("entitlements", {"entitlement_key": "migration", "value_type": "BOOLEAN", "value": "true"})
+        self.plan.append("entitlements", {"entitlement_key": "advanced_reports", "value_type": "BOOLEAN", "value": "false"})
+        self.plan.save()
+        clear_request_cache()
+        with patch.dict(frappe.conf, {"creditflow_paid_checkout_enabled": 0}):
+            for expired in (False, True):
+                if expired:
+                    frappe.set_user("Administrator")
+                    self.subscription.trial_start = add_days(now_datetime(), -15)
+                    self.subscription.trial_end = add_days(now_datetime(), -1)
+                    self.subscription.save()
+                    clear_request_cache()
+                frappe.set_user(self.owner)
+                cmd = "creditflow.saas_access.subscription_summary"
+                set_request(method="POST", path=f"/api/method/{cmd}")
+                frappe.local.form_dict = frappe._dict(cmd=cmd)
+                summary = execute_cmd(cmd)
+                self.assertEqual(summary["access_state"], "EXPIRED" if expired else "TRIAL")
+                self.assertEqual(summary["can_write"], not expired)
+                for feature in ("advanced_reports", "unconfigured_feature"):
+                    with self.assertRaises(frappe.PermissionError):
+                        require_feature(self.business.name, feature)
+                if not expired:
+                    self.assertTrue(require_feature(self.business.name, "migration"))
+                else:
+                    with self.assertRaises(frappe.PermissionError):
+                        require_feature(self.business.name, "migration")
+                set_request(method="GET", path="/creditflow-subscription")
+                frappe.local.form_dict = frappe._dict()
+                response = get_response("/creditflow-subscription")
+                self.assertEqual(response.status_code, 200)
+                html = frappe.safe_decode(response.get_data())
+                self.assertIn(self.plan.plan_name, html)
+                self.assertIn("EXPIRED" if expired else "TRIAL", html)
+                self.assertNotIn('class="cf-primary cf-checkout"', html)
+                self.assertNotIn('class="cf-secondary cf-checkout"', html)
+        self.assertEqual(FakeKonnect.checkout_calls, [])
+
+    def test_request_cannot_enable_checkout(self):
+        from frappe.api import handle
+        from werkzeug.test import EnvironBuilder
+        from werkzeug.wrappers import Request
+
+        before = frappe.db.count("CreditFlow Billing Payment")
+        with patch.dict(frappe.conf, {"creditflow_paid_checkout_enabled": 0}):
+            for extra in ({}, {"creditflow_paid_checkout_enabled": 1}):
+                payload = {"plan": self.plan.name, **extra}
+                request = Request(EnvironBuilder(path="/api/method/creditflow.billing.api.start_checkout", method="POST", json=payload).get_environ())
+                with (
+                    patch.object(frappe.local, "request", request, create=True),
+                    patch.object(frappe.local, "form_dict", frappe._dict(payload)),
+                    patch.object(frappe.local, "response", frappe._dict(docs=[])),
+                    self.assertRaisesRegex(frappe.PermissionError, "Paid checkout is disabled"),
+                ):
+                    handle(request)
+        self.assertEqual(FakeKonnect.checkout_calls, [])
+        self.assertEqual(frappe.db.count("CreditFlow Billing Payment"), before)
+
+    def test_disabled_checkout_preserves_history_and_reconciliation(self):
+        _, payment = self.checkout()
+        self.completed(payment)
+        with patch.dict(frappe.conf, {"creditflow_paid_checkout_enabled": 0}):
+            context = frappe._dict()
+            frappe.get_attr("creditflow.www.creditflow_subscription.get_context")(context)
+            self.assertEqual(context.plans, [])
+            self.assertTrue(any(row.name == payment.name for row in context.payments))
+            self.assertEqual(reconcile_owner_payment(payment.name)["status"], "SUCCEEDED")
+        self.assertEqual(len(FakeKonnect.checkout_calls), 1)
+
+    def test_unpaid_trial_import_entitlements_and_expiry(self):
+        from creditflow.onboarding import commit_csv
+        from creditflow.subscription import clear_request_cache, require_feature
+
+        frappe.set_user("Administrator")
+        self.plan.monthly_price = self.plan.annual_price = 0
+        self.plan.append("entitlements", {"entitlement_key": "migration", "value_type": "BOOLEAN", "value": "true"})
+        self.plan.save()
+        clear_request_cache()
+        frappe.set_user(self.owner)
+        with patch.dict(frappe.conf, {"creditflow_paid_checkout_enabled": 0}):
+            result = commit_csv("CUSTOMERS", f"customer_name\nUnpaid pilot {self.token}\n")
+            customer = result["created"][0]
+            self.assertEqual(frappe.db.get_value("Customer", customer, "business"), self.business.name)
+            with self.assertRaises(frappe.PermissionError):
+                require_feature(self.business.name, "unconfigured_feature")
+            with self.assertRaises(frappe.PermissionError):
+                commit_csv("CUSTOMERS", "customer_name\nForeign\n", business=self.other.name)
+            frappe.set_user("Administrator")
+            self.subscription.trial_start = add_days(now_datetime(), -15)
+            self.subscription.trial_end = add_days(now_datetime(), -1)
+            self.subscription.save()
+            clear_request_cache()
+            frappe.set_user(self.owner)
+            with self.assertRaisesRegex(frappe.PermissionError, "read-only"):
+                commit_csv("CUSTOMERS", "customer_name\nExpired\n")
+            self.assertTrue(frappe.db.exists("Customer", customer))
+        self.assertEqual(FakeKonnect.checkout_calls, [])

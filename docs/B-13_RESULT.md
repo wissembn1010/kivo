@@ -1,0 +1,19 @@
+ID: B-13
+Status: PARTIAL — deployment blocked: supplied domain, site and release SHA are literal placeholders.
+Target URL: Not established. development.localhost has configured origin https://described-admissions-josh-bottles.trycloudflare.com; it has not been designated as the authoritative external-pilot deployment and was not used for smoke tests.
+Site: Not established. Available local sites: development.localhost, creditflow-staging.localhost, kivo-fix001-tests.localhost.
+Commit/image: Local HEAD 240a88b125a1d81a0cee99c4ad337522f6991c8a. Approved blocker fixes remain in tracked/untracked working-tree changes, so HEAD alone does not identify the tested release. No deployed commit or immutable image verified/pinned; no release commit fabricated.
+HTTPS: Not verified. Existing architecture in docs/DEPLOYMENT.md is a dedicated VPS with frappe/frappe_docker, immutable custom image, Docker Compose and Traefik HTTPS. No active reverse proxy identified in the visible process namespace.
+Production flags: Local common developer_mode=1; development and dedicated test sites allow_tests=true. Staging paid checkout flag=0. No intended production configuration identified; .env.production was absent at bench/app roots in target discovery. Secrets were not printed, generated or changed; deployed secret safety remains unverified.
+Private services: Unverified on target. Docker CLI and /var/run/docker.sock absent; /opt/creditflow/compose.production.yaml absent. No MariaDB/Redis/Docker processes observed in this process namespace; this does not establish remote/container health or exposure.
+Workers: No worker service verified; no Bench/Gunicorn processes observed locally.
+Scheduler: Not verified.
+WebSocket: Not verified; no Node process observed locally.
+Browser smoke: Not run. Cloudflare hostname exists only in development site configuration; cloudflared CLI/process and standard user/system tunnel config files were not found. No authoritative named tunnel/account configuration established.
+Tenant isolation: Deployed checks not run; synthetic accounts not created without a target.
+Financial smoke: Not run on target: taxed sale, credit sale/payment, purchase/supplier payment, return/refund and B-07 reversal cash behavior remain unverified there.
+Pilot restrictions: Target STARTER 14-day trial, migration entitlement and checkout denial unverified. Prior staging acceptance is not production certification.
+Changes made: This report only. Read existing architecture; inspected local release status, selected non-secret site flags/origins, infrastructure-file presence and service process names. No ERP business logic, configurations, migrations, assets or services changed. No smoke tests run without a target; B-15 not started. Prior B-07 suite remains 461 total / 451 passed / 5 baseline failures / 5 baseline errors; deployed print/navigation issues unverified.
+Data modified: None; no customer/synthetic records or secrets created/changed.
+Remaining issue: Latest target values are literal <DOMAIN>, <SITE> and <NEW_COMMITTED_SHA>, not usable identifiers. Supply the actual domain, site, full committed release SHA and VPS SSH hostname/user plus authorized connection or secret-manager reference. Do not paste private keys/passwords. No dedicated SSH/VPS/Cloudflare infrastructure connector was identified among available tools. Need an authoritative domain, Frappe site and VPS/authorized SSH access (or a connected infrastructure account with provisioning details). No deployment environment variables or user SSH host configuration were found. Requested these details without requesting plaintext secrets. Once access is supplied, package the approved working-tree fixes into an exact release, pin/build the image, deploy through the existing architecture, and complete all B-13 checks. Installing Docker or changing this development bench would not establish the missing external target.
+Remaining Class A count: 2 (B-13, B-15).
