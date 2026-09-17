@@ -1,0 +1,10 @@
+# Required immutable service images for the production Compose render.
+services:
+  db:
+    image: ${MARIADB_IMAGE:?Set MARIADB_IMAGE to an inspected digest}
+  redis-cache:
+    image: ${REDIS_IMAGE:?Set REDIS_IMAGE to an inspected digest}
+  redis-queue:
+    image: ${REDIS_IMAGE:?Set REDIS_IMAGE to an inspected digest}
+  proxy:
+    image: ${TRAEFIK_IMAGE:?Set TRAEFIK_IMAGE to an inspected digest}

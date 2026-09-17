@@ -6,8 +6,15 @@ Do not use `pwd.yml`: it is a disposable demo and cannot reliably carry custom
 apps. Replace every value in angle brackets. Commands are run on the VPS unless
 stated otherwise.
 
-CreditFlow currently targets Frappe `version-16`. Pin the Frappe Docker commit,
-CreditFlow release tag, and image tag used for each release.
+The tested Kivo application baseline is commit
+`f96c5e0402e370078819eed6d2c1dbc6044d6fac`. The deployment-only release
+commit builds on that baseline; set `KIVO_RELEASE_SHA` and `CUSTOM_TAG` to its
+full SHA after committing the deployment files. The pinned framework is Frappe
+`v16.30.0` (commit `9523516cac25992bc2cd810e1015df8994c257f5`);
+Frappe Docker is `4546724524c140bd4b76549b5a724527b78b123c`.
+The Kivo source is currently local only. An authorized fetch URL and a
+lightweight tag at the new release commit are required before a fresh VPS build.
+Do not tag or push during repository preparation.
 
 ## 1. Prepare a fresh Ubuntu or Debian VPS
 
@@ -74,38 +81,47 @@ cd /opt/creditflow
 
 git clone https://github.com/frappe/frappe_docker.git
 cd frappe_docker
-git checkout <PINNED_FRAPPE_DOCKER_COMMIT>
+git checkout 4546724524c140bd4b76549b5a724527b78b123c
 ```
 
 Do not copy the development site's database, logs, `site_config.json`, private
 files, or migration source files into Git.
 
-Create `apps.json` in this deployment directory. For a public repository:
+Create protected `/opt/creditflow/apps.json` outside both Git checkouts
+and set mode 600. For a public repository:
 
 ```json
 [
   {
     "url": "<CREDITFLOW_GIT_URL>",
-    "branch": "<CREDITFLOW_RELEASE_BRANCH_OR_TAG>"
+    "branch": "<PRIVATE_LIGHTWEIGHT_TAG_AT_NEW_RELEASE_SHA>"
   }
 ]
 ```
 
-Keep `apps.json` outside the CreditFlow repository. For a private repository,
-use the official BuildKit secret/private-repository mechanism; never embed a
-token in the URL, Dockerfile, image layer, or Git.
+Keep `apps.json` outside all Git repositories. For a private repository,
+use an authorized HTTPS credential only inside the protected BuildKit `apps_json`
+secret; never embed a token in a tracked URL, Dockerfile, image layer, or Git. Protect and remove
+the temporary `apps.json` after the build.
 
 ## 4. Configure production environment variables
 
-Copy `.env.production.example` from the CreditFlow release to a protected
-deployment location:
+Copy `.env.production.example`, `deploy/compose.pins.yaml` and
+`deploy/Containerfile` from the CreditFlow release to a protected deployment
+location:
 
 ```sh
 install -m 600 /path/to/creditflow/.env.production.example /opt/creditflow/.env.production
 editor /opt/creditflow/.env.production
+install -m 644 /path/to/creditflow/deploy/compose.pins.yaml /opt/creditflow/compose.pins.yaml
+install -m 644 /path/to/creditflow/deploy/Containerfile /opt/creditflow/Containerfile
 ```
 
-Replace every placeholder. Generate high-entropy MariaDB root,
+Replace every placeholder. Keep the supplied `image@sha256:...` references
+for Python 3.14.2-slim-bookworm, MariaDB 11.8, Redis 8.6-alpine and Traefik
+v3.6, or re-inspect their
+registry manifests before any deliberate replacement. Do not use the floating
+defaults from the upstream overrides. Generate high-entropy MariaDB root,
 Administrator, and encryption secrets. Store them in a password manager or
 secret manager. The real `.env.production` is Git-ignored.
 
@@ -118,18 +134,48 @@ set -a
 set +a
 ```
 
+The build installs Frappe first through `bench init`, then CreditFlow from
+`apps.json`; site creation installs `creditflow` after the framework. Before
+building, verify the private lightweight tag resolves to the release commit
+and the public Frappe tag resolves to the tested framework commit:
+
+```sh
+test "$(git ls-remote --exit-code "$CREDITFLOW_REPO_URL" "refs/tags/$CREDITFLOW_BRANCH" | cut -f1)" = "$KIVO_RELEASE_SHA"
+test "$(git ls-remote --exit-code https://github.com/frappe/frappe.git refs/tags/v16.30.0 | cut -f1)" = "$FRAPPE_SHA"
+```
+
+Set `KIVO_RELEASE_SHA` and `CUSTOM_TAG` to the full deployment release
+commit SHA. Verify every image reference is an inspected `image@sha256:...`
+value before rendering Compose or building. An angle-bracket placeholder is not a pin.
+
 ## 5. Build the immutable CreditFlow image
 
-Build the custom/layered image with CreditFlow included at build time:
+Build the Kivo image from the release-owned `deploy/Containerfile`. It is based
+on the pinned Frappe Docker custom image recipe and checks the exact Kivo and
+Frappe commits before removing Git metadata. Python base image must be supplied
+by digest. Python 3.14.2, Node 24.13.0 and Bench 5.31.0 match the tested bench.
+The builder exports the image into the VPS Docker engine for `PULL_POLICY=never`:
 
 ```sh
 docker buildx build \
   --build-arg FRAPPE_BRANCH="$FRAPPE_BRANCH" \
-  --secret id=apps_json,src=apps.json \
+  --build-arg FRAPPE_SHA="$FRAPPE_SHA" \
+  --build-arg KIVO_RELEASE_SHA="$KIVO_RELEASE_SHA" \
+  --build-arg PYTHON_BASE_IMAGE="$PYTHON_BASE_IMAGE" \
+  --build-arg NODE_VERSION="$NODE_VERSION" \
+  --secret id=apps_json,src=/opt/creditflow/apps.json \
   --tag "$CUSTOM_IMAGE:$CUSTOM_TAG" \
-  --file images/layered/Containerfile \
+  --load \
+  --file /opt/creditflow/Containerfile \
   .
+docker image inspect "$CUSTOM_IMAGE:$CUSTOM_TAG" --format '{{.Id}}'
 ```
+
+Record the local image ID after build. For transfers between hosts, push to an
+authorized registry and record its registry digest, or export/load the exact
+image archive and verify its ID on the VPS. Other downloaded apt/pip/npm
+dependencies in the upstream recipe are not fully locked; keep the resulting
+image immutable and retain its digest/ID.
 
 Generate a production Compose file with MariaDB, Redis, and Traefik HTTPS:
 
@@ -139,6 +185,7 @@ docker compose --env-file /opt/creditflow/.env.production \
   -f overrides/compose.mariadb.yaml \
   -f overrides/compose.redis.yaml \
   -f overrides/compose.https.yaml \
+  -f /opt/creditflow/compose.pins.yaml \
   config > /opt/creditflow/compose.production.yaml
 chmod 600 /opt/creditflow/compose.production.yaml
 ```
