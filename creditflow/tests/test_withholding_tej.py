@@ -4,6 +4,7 @@ from uuid import uuid4
 import frappe
 from frappe.tests import IntegrationTestCase
 
+from creditflow.patches.v16_0.seed_tej_references import execute as seed_tej_references
 from creditflow.tej import generate_batch_xml, serialize_batch, to_millimes, validate_xml
 
 
@@ -13,7 +14,10 @@ class IntegrationTestWithholdingTEJ(IntegrationTestCase):
 		suffix = uuid4().hex[:8]
 		self.business = frappe.get_doc({"doctype": "Business", "business_name": f"TEJ Business {suffix}", "tax_identifier": "1234567A", "taxpayer_category": "PM", "address": "1 Tunis", "email": f"business-{suffix}@example.com", "phone": "71111222"}).insert()
 		self.supplier = frappe.get_doc({"doctype": "Supplier", "business": self.business.name, "supplier_name": f"TEJ Supplier {suffix}", "phone": "22111222", "email": f"supplier-{suffix}@example.com", "address": "2 Tunis", "tej_identifier_type": "1", "tax_identifier": "7654321B", "taxpayer_category": "PM", "resident": 1, "activity": "Commerce"}).insert()
-		self.operation_code = frappe.db.get_value("TEJ Operation Code", {}, "name")
+		# Use the shipped official catalogue, independent of this site's patch history.
+		seed_tej_references()
+		self.operation_code = "RS1_000001"
+		self.assertTrue(frappe.db.exists("TEJ Operation Code", self.operation_code))
 
 	def tearDown(self):
 		frappe.set_user("Administrator")
@@ -34,6 +38,7 @@ class IntegrationTestWithholdingTEJ(IntegrationTestCase):
 		return frappe.get_doc(values)
 
 	def test_01_decimal_calculation_and_millimes(self):
+		self.opening_debt("2000")
 		payment = self.payment().insert()
 		self.assertEqual(Decimal(str(payment.withholding_amount)), Decimal("10.000"))
 		self.assertEqual(Decimal(str(payment.net_paid)), Decimal("990.000"))
@@ -68,7 +73,24 @@ class IntegrationTestWithholdingTEJ(IntegrationTestCase):
 		tax = frappe.get_doc("Withholding Tax", {"source_supplier_payment": payment.name})
 		self.assertEqual((tax.status, tax.reversed_by, tax.docstatus), ("REVERSED", reversal.name, 1))
 
+	def test_supplier_payments_today_counts_net_cash_after_withholding(self):
+		from creditflow import dashboard
+
+		self.opening_debt("1000")
+		baseline = dashboard.supplier_payments_today()["value"]
+		payment = self.payment()
+		payment.business_date = frappe.utils.today()
+		payment.insert().submit()
+		self.assertEqual(dashboard.supplier_payments_today()["value"], baseline + Decimal("990.000"))
+
+		reversal = frappe.get_doc({"doctype": "Supplier Payment Reversal",
+			"business": self.business.name, "original_supplier_payment": payment.name,
+			"business_date": frappe.utils.today(), "reason": "Ledger correction without refund"}).insert()
+		reversal.submit()
+		self.assertEqual(dashboard.supplier_payments_today()["value"], baseline + Decimal("990.000"))
+
 	def test_04_validation_rejects_invalid_values_and_cross_tenant(self):
+		self.opening_debt("1000")
 		for field, value in (("withholding_rate", "-1"), ("withholding_base", "-1"), ("withholding_rate", "101")):
 			doc = self.payment(); doc.set(field, value)
 			with self.assertRaises(frappe.ValidationError): doc.insert()

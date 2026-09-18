@@ -202,7 +202,10 @@ doc_events = {
 	}
 	for doctype in permission_query_conditions
 }
-doc_events["User"] = {"before_validate": "creditflow.permissions.enforce_user_business_limit"}
+doc_events["User"] = {"before_validate": [
+	"creditflow.i18n.set_new_user_language",
+	"creditflow.permissions.enforce_user_business_limit",
+]}
 
 # Child permissions need a persistence guard as parent saves call db_update
 # directly without running child validation events.

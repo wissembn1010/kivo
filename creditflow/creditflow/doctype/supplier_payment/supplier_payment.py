@@ -14,6 +14,7 @@ class SupplierPayment(Document):
 		self.validate_amount()
 		self.validate_payment_method()
 		self.validate_source_purchase()
+		self.validate_not_overpayment()
 		self.validate_withholding()
 
 	def validate_business_and_supplier(self):
@@ -32,7 +33,7 @@ class SupplierPayment(Document):
 			)
 		except (InvalidOperation, TypeError, ValueError):
 			frappe.throw(_("Amount must be a valid number."))
-		if amount <= 0:
+		if not amount.is_finite() or amount <= 0:
 			frappe.throw(_("Amount must be greater than 0."))
 		self.amount = amount
 
@@ -96,7 +97,34 @@ class SupplierPayment(Document):
 		if frappe.db.exists("Supplier Payment", filters):
 			frappe.throw(_("A Supplier Payment already exists for this Purchase."))
 
+	def get_outstanding_debt(self):
+		result = frappe.db.sql(
+			"""
+			SELECT COALESCE(SUM(CASE WHEN direction = 'DEBIT' THEN amount
+			                         WHEN direction = 'CREDIT' THEN -amount ELSE 0 END), 0)
+			FROM `tabSupplier Transaction` FORCE INDEX (supplier_index)
+			WHERE business = %s AND supplier = %s AND docstatus = 1
+			FOR UPDATE
+			""",
+			(self.business, self.supplier),
+		)
+		return Decimal(str(result[0][0] or 0)).quantize(
+			MONEY_PRECISION, rounding=ROUND_HALF_UP
+		)
+
+	def validate_not_overpayment(self):
+		# Every payment for this supplier shares the same lock before the ledger read.
+		frappe.db.sql("SELECT name FROM `tabSupplier` WHERE name = %s FOR UPDATE", self.supplier)
+		outstanding = self.get_outstanding_debt()
+		if Decimal(str(self.amount)) > outstanding:
+			frappe.throw(
+				_("Supplier Payment amount {0} exceeds the supplier's outstanding debt of {1}.").format(
+					self.amount, outstanding
+				)
+			)
+
 	def before_submit(self):
+		frappe.db.sql("SELECT name FROM `tabSupplier` WHERE name = %s FOR UPDATE", self.supplier)
 		self.validate()
 		save_point = "supplier_payment_supplier_transaction"
 		frappe.db.savepoint(save_point)

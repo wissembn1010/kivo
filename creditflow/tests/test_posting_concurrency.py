@@ -1,6 +1,7 @@
 """Overlapping real transactions, committed invariants, dedicated synthetic site only."""
 from decimal import Decimal
 from uuid import uuid4
+from unittest.mock import patch
 
 import frappe
 from frappe.tests import IntegrationTestCase
@@ -25,6 +26,7 @@ class IntegrationTestPostingConcurrency(IntegrationTestCase):
         self.business = frappe.get_doc({"doctype": "Business", "business_name": f"B06 synthetic {token}"}).insert().name
         self.businesses.append(self.business)
         self.customer = frappe.get_doc({"doctype": "Customer", "business": self.business, "customer_name": f"B06 {token}"}).insert().name
+        self.supplier = frappe.get_doc({"doctype": "Supplier", "business": self.business, "supplier_name": f"B06 Supplier {token}"}).insert().name
         self.product = frappe.get_doc({"doctype": "Product", "business": self.business, "product_name": f"B06 {token}", "reference": f"B06-{token}", "tva_rate": 0}).insert().name
         opening = frappe.get_doc({"doctype": "Stock Movement", "business": self.business, "product": self.product, "direction": "IN", "quantity": 1, "movement_reason": "OPENING_STOCK", "business_date": frappe.utils.today()}).insert()
         opening.submit()
@@ -36,7 +38,7 @@ class IntegrationTestPostingConcurrency(IntegrationTestCase):
         self.primary.rollback()
         frappe.set_user("Administrator")
         # Only rows belonging to the explicitly created synthetic Businesses.
-        for dt in ("Credit Transaction", "Stock Movement", "Sale Return", "Sale Reversal", "Payment Reversal", "Payment", "Sale", "Customer", "Product"):
+        for dt in ("Credit Transaction", "Supplier Transaction", "Supplier Payment", "Purchase", "Stock Movement", "Sale Return", "Sale Reversal", "Payment Reversal", "Payment", "Sale", "Customer", "Supplier", "Product"):
             names = frappe.get_all(dt, filters={"business": ["in", self.businesses]}, pluck="name")
             if names:
                 for field in frappe.get_meta(dt).get_table_fields():
@@ -123,6 +125,75 @@ class IntegrationTestPostingConcurrency(IntegrationTestCase):
         self.assertIn("outstanding debt", error)
         self.assertEqual(self.balance(), 0)
         self.assertEqual(frappe.db.count("Credit Transaction", {"business": self.business, "transaction_type": "PAYMENT"}), 1)
+
+    def test_same_supplier_debt_cannot_be_paid_twice_from_stale_snapshot(self):
+        opening = frappe.get_doc({"doctype": "Supplier Transaction", "business": self.business,
+            "supplier": self.supplier, "transaction_type": "OPENING_BALANCE", "direction": "DEBIT",
+            "amount": 100, "transaction_date": frappe.utils.today()}).insert()
+        opening.submit()
+        values = {"doctype": "Supplier Payment", "business": self.business, "supplier": self.supplier,
+            "amount": 100, "payment_method": "CASH", "business_date": frappe.utils.today()}
+        first = frappe.get_doc(values).insert()
+        second = frappe.get_doc(values).insert()
+        error = self.interleave(first, second)
+        self.assertIsNotNone(error, "Both concurrent Supplier Payments consumed the same debt")
+        self.assertIn("outstanding debt", error)
+        self.assertEqual(Decimal(frappe.get_doc("Supplier", self.supplier).get_ledger_balance()), 0)
+        self.assertEqual(frappe.db.count("Supplier Transaction", {"supplier": self.supplier,
+            "transaction_type": "SUPPLIER_PAYMENT", "docstatus": 1}), 1)
+        self.assertEqual(frappe.db.get_value("Supplier Payment", second.name, "docstatus"), 0)
+
+    def test_supplier_ledger_lock_does_not_block_another_business(self):
+        other_business = frappe.get_doc({"doctype": "Business", "business_name": f"Other {uuid4().hex[:12]}"}).insert().name
+        self.businesses.append(other_business)
+        other_supplier = frappe.get_doc({"doctype": "Supplier", "business": other_business,
+            "supplier_name": f"Other Supplier {uuid4().hex[:12]}"}).insert().name
+        for business, supplier in ((self.business, self.supplier), (other_business, other_supplier)):
+            opening = frappe.get_doc({"doctype": "Supplier Transaction", "business": business,
+                "supplier": supplier, "transaction_type": "OPENING_BALANCE", "direction": "DEBIT",
+                "amount": 100, "transaction_date": frappe.utils.today()}).insert()
+            opening.submit()
+        self.primary.commit()
+        first = frappe.get_doc({"doctype": "Supplier Payment", "business": self.business,
+            "supplier": self.supplier})
+        second = frappe.get_doc({"doctype": "Supplier Payment", "business": other_business,
+            "supplier": other_supplier})
+        self.assertEqual(first.get_outstanding_debt(), Decimal("100.000"))
+        frappe.local.db = self.secondary
+        self.secondary.sql("SET SESSION innodb_lock_wait_timeout=1")
+        try:
+            self.assertEqual(second.get_outstanding_debt(), Decimal("100.000"))
+        finally:
+            self.secondary.rollback()
+            frappe.local.db = self.primary
+            self.primary.rollback()
+
+    def test_paid_purchase_locks_supplier_before_posting_debt(self):
+        from creditflow.creditflow.doctype.purchase.purchase import Purchase
+
+        purchase = frappe.get_doc({"doctype": "Purchase", "business": self.business,
+            "supplier": self.supplier, "business_date": frappe.utils.today(),
+            "payment_status": "PAID", "payment_method": "CASH",
+            "items": [{"product": self.product, "quantity": 1, "unit_cost": 80}]}).insert()
+        self.primary.commit()
+        original = Purchase.create_supplier_transaction
+
+        def verify_lock_before_ledger(doc):
+            self.secondary.rollback()
+            try:
+                self.secondary.sql("SELECT name FROM `tabSupplier` WHERE name=%s FOR UPDATE NOWAIT", doc.supplier)
+            except Exception as exc:
+                self.assertRegex(repr(exc), r"(?:1205|3572|Lock wait timeout)")
+            else:
+                self.fail("Purchase can post supplier debt before locking the supplier boundary")
+            finally:
+                self.secondary.rollback()
+            return original(doc)
+
+        with patch.object(Purchase, "create_supplier_transaction", verify_lock_before_ledger):
+            purchase.submit()
+        self.assertEqual(Decimal(frappe.get_doc("Supplier", self.supplier).get_ledger_balance()), 0)
+        self.assertEqual(frappe.db.count("Supplier Payment", {"source_purchase": purchase.name, "docstatus": 1}), 1)
 
     def test_credit_limit_sees_competing_committed_sale(self):
         frappe.db.set_value("Stock Movement", {"business": self.business}, "quantity", 2)

@@ -9,6 +9,17 @@ from creditflow.i18n import RTL_LANGUAGES, SUPPORTED_LANGUAGES, set_language
 
 
 class IntegrationTestKivoLocalization(IntegrationTestCase):
+	def test_new_user_language_defaults_and_explicit_preferences(self):
+		for language in (None, "fr", "ar", "ar-TN"):
+			user = frappe.get_doc({
+				"doctype": "User", "email": f"default-language-{uuid4().hex[:10]}@example.com",
+				"first_name": "Language", "language": language, "send_welcome_email": 0,
+			}).insert(ignore_permissions=True)
+			self.assertEqual(user.reload().language, language or "en")
+			user.first_name = "Updated language"
+			user.save(ignore_permissions=True)
+			self.assertEqual(user.reload().language, language or "en")
+
 	def tearDown(self):
 		frappe.set_user("Administrator")
 		frappe.local.lang = "en"

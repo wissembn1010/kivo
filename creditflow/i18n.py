@@ -13,6 +13,12 @@ SUPPORTED_LANGUAGES = {
 RTL_LANGUAGES = {"ar", "ar-TN"}
 
 
+def set_new_user_language(doc, method=None):
+	"""Give new accounts a stable default without changing explicit preferences."""
+	if doc.is_new() and not doc.language:
+		doc.language = "en"
+
+
 def normalize_language(language: str | None) -> str:
 	return language if language in SUPPORTED_LANGUAGES else "en"
 

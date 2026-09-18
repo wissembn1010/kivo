@@ -103,6 +103,28 @@ class IntegrationTestSupplierDebt(IntegrationTestCase):
 		payment.submit()
 		self.assertEqual(Decimal(self.supplier.get_ledger_balance()), Decimal("74.875"))
 
+	def test_exact_supplier_settlement_succeeds(self):
+		self.add_opening_balance("100.000")
+		payment = self.make_supplier_payment("100.000").insert()
+		payment.submit()
+		self.assertEqual(Decimal(self.supplier.get_ledger_balance()), Decimal("0.000"))
+
+	def test_supplier_overpayment_is_rejected_without_ledger_effect(self):
+		self.add_opening_balance("100.000")
+		with self.assertRaisesRegex(frappe.ValidationError, "outstanding debt"):
+			self.make_supplier_payment("100.001").insert()
+		self.assertEqual(Decimal(self.supplier.get_ledger_balance()), Decimal("100.000"))
+		self.assertEqual(frappe.db.count("Supplier Transaction", {"supplier": self.supplier.name, "transaction_type": "SUPPLIER_PAYMENT"}), 0)
+
+	def test_supplier_payment_cannot_borrow_another_tenants_debt(self):
+		self.add_opening_balance("100.000")
+		with self.assertRaisesRegex(frappe.ValidationError, "same Business"):
+			self.make_supplier_payment("1.000", supplier=self.other_supplier.name).insert()
+		with self.assertRaisesRegex(frappe.ValidationError, "outstanding debt"):
+			frappe.get_doc({"doctype": "Supplier Payment", "business": self.other_business.name,
+				"supplier": self.other_supplier.name, "business_date": frappe.utils.today(),
+				"amount": "1.000", "payment_method": "CASH"}).insert()
+
 	def test_purchase_reversal_decreases_debt(self):
 		purchase = self.make_purchase(quantity="10", unit_cost="2")
 		purchase.insert()

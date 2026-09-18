@@ -40,7 +40,7 @@ class IntegrationTestSelfServiceSignup(IntegrationTestCase):
     def test_01_valid_signup_creates_owner_business_and_trial(self):
         result = self.onboard()
         self.assertTrue(result["created"])
-        self.assertEqual(result["redirect_to"], "/app/kivo")
+        self.assertEqual(result["redirect_to"], "/desk/kivo")
         self.assertTrue(check_password(self.email, self.password))
 
         user = frappe.get_doc("User", self.email)

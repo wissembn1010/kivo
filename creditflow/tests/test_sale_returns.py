@@ -111,6 +111,18 @@ class IntegrationTestSaleReturns(IntegrationTestCase):
         lock_calls = [call for call in sql.call_args_list if "FOR UPDATE" in str(call.args[0])]
         self.assertTrue(lock_calls)
 
+    def test_submitted_return_print_preserves_large_millime_value(self):
+        sale = self.sale(qty=2)
+        ret = self.returned(sale, 1)
+        frappe.db.sql("UPDATE `tabSale Return Item` SET return_ttc=10000000000000.001 WHERE name=%s", ret.items[0].name)
+        frappe.db.sql("UPDATE `tabSale Return` SET return_ttc=10000000000000.001 WHERE name=%s", ret.name)
+        self.assertEqual(frappe.db.sql("SELECT CAST(return_ttc AS CHAR) FROM `tabSale Return` WHERE name=%s", ret.name)[0][0], "10000000000000.001")
+
+        html = frappe.get_print("Sale Return", ret.name, "Sale Return Receipt")
+
+        self.assertIn("10000000000000.001", html)
+        self.assertNotIn("10000000000000.002", html)
+
     def test_duplicate_posting_and_print(self):
         sale=self.sale(qty=2); ret=self.returned(sale,1)
         self.assertEqual(frappe.db.count("Credit Transaction", {"source_sale_return":ret.name}),1)

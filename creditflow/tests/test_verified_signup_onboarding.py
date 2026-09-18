@@ -49,7 +49,7 @@ class IntegrationTestVerifiedSignupOnboarding(IntegrationTestCase):
         previous_request_ip = frappe.local.request_ip
         self.rpc_count += 1
         frappe.local.form_dict = frappe._dict(cmd=cmd, **fields)
-        frappe.local.request_ip = f"192.0.2.{self.rpc_count}"
+        frappe.local.request_ip = f"2001:db8:{self.token_id[:4]}:{self.token_id[4:8]}:{self.token_id[8:12]}::{self.rpc_count}"
         frappe.local.request = frappe._dict(method="POST", headers={}, remote_addr="127.0.0.1")
         try:
             return execute_cmd(cmd)
@@ -192,7 +192,7 @@ class IntegrationTestVerifiedSignupOnboarding(IntegrationTestCase):
         self.assertEqual(get_creditflow_home_page(self.email), "creditflow-onboarding")
         result = complete_business_profile(business_name="Legal Name", phone="123", address="Tunis")
         business = frappe.get_doc("Business", business_name)
-        self.assertEqual(result["redirect_to"], "/app/kivo")
+        self.assertEqual(result["redirect_to"], "/desk/kivo")
         self.assertEqual(business.onboarding_status, "COMPLETED"); self.assertTrue(business.onboarding_completed_at)
         self.assertIsNone(get_creditflow_home_page(self.email))
 

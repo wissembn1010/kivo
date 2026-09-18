@@ -47,7 +47,11 @@ def purchases_today(filters=None):return _card(_document_net("Purchase","Purchas
 @frappe.whitelist()
 def payments_today(filters=None):return _card(_document_net("Payment","Payment Reversal","original_payment","today","amount"),["List","Payment"])
 @frappe.whitelist()
-def supplier_payments_today(filters=None):return _card(_document_net("Supplier Payment","Supplier Payment Reversal","original_supplier_payment","today","amount"),["List","Supplier Payment"])
+def supplier_payments_today(filters=None):
+    # A reversal corrects the supplier ledger; it is not evidence of cash returned.
+    start,end=_range("today");scope,v=_scope("payment");v.update(start=start,end=end)
+    value=frappe.db.sql(f"SELECT COALESCE(SUM(CASE WHEN payment.withholding_enabled=1 THEN payment.amount-COALESCE(payment.withholding_amount,0) ELSE payment.amount END),0) FROM `tabSupplier Payment` payment WHERE payment.docstatus=1 AND payment.business_date BETWEEN %(start)s AND %(end)s {scope}",v)[0][0]
+    return _card(value,["List","Supplier Payment"])
 @frappe.whitelist()
 def returns_this_month(filters=None):
     start,end=_range("month");scope,v=_scope("ret");v.update(start=start,end=end);val=frappe.db.sql(f"SELECT COALESCE(SUM(ret.return_ttc),0) FROM `tabSale Return` ret WHERE ret.docstatus=1 AND ret.return_date BETWEEN %(start)s AND %(end)s {scope}",v)[0][0];return _card(val,["List","Sale Return"])

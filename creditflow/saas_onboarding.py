@@ -35,7 +35,7 @@ def complete_business_profile(business_name=None, phone=None, country=None, addr
         frappe.throw(_("Unsupported onboarding fields."))
     business = get_onboarding_business()
     if business.onboarding_status != "PROFILE_PENDING":
-        return {"ok": True, "redirect_to": "/app/kivo"}
+        return {"ok": True, "redirect_to": "/desk/kivo"}
     if not int(skip or 0):
         business_name = (business_name or "").strip()
         if not business_name:
@@ -52,4 +52,4 @@ def complete_business_profile(business_name=None, phone=None, country=None, addr
     business.onboarding_status = "COMPLETED"
     business.onboarding_completed_at = now_datetime()
     business.save()
-    return {"ok": True, "redirect_to": "/app/kivo"}
+    return {"ok": True, "redirect_to": "/desk/kivo"}

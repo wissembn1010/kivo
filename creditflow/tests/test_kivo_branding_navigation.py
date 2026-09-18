@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import frappe
 from frappe.tests import IntegrationTestCase
 from frappe.utils import set_request
@@ -9,6 +11,18 @@ from creditflow.website import normalize_kivo_public_response
 
 
 class IntegrationTestKivoBrandingNavigation(IntegrationTestCase):
+	def setUp(self):
+		frappe.set_user("Administrator")
+		token = uuid4().hex[:10]
+		business = frappe.get_doc({"doctype": "Business", "business_name": f"Branding {token}"}).insert()
+		self.owner = f"branding-owner-{token}@example.com"
+		user = frappe.get_doc({
+			"doctype": "User", "email": self.owner, "first_name": "Branding Owner",
+			"send_welcome_email": 0, "user_type": "System User",
+			"creditflow_business": business.name, "default_workspace": "Kivo",
+		}).insert(ignore_permissions=True)
+		user.add_roles("OWNER")
+
 	def tearDown(self):
 		frappe.set_user("Administrator")
 
@@ -47,7 +61,7 @@ class IntegrationTestKivoBrandingNavigation(IntegrationTestCase):
 		self.assertEqual(frappe.get_website_settings("disable_signup"), 1)
 
 	def test_authenticated_root_loads_kivo_desk(self):
-		owner = "wissemwork10+kivo0903@gmail.com"
+		owner = self.owner
 		self.assertTrue(frappe.db.exists("User", owner))
 		frappe.set_user(owner)
 		set_request(method="GET", path="/")
@@ -59,17 +73,17 @@ class IntegrationTestKivoBrandingNavigation(IntegrationTestCase):
 		self.assertIn("Kivo", html)
 
 	def test_owner_login_response_targets_kivo(self):
-		owner = "wissemwork10+kivo0903@gmail.com"
+		owner = self.owner
 		frappe.set_user(owner)
 		response = Response(
-			frappe.as_json({"message": "Logged In", "home_page": "/desk/kivo"}),
+			frappe.as_json({"message": "Logged In", "home_page": "/app/kivo"}),
 			content_type="application/json",
 		)
 		normalize_kivo_public_response(
 			response=response,
 			request=frappe._dict(method="POST", path="/api/method/login"),
 		)
-		self.assertEqual(response.get_json()["home_page"], "/app/kivo")
+		self.assertEqual(response.get_json()["home_page"], "/desk/kivo")
 
 	def test_internal_app_identifier_remains_creditflow(self):
 		workspace = frappe.get_doc("Workspace", "Kivo")
@@ -77,3 +91,10 @@ class IntegrationTestKivoBrandingNavigation(IntegrationTestCase):
 		self.assertEqual(workspace.name, "Kivo")
 		self.assertEqual(workspace.app, "creditflow")
 		self.assertEqual(workspace.title, "Kivo")
+
+	def test_legacy_app_route_redirects_to_canonical_desk_route(self):
+		frappe.set_user(self.owner)
+		set_request(method="GET", path="/app/kivo")
+		response = get_response("/app/kivo")
+		self.assertEqual(response.status_code, 301)
+		self.assertEqual(response.headers["Location"], "/desk/kivo")

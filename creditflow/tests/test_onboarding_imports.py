@@ -5,7 +5,7 @@ import frappe
 from frappe.tests import IntegrationTestCase
 
 from creditflow import dashboard
-from creditflow.install import ensure_security_metadata, seed_default_uoms
+from creditflow.install import after_install, ensure_security_metadata, seed_default_uoms
 from creditflow.onboarding import commit_csv, csv_template, preview_csv
 from creditflow.creditflow.report.customer_balances.customer_balances import execute as customer_balances
 from creditflow.creditflow.report.stock_on_hand.stock_on_hand import execute as stock_report
@@ -60,6 +60,26 @@ class IntegrationTestOnboardingImports(IntegrationTestCase):
         for card in ("Net Sales Today","Net Sales This Month","Cash Collected Today","Total Customer Debt","Total Supplier Debt","Purchases This Month","Returns This Month","Low / Out of Stock Products"):self.assertTrue(frappe.db.exists("Number Card",card),card)
         for fmt in ("Fiscal Invoice","Payment Receipt","Sale Return Receipt"):self.assertTrue(frappe.db.exists("Print Format",fmt),fmt)
         for uom in ("UNIT","KG","BOX"):self.assertTrue(frappe.db.exists("CreditFlow UOM",uom))
+    def test_clean_install_seeds_official_tej_references(self):
+        frappe.set_user("Administrator")
+        operation_code = "RS1_000001"
+        country_code = "AF"
+        frappe.db.delete("TEJ Operation Code", {"name": operation_code})
+        frappe.db.delete("TEJ Country Code", {"name": country_code})
+
+        after_install()
+
+        self.assertTrue(frappe.db.exists("TEJ Operation Code", operation_code))
+        self.assertTrue(frappe.db.exists("TEJ Country Code", country_code))
+        counts = (
+            frappe.db.count("TEJ Operation Code"),
+            frappe.db.count("TEJ Country Code"),
+        )
+        after_install()
+        self.assertEqual(
+            (frappe.db.count("TEJ Operation Code"), frappe.db.count("TEJ Country Code")),
+            counts,
+        )
     def test_first_business_end_to_end_after_imports(self):
         customer,supplier,product=self.seed_masters();self.commit("OPENING_STOCK",f"product,quantity\nSKU-{self.token},10\n");self.commit("OPENING_CUSTOMER_DEBT",f"customer,amount\nPilot Customer {self.token},20\n");self.commit("OPENING_SUPPLIER_DEBT",f"supplier,amount\nPilot Supplier {self.token},30\n")
         purchase=frappe.get_doc({"doctype":"Purchase","business":self.business.name,"supplier":supplier,"business_date":frappe.utils.today(),"items":[{"product":product,"quantity":2,"unit_cost":40}]}).insert();purchase.submit()

@@ -156,6 +156,20 @@ class IntegrationTestSaleFiscalInvoice(IntegrationTestCase):
         for value in (sale.invoice_number, sale.seller_business_name, sale.seller_tax_identifier, sale.invoice_customer_name, "NINETEEN Product", "180.000", "34.200", "214.200"):
             self.assertIn(str(value), html)
 
+    def test_submitted_invoice_print_preserves_large_millime_value(self):
+        sale = self.sale([self.item(self.products[0], 1, 100)])
+        amount = Decimal("10000000000000.001")
+        # Simulate an exact DECIMAL value in an existing submitted record.
+        frappe.db.sql("UPDATE `tabSale Item` SET line_ttc=10000000000000.001 WHERE name=%s", sale.items[0].name)
+        frappe.db.sql("UPDATE `tabSale` SET total_ttc=10000000000000.001 WHERE name=%s", sale.name)
+        self.assertEqual(frappe.db.sql("SELECT CAST(total_ttc AS CHAR) FROM `tabSale` WHERE name=%s", sale.name)[0][0], str(amount))
+        self.assertEqual(frappe.db.sql("SELECT CAST(line_ttc AS CHAR) FROM `tabSale Item` WHERE name=%s", sale.items[0].name)[0][0], str(amount))
+
+        html = frappe.get_print("Sale", sale.name, "Fiscal Invoice")
+
+        self.assertIn("10000000000000.001", html)
+        self.assertNotIn("10000000000000.002", html)
+
     def test_uom_quantity_and_tax_are_independent(self):
         self.products[2].append("uom_conversions", {"uom": "BOX", "conversion_factor": 12}); self.products[2].save()
         sale = self.sale([self.item(self.products[2], 2, 100, uom="BOX")])

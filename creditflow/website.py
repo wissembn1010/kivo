@@ -29,7 +29,7 @@ def normalize_kivo_public_response(response, request):
         if frappe.session.user != "Guest" and "OWNER" in frappe.get_roles():
             payload = response.get_json(silent=True)
             if payload and payload.get("message") == "Logged In":
-                payload["home_page"] = "/app/kivo"
+                payload["home_page"] = "/desk/kivo"
                 response.set_data(frappe.as_json(payload))
         return
 

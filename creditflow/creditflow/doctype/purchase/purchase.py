@@ -105,6 +105,7 @@ class Purchase(Document):
 
 	def before_submit(self):
 		self.validate()
+		frappe.db.sql("SELECT name FROM `tabSupplier` WHERE name = %s FOR UPDATE", self.supplier)
 		save_point = "purchase_stock_supplier_and_payment_transactions"
 		frappe.db.savepoint(save_point)
 		try:

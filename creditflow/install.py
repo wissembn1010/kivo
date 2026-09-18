@@ -1,6 +1,8 @@
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
+from creditflow.patches.v16_0.seed_tej_references import execute as seed_tej_references
+
 
 DEFAULT_UOMS = (
     ("UNIT", "Unit / Piece"),
@@ -46,3 +48,4 @@ def after_install():
     ensure_security_metadata()
     seed_default_uoms()
     seed_default_plans()
+    seed_tej_references()

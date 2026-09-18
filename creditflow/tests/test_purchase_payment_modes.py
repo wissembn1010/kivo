@@ -4,6 +4,7 @@ from uuid import uuid4
 import frappe
 from frappe.tests import IntegrationTestCase
 
+from creditflow import dashboard
 from creditflow.creditflow.report.supplier_balances.supplier_balances import (
 	execute as supplier_balances,
 )
@@ -149,6 +150,22 @@ class IntegrationTestPurchasePaymentModes(IntegrationTestCase):
 
 		self.assertEqual(len(self.automatic_payments(purchase)), 1)
 
+	def test_rejected_generated_payment_rolls_back_purchase_effects(self):
+		# Historical supplier credit makes a new full cash settlement an overpayment.
+		opening = frappe.get_doc({"doctype": "Supplier Transaction", "business": self.business.name,
+			"supplier": self.supplier.name, "transaction_type": "OPENING_BALANCE",
+			"direction": "CREDIT", "amount": "10.000",
+			"transaction_date": frappe.utils.today()}).insert()
+		opening.submit()
+		purchase = self.make_purchase(status="PAID", payment_method="CASH").insert()
+		with self.assertRaisesRegex(frappe.ValidationError, "outstanding debt"):
+			purchase.submit()
+		self.assertEqual(frappe.db.get_value("Purchase", purchase.name, "docstatus"), 0)
+		self.assertEqual(frappe.db.count("Stock Movement", {"source_purchase": purchase.name}), 0)
+		self.assertEqual(frappe.db.count("Supplier Transaction", {"source_purchase": purchase.name}), 0)
+		self.assertEqual(frappe.db.count("Supplier Payment", {"source_purchase": purchase.name}), 0)
+		self.assertEqual(self.supplier_balance(), Decimal("-10.000"))
+
 	def test_purchase_reversal_reverses_automatic_payment_stock_and_debt(self):
 		purchase = self.submit_purchase(
 			status="PARTIAL", paid_amount="30", payment_method="CASH"
@@ -185,6 +202,53 @@ class IntegrationTestPurchasePaymentModes(IntegrationTestCase):
 					"reason": "Duplicate reversal",
 				}
 			).insert()
+
+	def test_reversals_do_not_imply_a_supplier_cash_refund(self):
+		baseline = dashboard.supplier_payments_today()["value"]
+		credit = self.submit_purchase(status="CREDIT")
+		credit_reversal = frappe.get_doc({"doctype": "Purchase Reversal", "business": self.business.name,
+			"original_purchase": credit.name, "business_date": frappe.utils.today(), "reason": "Credit reversal"}).insert()
+		credit_reversal.submit()
+		self.assertEqual(dashboard.supplier_payments_today()["value"], baseline)
+
+		paid = self.submit_purchase(status="PAID", payment_method="CASH")
+		paid_reversal = frappe.get_doc({"doctype": "Purchase Reversal", "business": self.business.name,
+			"original_purchase": paid.name, "business_date": frappe.utils.today(), "reason": "Paid reversal"}).insert()
+		paid_reversal.submit()
+		self.assertTrue(paid_reversal.automatic_supplier_payment_reversal)
+		self.assertEqual(dashboard.supplier_payments_today()["value"], baseline + Decimal("80.000"))
+
+		partial = self.submit_purchase(status="PARTIAL", paid_amount="30", payment_method="CASH")
+		partial_reversal = frappe.get_doc({"doctype": "Purchase Reversal", "business": self.business.name,
+			"original_purchase": partial.name, "business_date": frappe.utils.today(), "reason": "Partial reversal"}).insert()
+		partial_reversal.submit()
+		self.assertEqual(self.supplier_balance(), Decimal("0.000"))
+		self.assertEqual(dashboard.supplier_payments_today()["value"], baseline + Decimal("110.000"))
+
+	def test_historical_payment_reversal_is_not_a_today_cash_recovery(self):
+		baseline = dashboard.supplier_payments_today()["value"]
+		purchase = self.make_purchase(status="PAID", payment_method="CASH")
+		purchase.business_date = frappe.utils.add_days(frappe.utils.today(), -1)
+		purchase.insert().submit()
+		reversal = frappe.get_doc({"doctype": "Purchase Reversal", "business": self.business.name,
+			"original_purchase": purchase.name, "business_date": frappe.utils.today(),
+			"reason": "Historical paid purchase correction"}).insert()
+		reversal.submit()
+		self.assertEqual(dashboard.supplier_payments_today()["value"], baseline)
+
+	def test_standalone_payment_reversal_does_not_reduce_cash_paid_metric(self):
+		baseline = dashboard.supplier_payments_today()["value"]
+		self.submit_purchase(status="CREDIT")
+		payment = frappe.get_doc({"doctype": "Supplier Payment", "business": self.business.name,
+			"supplier": self.supplier.name, "business_date": frappe.utils.today(),
+			"amount": "30.000", "payment_method": "CASH"}).insert()
+		payment.submit()
+		reversal = frappe.get_doc({"doctype": "Supplier Payment Reversal", "business": self.business.name,
+			"original_supplier_payment": payment.name, "business_date": frappe.utils.today(),
+			"reason": "Ledger correction, no refund"}).insert()
+		reversal.submit()
+		self.assertEqual(self.supplier_balance(), Decimal("80.000"))
+		self.assertEqual(dashboard.supplier_payments_today()["value"], baseline + Decimal("30.000"))
 
 	def test_supplier_statement_shows_purchase_payment_and_closing_balance(self):
 		purchase = self.submit_purchase(

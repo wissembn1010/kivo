@@ -50,7 +50,7 @@ def _provisioning_context():
 RESEND_RATE_LIMIT = 5
 RESEND_COOLDOWN_SECONDS = 60
 TOKEN_LIFETIME_MINUTES = 45
-SIGNUP_REDIRECT = "/app/kivo"
+SIGNUP_REDIRECT = "/desk/kivo"
 ONBOARDING_ROUTE = "/creditflow-onboarding"
 GENERIC_SIGNUP_MESSAGE = _("If this email can be registered, a verification message will arrive shortly.")
 GENERIC_RESEND_MESSAGE = _("If a pending registration exists, a new verification message will arrive shortly.")

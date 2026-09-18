@@ -28,10 +28,10 @@ class IntegrationTestKivoLanguageNavigation(IntegrationTestCase):
 		html = frappe.safe_decode(response.get_data())
 
 		self.assertEqual(response.status_code, 200)
-		self.assertIn('<a class="navbar-brand" href="/app/kivo">', html)
+		self.assertIn('<a class="navbar-brand" href="/desk/kivo">', html)
 		self.assertIn('<span>Accueil</span>', html)
 		self.assertIn(
-			'class="cf-primary cf-button-link" href="/app/kivo">Retour à Kivo</a>', html
+			'class="cf-primary cf-button-link" href="/desk/kivo">Retour à Kivo</a>', html
 		)
 		self.assertEqual(frappe.db.get_value("User", email, "language"), "en")
 

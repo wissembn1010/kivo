@@ -104,7 +104,7 @@ class IntegrationTestOnboardingWebsite(IntegrationTestCase):
         )
         self.business_a.reload()
         self.business_b.reload()
-        self.assertEqual(result, {"ok": True, "redirect_to": "/app/kivo"})
+        self.assertEqual(result, {"ok": True, "redirect_to": "/desk/kivo"})
         self.assertEqual(self.business_a.business_name, "Completed Legal Name")
         self.assertEqual(self.business_a.onboarding_status, "COMPLETED")
         self.assertTrue(self.business_a.onboarding_completed_at)
@@ -114,7 +114,7 @@ class IntegrationTestOnboardingWebsite(IntegrationTestCase):
         before = self.business_a.as_dict()
         result = self.rpc(self.owner_a, skip=1)
         self.business_a.reload()
-        self.assertEqual(result, {"ok": True, "redirect_to": "/app/kivo"})
+        self.assertEqual(result, {"ok": True, "redirect_to": "/desk/kivo"})
         self.assertEqual(self.business_a.onboarding_status, "COMPLETED")
         for field in ("business_name", "phone", "country", "address", "tax_identifier", "commercial_registration"):
             self.assertEqual(self.business_a.get(field), before.get(field))

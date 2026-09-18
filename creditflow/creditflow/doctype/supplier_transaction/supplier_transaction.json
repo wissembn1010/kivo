@@ -32,7 +32,8 @@
     "fieldtype": "Link",
     "label": "Supplier",
     "options": "Supplier",
-    "reqd": 1
+    "reqd": 1,
+    "search_index": 1
    },
    {
     "fieldname": "transaction_type",
