@@ -113,7 +113,7 @@ def create_checkout(plan, billing_cycle="MONTHLY", **unsupported):
 
 def _lock_payment(provider_payment_id):
     rows = frappe.db.sql("SELECT name FROM `tabCreditFlow Billing Payment` WHERE provider_payment_id=%s FOR UPDATE", provider_payment_id)
-    return frappe.get_doc("CreditFlow Billing Payment", rows[0][0]) if rows else None
+    return frappe.get_doc("CreditFlow Billing Payment", rows[0][0], for_update=True) if rows else None
 
 
 def _safe_metadata(details):
@@ -121,7 +121,14 @@ def _safe_metadata(details):
 
 
 def _activate(payment, paid_at):
-    subscription = frappe.get_doc("CreditFlow Subscription", payment.subscription) if payment.subscription else None
+    subscription = None
+    if payment.subscription:
+        # Scope before locking; historical bad links must not mutate another tenant.
+        rows = frappe.db.sql("SELECT name FROM `tabCreditFlow Subscription` WHERE name=%s AND business=%s FOR UPDATE",
+            (payment.subscription, payment.business))
+        if not rows:
+            frappe.throw(_("Billing subscription is outside your Business."), frappe.PermissionError)
+        subscription = frappe.get_doc("CreditFlow Subscription", rows[0][0], for_update=True)
     if not subscription:
         subscription = frappe.get_doc({"doctype":"CreditFlow Subscription","business":payment.business,"plan":payment.plan,"status":"ACTIVE"}).insert(ignore_permissions=True)
         payment.subscription = subscription.name
@@ -148,7 +155,7 @@ def _activate(payment, paid_at):
 
 
 def reconcile_provider_payment(provider_payment_id, expected_business=None):
-    if not PAYMENT_REF_PATTERN.fullmatch(provider_payment_id or ""):
+    if not isinstance(provider_payment_id, str) or not PAYMENT_REF_PATTERN.fullmatch(provider_payment_id):
         return {"status":"UNKNOWN"}
     savepoint = f"billing_reconcile_{frappe.generate_hash(length=8)}"
     frappe.db.savepoint(savepoint)
@@ -170,11 +177,17 @@ def reconcile_provider_payment(provider_payment_id, expected_business=None):
     payment.last_reconciled_at = now_datetime(); payment.reconciliation_count = (payment.reconciliation_count or 0)+1
     payment.provider_status = details.get("provider_status"); payment.provider_response = _safe_metadata(details)
     if details.get("normalized_status") == "SUCCEEDED":
+        try:
+            confirmed_amount = Decimal(str(details.get("amount_minor")))
+        except (InvalidOperation, ValueError, TypeError):
+            confirmed_amount = Decimal("NaN")
         mismatch = (
-            int(details.get("amount_minor") or -1) != tnd_to_millimes(payment.amount)
+            not confirmed_amount.is_finite()
+            or confirmed_amount != tnd_to_millimes(payment.amount)
+            or details.get("payment_id") != payment.provider_payment_id
             or details.get("currency") != payment.currency
             or details.get("order_id") != payment.internal_order_id
-            or (details.get("receiver_wallet_id") and details.get("receiver_wallet_id") != _provider(payment.provider).wallet_id)
+            or details.get("receiver_wallet_id") != _provider(payment.provider).wallet_id
             or details.get("transaction_success") is False
         )
         if mismatch:

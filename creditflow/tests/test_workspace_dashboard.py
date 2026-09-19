@@ -268,6 +268,38 @@ class IntegrationTestWorkspaceDashboard(IntegrationTestCase):
 		self.assertEqual(dashboard.purchases_today()["value"], Decimal("9.876"))
 		self.assertEqual(dashboard.negative_stock_products()["value"], 1)
 
+	def test_negative_stock_excludes_zero_and_nonnegative_low_stock(self):
+		from creditflow.creditflow.report.stock_on_hand.stock_on_hand import execute
+
+		negative_product = None
+		for stock in (8, 0, 2, 5, -1):
+			product = frappe.get_doc({"doctype": "Product", "business": self.business_a,
+				"product_name": f"Stock boundary {stock}", "reference": uuid4().hex,
+				"minimum_stock": 5}).insert()
+			if stock:
+				# Historical ledger fixture; ordinary posting still prevents negative stock.
+				movement = frappe.get_doc({"doctype": "Stock Movement", "name": uuid4().hex,
+					"business": self.business_a, "product": product.name,
+					"direction": "IN" if stock > 0 else "OUT", "quantity": abs(stock),
+					"movement_reason": "MANUAL_ADJUSTMENT", "business_date": today(), "docstatus": 1})
+				movement.db_insert()
+			if stock < 0:
+				negative_product = product.name
+			frappe.set_user(self.staff)
+			self.assertEqual(dashboard.negative_stock_products()["value"], 2 if stock < 0 else 1)
+			frappe.set_user("Administrator")
+
+		frappe.set_user(self.staff)
+		card = dashboard.negative_stock_products({"business": self.business_b})
+		self.assertEqual(card["value"], 2)
+		self.assertEqual(dashboard.low_stock_products()["value"], 5)
+		_, rows = execute(card["route_options"])
+		self.assertEqual(len(rows), card["value"])
+		self.assertIn(negative_product, {row.product for row in rows})
+		self.assertTrue(all(row.business == self.business_a and row.stock_on_hand < 0 for row in rows))
+		frappe.set_user(self.owner)
+		self.assertEqual(dashboard.negative_stock_products({"business": self.business_a})["value"], 1)
+
 	def test_administrator_kpis_have_cross_business_access(self):
 		frappe.set_user("Administrator")
 		self.assertEqual(

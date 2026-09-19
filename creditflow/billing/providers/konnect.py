@@ -1,7 +1,6 @@
 import frappe
 from frappe import _
-from frappe.utils import cint
-from frappe.integrations.utils import make_get_request, make_post_request
+from frappe.utils import cint, get_request_session
 
 from creditflow.billing.providers.base import BillingProvider
 
@@ -20,6 +19,21 @@ class KonnectProvider(BillingProvider):
         if not self.public_base_url.startswith("https://") and not frappe.conf.developer_mode:
             frappe.throw(_("CreditFlow billing requires an HTTPS public base URL."))
         self.base_url = SANDBOX_BASE if self.sandbox else PRODUCTION_BASE
+
+    def _request(self, method, path, **kwargs):
+        # Frappe's integration helper does not accept timeout on this version and
+        # logs exception locals (including authorization headers). Keep transport
+        # failures inside the service's sanitized provider-error boundary.
+        session = get_request_session(max_retries=0)
+        try:
+            response = session.request(method, f"{self.base_url}{path}",
+                headers=self.headers, timeout=15, allow_redirects=False, **kwargs)
+            response.raise_for_status()
+            if 300 <= response.status_code < 400:
+                raise frappe.ValidationError("Konnect returned an unexpected redirect.")
+            return response.json()
+        finally:
+            session.close()
 
     @property
     def headers(self):
@@ -44,13 +58,13 @@ class KonnectProvider(BillingProvider):
             "webhook": f"{self.public_base_url}/api/method/creditflow.billing.api.konnect_webhook",
             "theme": "light",
         }
-        response = make_post_request(f"{self.base_url}/payments/init-payment", headers=self.headers, json=payload, timeout=15)
+        response = self._request("POST", "/payments/init-payment", json=payload)
         if not isinstance(response, dict) or not response.get("paymentRef") or not response.get("payUrl"):
             raise frappe.ValidationError("Konnect returned a malformed checkout response.")
         return {"provider_payment_id": response["paymentRef"], "checkout_url": response["payUrl"]}
 
     def get_payment_status(self, provider_payment_id):
-        response = make_get_request(f"{self.base_url}/payments/{provider_payment_id}", headers=self.headers, timeout=15)
+        response = self._request("GET", f"/payments/{provider_payment_id}")
         payment = response.get("payment") if isinstance(response, dict) else None
         if not isinstance(payment, dict):
             raise frappe.ValidationError("Konnect returned malformed payment details.")

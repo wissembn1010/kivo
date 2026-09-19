@@ -69,4 +69,20 @@ def cash_collected_today(filters=None):
 def low_stock_products(filters=None):
     scope,v=_scope("product");count=frappe.db.sql(f"""SELECT COUNT(*) FROM (SELECT product.business,product.name,product.minimum_stock,COALESCE(SUM(CASE WHEN movement.direction='IN' THEN movement.quantity ELSE -movement.quantity END),0) stock FROM `tabProduct` product LEFT JOIN `tabStock Movement` movement ON movement.product=product.name AND movement.business=product.business AND movement.docstatus=1 WHERE 1=1 {scope} GROUP BY product.name HAVING stock<=0 OR (product.minimum_stock>0 AND stock<=product.minimum_stock)) x""",v)[0][0];return {"value":int(count or 0),"fieldtype":"Int","route":["query-report","Stock On Hand"],"route_options":{"show_zero_stock":1}}
 @frappe.whitelist()
-def negative_stock_products(filters=None):return low_stock_products(filters)
+def negative_stock_products(filters=None):
+    scope, values = _scope("product")
+    count = frappe.db.sql(f"""
+        SELECT COUNT(*) FROM (
+            SELECT product.name,
+                COALESCE(SUM(CASE WHEN movement.direction='IN' THEN movement.quantity
+                    ELSE -movement.quantity END), 0) stock
+            FROM `tabProduct` product
+            LEFT JOIN `tabStock Movement` movement ON movement.product=product.name
+                AND movement.business=product.business AND movement.docstatus=1
+            WHERE 1=1 {scope}
+            GROUP BY product.name HAVING stock < 0
+        ) negative_products
+    """, values)[0][0]
+    return {"value": int(count or 0), "fieldtype": "Int",
+            "route": ["query-report", "Stock On Hand"],
+            "route_options": {"show_negative_stock_only": 1}}

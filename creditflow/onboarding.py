@@ -3,6 +3,8 @@ import hashlib
 import io
 import json
 import unicodedata
+from copy import deepcopy
+from functools import partial
 from decimal import Decimal, InvalidOperation
 
 import frappe
@@ -148,7 +150,7 @@ def _preview(import_type, csv_content, business=None, filename=None):
         if not any(row.values()): input_count -= 1;continue
         try:
             data=_validate_row(import_type,row,business);duplicate_type,duplicate_key=_duplicate_identity(import_type,data)
-            if (duplicate_type,duplicate_key) in seen: raise ValueError(f"duplicate {duplicate_type} '{duplicate_key}' first appeared on row {seen[(duplicate_type,duplicate_key)]}")
+            if (duplicate_type,duplicate_key) in seen: raise ValueError(f"duplicate {duplicate_type} first appeared on row {seen[(duplicate_type,duplicate_key)]}")
             seen[(duplicate_type,duplicate_key)]=number
             valid.append({"row":number,"data":data,"source_identifier":_source_identifier(import_type,data)})
             if import_type=="OPENING_STOCK": total+=data["quantity"]
@@ -173,33 +175,102 @@ def _audit_rows(preview, status, created=None):
     created=created or {};rows=[]
     for item in preview["valid_rows"]:
         result=created.get(item["row"])
-        rows.append({"source_row":item["row"],"import_entity":preview["import_type"],"source_identifier":item.get("source_identifier"),"result_status":"SUCCESS" if status=="SUCCESS" else "ROLLED BACK","created_doctype":result[0] if result and status=="SUCCESS" else None,"created_document":result[1] if result and status=="SUCCESS" else None,"message":None if status=="SUCCESS" else "Atomic import rolled back; no document was committed."})
+        rows.append({"source_row":item["row"],"import_entity":preview["import_type"],"source_identifier":str(item.get("source_identifier") or "")[:140],"result_status":"SUCCESS" if status=="SUCCESS" else "ROLLED BACK","created_doctype":result[0] if result and status=="SUCCESS" else None,"created_document":result[1] if result and status=="SUCCESS" else None,"message":None if status=="SUCCESS" else "Atomic import rolled back; no document was committed."})
     for error in preview["invalid_rows"]: rows.append({"source_row":error["row"],"import_entity":preview["import_type"],"result_status":"FAILED","message":error["error"]})
     return rows
 
 
 def _save_batch(preview, status, created=None, failure_message=None):
+    errors = deepcopy(preview["invalid_rows"])
+    if status == "FAILED":
+        errors = errors or [{"error": failure_message or "Atomic import failed."}]
+        # Failed imports committed zero value. Preserve the attempted total as
+        # text: invalid/oversized money must not prevent the failure audit itself.
+        errors[0]["attempted_total"] = str(preview["total"])
     existing=preview.get("existing_batch");batch=frappe.get_doc("Onboarding Import Batch",existing) if existing else frappe.new_doc("Onboarding Import Batch")
-    batch.update({"business":preview["business"],"import_type":preview["import_type"],"filename":preview["filename"],"file_hash":preview["file_hash"],"import_key":preview["import_key"],"status":status,"input_row_count":preview["input_row_count"],"row_count":preview["valid_count"],"success_count":preview["valid_count"] if status=="SUCCESS" else 0,"failure_count":preview["invalid_count"] if preview["invalid_count"] else (preview["input_row_count"] if status=="FAILED" else 0),"total_amount":preview["total"],"errors":json.dumps(preview["invalid_rows"] or ([{"error":failure_message}] if failure_message else []),ensure_ascii=False),"imported_by":frappe.session.user,"imported_on":now()})
+    batch.update({"business":preview["business"],"import_type":preview["import_type"],"filename":str(preview["filename"])[:140],"file_hash":preview["file_hash"],"import_key":preview["import_key"],"status":status,"input_row_count":preview["input_row_count"],"row_count":preview["valid_count"],"success_count":preview["valid_count"] if status=="SUCCESS" else 0,"failure_count":preview["invalid_count"] if preview["invalid_count"] else (preview["input_row_count"] if status=="FAILED" else 0),"total_amount":preview["total"] if status=="SUCCESS" else 0,"errors":json.dumps(errors,ensure_ascii=False),"imported_by":preview.get("imported_by") or frappe.session.user,"imported_on":preview.get("imported_on") or now()})
     batch.set("created_records",_audit_rows(preview,status,created))
     if existing: batch.save(ignore_permissions=True)
     else: batch.insert(ignore_permissions=True)
     return batch
 
 
-@frappe.whitelist()
+def _persist_failed_import(preview, failure_message):
+    """Called only after full request rollback; commit audit data on its own connection."""
+    request_db = frappe.local.db
+    audit_db = None
+    try:
+        frappe.connect(set_admin_as_user=False)
+        audit_db = frappe.local.db
+        # Share the import boundary so a late failure cannot overwrite a successful retry.
+        if not audit_db.sql("SELECT name FROM `tabBusiness` WHERE name=%s FOR UPDATE", preview["business"]):
+            return
+        existing = frappe.db.get_value("Onboarding Import Batch",
+            {"business": preview["business"], "import_key": preview["import_key"]},
+            ["name", "status"], as_dict=True)
+        if existing and existing.status == "SUCCESS":
+            return
+        preview["existing_batch"] = existing.name if existing else None
+        _save_batch(preview, "FAILED", failure_message=failure_message)
+        # This connection contains only the failure audit, never imported business rows.
+        audit_db.commit()
+    except Exception as exc:
+        frappe.logger().error("Failed to persist onboarding failure audit (%s)", type(exc).__name__)
+    finally:
+        try:
+            if audit_db:
+                try:
+                    audit_db.rollback()
+                except Exception as exc:
+                    frappe.logger().error("Failed to roll back import audit connection (%s)", type(exc).__name__)
+                finally:
+                    try:
+                        audit_db.close()
+                    except Exception as exc:
+                        frappe.logger().error("Failed to close import audit connection (%s)", type(exc).__name__)
+        finally:
+            frappe.local.db = request_db
+
+
+def _record_failed_import(preview, failure_message=None):
+    snapshot = deepcopy(preview)
+    snapshot.update(imported_by=frappe.session.user, imported_on=now())
+    existing = frappe.db.get_value("Onboarding Import Batch",
+        {"business": snapshot["business"], "import_key": snapshot["import_key"]},
+        ["name", "status"], as_dict=True)
+    if existing and existing.status == "SUCCESS":
+        return
+    snapshot["existing_batch"] = existing.name if existing else None
+    if getattr(frappe.local, "http_request", None):
+        frappe.db.after_rollback.add(partial(_persist_failed_import, snapshot, failure_message))
+    # Direct callers retain the existing transaction-local audit and exception contract.
+    _save_batch(snapshot, "FAILED", failure_message=failure_message)
+
+
+@frappe.whitelist(methods=["POST"])
 def commit_csv(import_type, csv_content, business=None, filename=None):
     from creditflow.subscription import require_feature, require_write_access
 
     context_type, authorized_business, context_content, context_digest, context_key = _context(import_type, csv_content, business)
     require_write_access(authorized_business)
     require_feature(authorized_business, "migration")
-    preview=_preview(import_type,csv_content,business,filename)
+    frappe.db.sql("SELECT name FROM `tabBusiness` WHERE name=%s FOR UPDATE", authorized_business)
+    try:
+        preview=_preview(import_type,csv_content,business,filename)
+    except (frappe.ValidationError, csv.Error) as exc:
+        preview = {"import_type": context_type, "business": authorized_business,
+            "filename": filename or "Uploaded CSV", "file_hash": context_digest,
+            "import_key": context_key, "valid_rows": [], "invalid_rows": [{"row": 1, "error": str(exc)}],
+            "input_row_count": 0, "valid_count": 0, "invalid_count": 1, "total": Decimal("0")}
+        _record_failed_import(preview)
+        raise
     if preview["duplicate_import"]: frappe.throw(_("This exact CSV was already imported for this Business and import type."))
     if preview["invalid_rows"]:
-        _save_batch(preview,"FAILED")
+        _record_failed_import(preview)
         frappe.throw(_("Import has invalid rows: {0}").format("; ".join(f"row {r['row']}: {r['error']}" for r in preview["invalid_rows"])))
-    if not preview["valid_rows"]: frappe.throw(_("Import contains no data rows."))
+    if not preview["valid_rows"]:
+        _record_failed_import(preview, failure_message="Import contains no data rows.")
+        frappe.throw(_("Import contains no data rows."))
     savepoint="creditflow_onboarding_import";frappe.db.savepoint(savepoint);created=[];audit_created={}
     try:
         for item in preview["valid_rows"]:
@@ -207,7 +278,11 @@ def commit_csv(import_type, csv_content, business=None, filename=None):
             created.append(name);audit_created[item["row"]]=(_created_doctype(preview["import_type"]),name)
         batch=_save_batch(preview,"SUCCESS",audit_created)
     except Exception as exc:
-        frappe.db.rollback(save_point=savepoint);_save_batch(preview,"FAILED",failure_message=str(exc));raise
+        frappe.db.rollback(save_point=savepoint)
+        # Framework/driver exceptions may contain a complete private field value
+        # or SQL payload. The durable audit needs the failure class, not that data.
+        _record_failed_import(preview, failure_message=f"Import processing failed ({type(exc).__name__}).")
+        raise
     return {"batch":batch.name,"import_type":preview["import_type"],"created_count":len(created),"created":created,"total":preview["total"],"errors":[]}
 
 
