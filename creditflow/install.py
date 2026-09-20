@@ -44,7 +44,15 @@ def seed_default_plans():
         if not frappe.db.exists("CreditFlow Plan", plan_code):
             frappe.get_doc({"doctype":"CreditFlow Plan","plan_name":plan_name,"plan_code":plan_code,"enabled":1}).insert(ignore_permissions=True)
 
+def ensure_supplier_transaction_index():
+    # Required by the locking debt read in SupplierPayment.get_outstanding_debt.
+    frappe.db.add_index(
+        "Supplier Transaction", ["business", "supplier", "docstatus"], index_name="supplier_index"
+    )
+
+
 def after_install():
+    ensure_supplier_transaction_index()
     ensure_security_metadata()
     seed_default_uoms()
     seed_default_plans()
