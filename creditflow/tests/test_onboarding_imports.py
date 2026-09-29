@@ -52,6 +52,66 @@ class IntegrationTestOnboardingImports(IntegrationTestCase):
         with self.assertRaises(frappe.PermissionError):preview_csv("CUSTOMERS",text,self.other.name)
         attack="product,quantity\nDOES-NOT-BELONG,1\n"
         result=preview_csv("OPENING_STOCK",attack);self.assertEqual(result["invalid_count"],1)
+
+    def test_semantic_opening_keys_backfill_and_database_uniqueness(self):
+        from creditflow.patches.v16_0.backfill_opening_event_keys import execute
+
+        customer, supplier, product = self.seed_masters()
+        cases = (
+            ("OPENING_STOCK", "product", product, f"SKU-{self.token}", "quantity", "Stock Movement"),
+            ("OPENING_CUSTOMER_DEBT", "customer", customer, f"Pilot Customer {self.token}", "amount", "Credit Transaction"),
+            ("OPENING_SUPPLIER_DEBT", "supplier", supplier, f"Pilot Supplier {self.token}", "amount", "Supplier Transaction"),
+        )
+        for kind, field, target, alias, amount_field, ledger in cases:
+            with self.subTest(kind=kind):
+                csv = f"{field},{amount_field},date,note,reference\n{alias},12.500,2026-08-01,legacy,old\n"
+                result = self.commit(kind, csv)
+                row = frappe.get_doc("Onboarding Import Batch", result["batch"]).created_records[0]
+                key = row.economic_key
+                self.assertTrue(key)
+                # Simulate the pre-migration audit schema without changing postings.
+                frappe.db.set_value(row.doctype, row.name, "economic_key", None)
+                frappe.set_user("Administrator")
+                execute(); execute()
+                self.assertEqual(frappe.db.get_value(row.doctype, row.name, "economic_key"), key)
+                frappe.set_user(self.owner)
+                replay = f'\ufeffreference,note,date,{amount_field},{field}\r\nnew," changed ",2026-08-01,1.25E1,"{target}"\r\n'
+                with self.assertRaisesRegex(frappe.ValidationError, "already imported"):
+                    self.commit(kind, replay)
+                self.assertEqual(frappe.db.count(ledger, {field: target, "docstatus": 1}), 1)
+                # A distinct event remains allowed. The DB itself rejects key reuse.
+                second = self.commit(kind, f"{field},{amount_field},date\n{target},13,2026-08-01\n")
+                other_row = frappe.get_doc("Onboarding Import Batch", second["batch"]).created_records[0]
+                frappe.db.savepoint("opening_key_constraint")
+                try:
+                    with self.assertRaises(Exception) as error:
+                        frappe.db.sql("UPDATE `tabOnboarding Import Result` SET economic_key=%s WHERE name=%s", (key, other_row.name))
+                    self.assertTrue(frappe.db.is_unique_key_violation(error.exception))
+                finally:
+                    frappe.db.rollback(save_point="opening_key_constraint")
+
+    def test_opening_economic_identity_is_business_scoped(self):
+        from creditflow.onboarding import opening_event_key
+
+        for kind, field, target_type in (
+            ("OPENING_STOCK", "product", "Product"),
+            ("OPENING_CUSTOMER_DEBT", "customer", "Customer"),
+            ("OPENING_SUPPLIER_DEBT", "supplier", "Supplier"),
+        ):
+            with self.subTest(kind=kind):
+                data = {field: "same target", "quantity": Decimal("5.000"), "amount": Decimal("5.000"), "date": "2026-08-01"}
+                self.assertNotEqual(opening_event_key(self.business.name, kind, data), opening_event_key(self.other.name, kind, data))
+                frappe.set_user("Administrator")
+                for business in (self.business, self.other):
+                    label = f"Same opening {self.token} {field}"
+                    values = {"doctype": target_type, "business": business.name, f"{field}_name": label}
+                    if target_type == "Product":
+                        values["reference"] = f"{business.name}-{self.token}"
+                    target = frappe.get_doc(values).insert().name
+                    amount_field = "quantity" if kind == "OPENING_STOCK" else "amount"
+                    result = commit_csv(kind, f"{field},{amount_field},date\n{target},5,2026-08-01\n", business.name)
+                    self.assertEqual(result["created_count"], 1)
+                frappe.set_user(self.owner)
     def test_clean_install_metadata_is_complete_and_idempotent(self):
         frappe.set_user("Administrator");ensure_security_metadata();seed_default_uoms();ensure_security_metadata();seed_default_uoms()
         for role in ("OWNER","STAFF"):self.assertTrue(frappe.db.exists("Role",role))

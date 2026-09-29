@@ -225,6 +225,7 @@ class IntegrationTestChildParentAuthorization(IntegrationTestCase):
 		tax = frappe.new_doc("Withholding Tax")
 		tax.name = f"CH-TAX-{self.token}"
 		tax.business = self.b.business
+		tax.docstatus = 1  # TEJ children require a submitted withholding reference.
 		tax.db_insert()
 		values = {
 			"Sale Item": {"product": self.b.product, "quantity": 1, "unit_price": 5},

@@ -112,6 +112,7 @@ class PurchaseReversal(Document):
 			WHERE business = %s
 			  AND product = %s
 			  AND docstatus = 1
+			FOR UPDATE
 			""",
 			(self.business, product),
 		)

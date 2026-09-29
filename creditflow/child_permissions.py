@@ -96,6 +96,14 @@ def authorize_child(doc, ptype="write", user=None, *, parent_doc=None, check_rol
 		if not has_cross_business_access(user):
 			_deny()
 
+	if lock and doc.doctype == "TEJ Export Batch Item":
+		from creditflow.tej import validate_batch_tax
+
+		business = parent_doc.business if parent_doc else frappe.db.get_value(
+			"TEJ Export Batch", doc.parent, "business", for_update=True
+		)
+		validate_batch_tax(doc.withholding_tax, business)
+
 
 def validate_child_rows(doc, method=None):
 	"""Reject foreign embedded row IDs before the parent or its tables are written."""

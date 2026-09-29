@@ -21,7 +21,7 @@ class StockMovement(Document):
 		self.validate_source_integrity()
 
 	def before_submit(self):
-		if self.movement_reason not in MANUAL_REASONS or self.direction != "OUT":
+		if self.direction != "OUT":
 			return
 		# Serialize with Sales, then read committed stock even from a stale snapshot.
 		frappe.db.sql("SELECT name FROM `tabProduct` WHERE name = %s FOR UPDATE", self.product)

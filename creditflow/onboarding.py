@@ -43,7 +43,7 @@ def _context(import_type, csv_content, requested_business=None):
             frappe.throw(_("CSV imports can only target your assigned Business."), frappe.PermissionError)
         if not business:
             frappe.throw(_("Your user is not assigned to a Kivo Business."), frappe.PermissionError)
-    content = csv_content.decode("utf-8-sig") if isinstance(csv_content, bytes) else str(csv_content or "")
+    content = csv_content.decode("utf-8-sig") if isinstance(csv_content, bytes) else str(csv_content or "").lstrip("\ufeff")
     digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
     return import_type, business, content, digest, f"{business}:{import_type}:{digest}"
 
@@ -80,6 +80,15 @@ def _duplicate_identity(import_type, data):
     amount = data.get("quantity") if import_type == "OPENING_STOCK" else data.get("amount")
     fingerprint = "|".join((str(target), format(amount.normalize(), "f"), str(data.get("date")), _normalized_key(data.get("note"))))
     return "opening event", fingerprint
+
+
+def opening_event_key(business, import_type, data):
+    """Economic identity excludes CSV layout, notes and optional legacy labels."""
+    target = data.get("product") or data.get("customer") or data.get("supplier")
+    amount = data.get("quantity") if import_type == "OPENING_STOCK" else data.get("amount")
+    canonical = [business, import_type, target, format(Decimal(str(amount)).normalize(), "f"),
+        str(getdate(data["date"]))]
+    return hashlib.sha256(json.dumps(canonical, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
 
 
 def _source_identifier(import_type, data):
@@ -132,7 +141,7 @@ def _validate_row(import_type, row, business):
     return {"supplier":_resolve("Supplier",row.get("supplier"),business,"supplier_name"),"amount":_decimal(row.get("amount"),"amount",positive=True),"date":getdate(row.get("date") or today()),"note":row.get("note"),"reference":row.get("reference")}
 
 
-def _preview(import_type, csv_content, business=None, filename=None):
+def _preview(import_type, csv_content, business=None, filename=None, *, for_update=False):
     import_type,business,content,digest,key=_context(import_type,csv_content,business)
     reader=csv.DictReader(io.StringIO(content))
     if not reader.fieldnames: frappe.throw(_("CSV header row is required."))
@@ -152,11 +161,18 @@ def _preview(import_type, csv_content, business=None, filename=None):
             data=_validate_row(import_type,row,business);duplicate_type,duplicate_key=_duplicate_identity(import_type,data)
             if (duplicate_type,duplicate_key) in seen: raise ValueError(f"duplicate {duplicate_type} first appeared on row {seen[(duplicate_type,duplicate_key)]}")
             seen[(duplicate_type,duplicate_key)]=number
+            if import_type in FINANCIAL:
+                economic_key = opening_event_key(business, import_type, data)
+                if economic_key in seen:
+                    raise ValueError(f"duplicate opening event first appeared on row {seen[economic_key]}")
+                seen[economic_key] = number
+                if frappe.db.get_value("Onboarding Import Result", {"economic_key": economic_key}, "name", for_update=for_update):
+                    raise ValueError("This opening event was already imported for this Business.")
             valid.append({"row":number,"data":data,"source_identifier":_source_identifier(import_type,data)})
             if import_type=="OPENING_STOCK": total+=data["quantity"]
             elif import_type in FINANCIAL: total+=data["amount"]
         except Exception as exc: errors.append({"row":number,"error":str(exc)})
-    existing=frappe.db.get_value("Onboarding Import Batch",{"import_key":key},["name","status"],as_dict=True)
+    existing=frappe.db.get_value("Onboarding Import Batch",{"import_key":key},["name","status"],as_dict=True,for_update=for_update)
     duplicate=bool(existing and existing.status != "FAILED")
     return {"import_type":import_type,"business":business,"filename":filename or getattr(frappe.local,"form_dict",{}).get("filename") or "Uploaded CSV","file_hash":digest,"import_key":key,"valid_rows":valid,"invalid_rows":errors,"input_row_count":input_count,"valid_count":len(valid),"invalid_count":len(errors),"total":total,"duplicate_import":duplicate,"existing_batch":existing.name if existing else None}
 
@@ -176,6 +192,8 @@ def _audit_rows(preview, status, created=None):
     for item in preview["valid_rows"]:
         result=created.get(item["row"])
         rows.append({"source_row":item["row"],"import_entity":preview["import_type"],"source_identifier":str(item.get("source_identifier") or "")[:140],"result_status":"SUCCESS" if status=="SUCCESS" else "ROLLED BACK","created_doctype":result[0] if result and status=="SUCCESS" else None,"created_document":result[1] if result and status=="SUCCESS" else None,"message":None if status=="SUCCESS" else "Atomic import rolled back; no document was committed."})
+        if status == "SUCCESS" and preview["import_type"] in FINANCIAL:
+            rows[-1]["economic_key"] = opening_event_key(preview["business"], preview["import_type"], item["data"])
     for error in preview["invalid_rows"]: rows.append({"source_row":error["row"],"import_entity":preview["import_type"],"result_status":"FAILED","message":error["error"]})
     return rows
 
@@ -256,7 +274,7 @@ def commit_csv(import_type, csv_content, business=None, filename=None):
     require_feature(authorized_business, "migration")
     frappe.db.sql("SELECT name FROM `tabBusiness` WHERE name=%s FOR UPDATE", authorized_business)
     try:
-        preview=_preview(import_type,csv_content,business,filename)
+        preview=_preview(import_type,csv_content,business,filename,for_update=True)
     except (frappe.ValidationError, csv.Error) as exc:
         preview = {"import_type": context_type, "business": authorized_business,
             "filename": filename or "Uploaded CSV", "file_hash": context_digest,

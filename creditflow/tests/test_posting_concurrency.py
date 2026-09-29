@@ -38,7 +38,7 @@ class IntegrationTestPostingConcurrency(IntegrationTestCase):
         self.primary.rollback()
         frappe.set_user("Administrator")
         # Only rows belonging to the explicitly created synthetic Businesses.
-        for dt in ("Credit Transaction", "Supplier Transaction", "Supplier Payment", "Purchase", "Stock Movement", "Sale Return", "Sale Reversal", "Payment Reversal", "Payment", "Sale", "Customer", "Supplier", "Product"):
+        for dt in ("Onboarding Import Batch", "Withholding Tax", "Credit Transaction", "Supplier Transaction", "Supplier Payment Reversal", "Supplier Payment", "Purchase Reversal", "Purchase", "Stock Movement", "Sale Return", "Sale Reversal", "Payment Reversal", "Payment", "Sale", "Customer", "Supplier", "Product"):
             names = frappe.get_all(dt, filters={"business": ["in", self.businesses]}, pluck="name")
             if names:
                 for field in frappe.get_meta(dt).get_table_fields():
@@ -98,6 +98,160 @@ class IntegrationTestPostingConcurrency(IntegrationTestCase):
         self.assertEqual(view.get_available_stock(self.product), 0)
         self.assertEqual(frappe.db.get_value(contender.doctype, contender.name, "docstatus"), 0)
         self.assertEqual(frappe.db.count("Stock Movement", {"business": self.business, "direction": "OUT", "docstatus": 1}), 1)
+
+    def purchase_reversal(self):
+        purchase = frappe.get_doc({"doctype": "Purchase", "business": self.business,
+            "supplier": self.supplier, "business_date": frappe.utils.today(),
+            "items": [{"product": self.product, "quantity": 1, "unit_cost": 80}]}).insert()
+        purchase.submit()
+        self.manual_out().submit()  # Leave exactly the purchased unit.
+        return frappe.get_doc({"doctype": "Purchase Reversal", "business": self.business,
+            "original_purchase": purchase.name, "business_date": frappe.utils.today(),
+            "reason": "Concurrent stock regression"}).insert()
+
+    def threaded_submit(self, winner, contender, *, winner_call=None, contender_call=None):
+        """Independent connections overlap; contender establishes a stale snapshot."""
+        from threading import Event, Thread
+        ready, proceed, attempting = Event(), Event(), Event()
+        site, sites_path = frappe.local.site, frappe.local.sites_path
+        result = []
+        connection_ids = [self.primary.sql("SELECT CONNECTION_ID()")[0][0]]
+        self.primary.commit()
+
+        def run():
+            try:
+                frappe.init(site=site, sites_path=sites_path)
+                frappe.connect()
+                frappe.set_user("Administrator")
+                frappe.db.sql("SET SESSION innodb_snapshot_isolation=OFF")
+                connection_ids.append(frappe.db.sql("SELECT CONNECTION_ID()")[0][0])
+                doc = frappe.get_doc(contender.doctype, contender.name)
+                frappe.db.sql("SELECT name FROM `tabStock Movement` WHERE business=%s", self.business)
+                ready.set()
+                if not proceed.wait(15):
+                    raise TimeoutError("Winner did not reach submission")
+                attempting.set()
+                (contender_call or doc.submit)()
+                frappe.db.commit()
+                result.append(None)
+            except Exception as exc:
+                frappe.db.rollback()
+                result.append(exc)
+            finally:
+                ready.set()
+                frappe.destroy()
+
+        thread = Thread(target=run)
+        thread.start()
+        try:
+            self.assertTrue(ready.wait(15))
+            (winner_call or winner.submit)()
+            proceed.set()
+            self.assertTrue(attempting.wait(15), "Contender did not attempt submission")
+            # The contender attempts its submission while winner holds DB locks.
+            thread.join(0.2)
+            self.assertTrue(thread.is_alive(), "Contender did not wait for the DB lock")
+            self.primary.commit()
+        finally:
+            proceed.set()
+            self.primary.rollback()
+            thread.join(20)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(len(result), 1)
+        self.assertEqual(len(set(connection_ids)), 2, "Race requires independent DB connections")
+        self.primary.rollback()
+        return result[0]
+
+    def test_purchase_reversal_races_stock_consumers(self):
+        for kind in ("sale", "manual"):
+            for reversal_wins in (False, True):
+                with self.subTest(kind=kind, reversal_wins=reversal_wins):
+                    reversal = self.purchase_reversal()
+                    consumer = self.sale() if kind == "sale" else self.manual_out()
+                    winner, contender = (reversal, consumer) if reversal_wins else (consumer, reversal)
+                    error = self.threaded_submit(winner, contender)
+                    self.assertIsInstance(error, frappe.ValidationError)
+                    self.assertIn("Insufficient stock", str(error))
+                    self.assertEqual(reversal.get_available_stock(self.product), 0)
+                    self.assertEqual(frappe.db.get_value(contender.doctype, contender.name, "docstatus"), 0)
+                    # Restore the baseline unit for the next independent race.
+                    opening = frappe.get_doc({"doctype": "Stock Movement", "business": self.business,
+                        "product": self.product, "direction": "IN", "quantity": 1,
+                        "movement_reason": "OPENING_STOCK", "business_date": frappe.utils.today()}).insert()
+                    opening.submit()
+
+    def test_payment_reversal_distinct_documents_and_retry(self):
+        self.sale(credit=True).submit()
+        payment = self.payment(); payment.submit()
+        self.check_payment_reversal_race(payment, "Payment Reversal", "original_payment",
+            "Credit Transaction", "source_payment_reversal", "Customer", self.customer)
+
+    def test_supplier_payment_reversal_distinct_documents_and_retry(self):
+        opening = frappe.get_doc({"doctype": "Supplier Transaction", "business": self.business,
+            "supplier": self.supplier, "transaction_type": "OPENING_BALANCE", "direction": "DEBIT",
+            "amount": 100, "transaction_date": frappe.utils.today()}).insert()
+        opening.submit()
+        from creditflow.patches.v16_0.seed_tej_references import execute
+        execute()
+        payment = frappe.get_doc({"doctype": "Supplier Payment", "business": self.business,
+            "supplier": self.supplier, "amount": 100, "payment_method": "CASH",
+            "withholding_enabled": 1, "withholding_base": 100, "withholding_rate": 1,
+            "operation_amount_ht": 100, "vat_rate": 0, "vat_amount": 0,
+            "tej_operation_code": "RS1_000001", "business_date": frappe.utils.today()}).insert()
+        payment.submit()
+        self.check_payment_reversal_race(payment, "Supplier Payment Reversal", "original_supplier_payment",
+            "Supplier Transaction", "source_supplier_payment_reversal", "Supplier", self.supplier)
+        taxes = frappe.get_all("Withholding Tax", filters={"source_supplier_payment": payment.name},
+            fields=["status", "reversed_by", "withholding_amount", "docstatus"])
+        self.assertEqual(len(taxes), 1)
+        self.assertEqual((taxes[0].status, taxes[0].docstatus), ("REVERSED", 1))
+        self.assertEqual(Decimal(str(taxes[0].withholding_amount)), 1)
+        self.assertEqual(frappe.db.get_value("Supplier Payment Reversal", taxes[0].reversed_by, "docstatus"), 1)
+
+    def check_payment_reversal_race(self, payment, doctype, original_field, ledger, source_field, party_type, party):
+        values = {"doctype": doctype, "business": self.business, original_field: payment.name,
+            "business_date": frappe.utils.today(), "reason": "Concurrent reversal regression"}
+        first, second = frappe.get_doc(values).insert(), frappe.get_doc(values).insert()
+        error = self.threaded_submit(first, second)
+        self.assertIsInstance(error, frappe.ValidationError)
+        self.assertIn("already been reversed", str(error))
+        # Retrying an already submitted logical reversal must not post again.
+        frappe.get_doc(doctype, first.name).submit()
+        with self.assertRaises(frappe.ValidationError):
+            frappe.get_doc(values).insert()
+        self.assertEqual(frappe.db.count(doctype, {original_field: payment.name, "docstatus": 1}), 1)
+        self.assertEqual(frappe.db.count(ledger, {source_field: first.name, "docstatus": 1}), 1)
+        self.assertEqual(frappe.db.count(ledger, {source_field: second.name}), 0)
+        effect = frappe.get_doc(ledger, {source_field: first.name})
+        self.assertEqual(Decimal(str(effect.amount)), Decimal(str(payment.amount)))
+        self.assertEqual(effect.direction, "DEBIT")
+        self.assertEqual(frappe.db.count(ledger, {"reversal_of": effect.reversal_of, "docstatus": 1}), 1)
+        self.assertEqual(Decimal(frappe.get_doc(party_type, party).get_ledger_balance()), 100)
+
+    def test_opening_import_semantic_replay_and_concurrent_commits(self):
+        from creditflow.onboarding import commit_csv
+
+        for import_type, target_field, target, amount_field, ledger in (
+            ("OPENING_STOCK", "product", self.product, "quantity", "Stock Movement"),
+            ("OPENING_CUSTOMER_DEBT", "customer", self.customer, "amount", "Credit Transaction"),
+            ("OPENING_SUPPLIER_DEBT", "supplier", self.supplier, "amount", "Supplier Transaction"),
+        ):
+            with self.subTest(import_type=import_type):
+                original = f"{target_field},{amount_field},date,note\n{target},12.500,2026-08-01,opening\n"
+                formatted = f'\ufeffnote,date,{amount_field},{target_field}\r\n" changed note ",2026-08-01,12.5,"{target}"\r\n\r\n'
+                before = frappe.db.count(ledger, {"business": self.business, "docstatus": 1})
+                business = frappe.get_doc("Business", self.business)
+                error = self.threaded_submit(business, business,
+                    winner_call=lambda: commit_csv(import_type, original, self.business),
+                    contender_call=lambda: commit_csv(import_type, formatted, self.business))
+                self.assertIsInstance(error, frappe.ValidationError)
+                self.assertIn("already imported", str(error))
+                for replay in (original, formatted):
+                    with self.assertRaisesRegex(frappe.ValidationError, "already imported"):
+                        commit_csv(import_type, replay, self.business)
+                self.assertEqual(frappe.db.count(ledger, {"business": self.business, "docstatus": 1}), before + 1)
+                self.assertEqual(frappe.db.count("Onboarding Import Batch", {
+                    "business": self.business, "import_type": import_type, "status": "SUCCESS"}), 1)
 
     def test_manual_out_after_competing_sale_cannot_overdraw(self):
         self.assert_stock_contender_rejected(self.sale(), self.manual_out())

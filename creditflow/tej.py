@@ -132,10 +132,28 @@ def _certificate(parent, tax):
 	_text(total, "TotalMontantNetServi", to_millimes(tax.net_paid))
 
 
+def validate_batch_tax(name, business):
+	# Current read: preserve this ownership through serialization and state writes.
+	tax = frappe.get_doc("Withholding Tax", name, for_update=True)
+	if tax.business != business or tax.docstatus != 1:
+		frappe.throw(_("Every TEJ batch record must be a submitted withholding of the same Business."))
+	return tax
+
+
+def batch_taxes(batch):
+	taxes = {}
+	for row in sorted(batch.records, key=lambda row: row.withholding_tax):
+		if row.withholding_tax in taxes:
+			frappe.throw(_("A withholding record cannot appear twice in one TEJ batch."))
+		taxes[row.withholding_tax] = validate_batch_tax(row.withholding_tax, batch.business)
+	return taxes
+
+
 def serialize_batch(batch):
+	taxes = batch_taxes(batch)
 	root = etree.Element("DeclarationsRS", VersionSchema="1.0")
 	declarant = etree.SubElement(root, "Declarant")
-	first_tax = frappe.get_doc("Withholding Tax", batch.records[0].withholding_tax)
+	first_tax = taxes[batch.records[0].withholding_tax]
 	_text(declarant, "TypeIdentifiant", "1")
 	_text(declarant, "Identifiant", str(first_tax.declarant_tax_identifier).strip().upper())
 	_text(declarant, "CategorieContribuable", first_tax.declarant_category)
@@ -150,7 +168,7 @@ def serialize_batch(batch):
 			continue
 		container = etree.SubElement(root, element_name)
 		for row in rows:
-			tax = frappe.get_doc("Withholding Tax", row.withholding_tax)
+			tax = taxes[row.withholding_tax]
 			validate_required_identity(tax)
 			if getdate(tax.transaction_date).strftime("%Y-%m") != getdate(batch.declaration_month).strftime("%Y-%m"):
 				raise frappe.ValidationError(_("All withholding dates must match the batch month."))
@@ -171,28 +189,40 @@ def validate_xml(xml_bytes):
 
 
 def generate_batch_xml(batch_name):
-	batch = frappe.get_doc("TEJ Export Batch", batch_name)
+	batch = frappe.get_doc("TEJ Export Batch", batch_name, for_update=True)
 	batch.check_permission("write")
 	if not batch.records:
 		frappe.throw(_("At least one Withholding Tax record is required."))
+	# Reject corrupted references before recording even a validation failure.
+	taxes = list(batch_taxes(batch).values())
 	try:
 		xml_bytes = serialize_batch(batch)
 		validate_xml(xml_bytes)
 	except Exception as exc:
 		batch.db_set({"status": "VALIDATION_FAILED", "xml_generation_status": "FAILED", "xsd_validation_status": "INVALID", "validation_errors": str(exc)[:10000]})
 		raise
-	filename = f"TEJ_RS_{frappe.scrub(batch.business).upper()}_{batch.declaration_year}_{getdate(batch.declaration_month).strftime('%m')}_{batch.name}.xml"
-	file_doc = frappe.get_doc({"doctype": "File", "file_name": filename, "content": xml_bytes, "attached_to_doctype": batch.doctype, "attached_to_name": batch.name, "is_private": 1}).insert(ignore_permissions=True)
-	checksum = hashlib.sha256(xml_bytes).hexdigest()
-	taxes = [frappe.get_doc("Withholding Tax", row.withholding_tax) for row in batch.records]
-	batch.db_set({"status": "EXPORT_READY", "created_at": batch.created_at or now_datetime(), "created_by": batch.created_by or frappe.session.user,
-		"record_count": len(taxes), "total_withholding_base": sum(Decimal(str(t.withholding_base)) for t in taxes),
-		"total_withheld_amount": sum(Decimal(str(t.withholding_amount)) for t in taxes), "generated_filename": filename,
-		"xml_file": file_doc.file_url, "xml_checksum": checksum, "xml_generation_status": "GENERATED", "xsd_validation_status": "VALID", "validation_errors": None})
-	for tax in taxes:
-		state = "EXPORTED_THEN_REVERSED" if tax.status == "REVERSED" else "EXPORTED"
-		tax.db_set({"tej_state": state, "last_tej_export_batch": batch.name}, update_modified=False)
-	return {"batch": batch.name, "file_url": file_doc.file_url, "filename": filename, "checksum": checksum, "xsd_valid": True}
+	savepoint = "tej_export"
+	frappe.db.savepoint(savepoint)
+	file_doc = None
+	try:
+		filename = f"TEJ_RS_{frappe.scrub(batch.business).upper()}_{batch.declaration_year}_{getdate(batch.declaration_month).strftime('%m')}_{batch.name}.xml"
+		file_doc = frappe.get_doc({"doctype": "File", "file_name": filename, "content": xml_bytes, "attached_to_doctype": batch.doctype, "attached_to_name": batch.name, "is_private": 1})
+		file_doc.insert(ignore_permissions=True)
+		checksum = hashlib.sha256(xml_bytes).hexdigest()
+		batch.db_set({"status": "EXPORT_READY", "created_at": batch.created_at or now_datetime(), "created_by": batch.created_by or frappe.session.user,
+			"record_count": len(taxes), "total_withholding_base": sum(Decimal(str(t.withholding_base)) for t in taxes),
+			"total_withheld_amount": sum(Decimal(str(t.withholding_amount)) for t in taxes), "generated_filename": filename,
+			"xml_file": file_doc.file_url, "xml_checksum": checksum, "xml_generation_status": "GENERATED", "xsd_validation_status": "VALID", "validation_errors": None})
+		for tax in taxes:
+			state = "EXPORTED_THEN_REVERSED" if tax.status == "REVERSED" else "EXPORTED"
+			tax.db_set({"tej_state": state, "last_tej_export_batch": batch.name}, update_modified=False)
+		return {"batch": batch.name, "file_url": file_doc.file_url, "filename": filename, "checksum": checksum, "xsd_valid": True}
+	except Exception:
+		frappe.db.rollback(save_point=savepoint)
+		# Frappe savepoint rollback does not run filesystem rollback callbacks.
+		if file_doc is not None:
+			file_doc.on_rollback()
+		raise
 
 
 @frappe.whitelist(methods=["POST"])

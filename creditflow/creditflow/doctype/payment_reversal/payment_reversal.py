@@ -5,6 +5,12 @@ from frappe.model.document import Document
 
 class PaymentReversal(Document):
 	def validate(self):
+		if self.docstatus == 1:
+			# Serialize distinct reversal documents before Frappe's submit validation.
+			frappe.db.sql(
+				"SELECT name FROM `tabPayment` WHERE name = %s FOR UPDATE",
+				self.original_payment,
+			)
 		original_payment = self.get_original_payment()
 		self.validate_original_payment(original_payment)
 		self.validate_not_already_reversed()
@@ -28,7 +34,7 @@ class PaymentReversal(Document):
 		filters = {"original_payment": self.original_payment, "docstatus": 1}
 		if not self.is_new():
 			filters["name"] = ["!=", self.name]
-		if frappe.db.exists("Payment Reversal", filters):
+		if frappe.db.get_value("Payment Reversal", filters, "name", for_update=self.docstatus == 1):
 			frappe.throw(_("This Payment has already been reversed."))
 
 	def before_submit(self):

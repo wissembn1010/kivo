@@ -138,3 +138,98 @@ class IntegrationTestWithholdingTEJ(IntegrationTestCase):
 		with self.assertRaises(frappe.PermissionError): frappe.get_doc("Withholding Tax", tax.name).check_permission("read")
 		with self.assertRaises((frappe.PermissionError, frappe.ValidationError)):
 			frappe.get_doc({"doctype": "TEJ Export Batch", "business": business_b.name, "declaration_year": 2026, "declaration_month": "2026-08-01", "records": [{"withholding_tax": tax.name, "action": "ADD"}]}).insert()
+
+	def test_foreign_child_writes_and_corrupted_export_are_rejected(self):
+		from frappe import client
+
+		self.opening_debt("2000")
+		payment = self.payment().insert(); payment.submit()
+		tax = frappe.get_doc("Withholding Tax", {"source_supplier_payment": payment.name})
+		other = frappe.get_doc({"doctype": "Business", "business_name": f"Foreign TEJ {uuid4().hex[:8]}"}).insert()
+		batch = frappe.get_doc({"doctype": "TEJ Export Batch", "business": self.business.name,
+			"declaration_year": 2026, "declaration_month": "2026-08-01", "declaration_type": "INITIAL",
+			"records": [{"withholding_tax": tax.name, "action": "ADD"}]}).insert()
+		payment2 = self.payment().insert(); payment2.submit()
+		foreign = frappe.get_doc("Withholding Tax", {"source_supplier_payment": payment2.name})
+		# Simulate a persisted foreign record, independent of caller privileges.
+		frappe.db.set_value("Withholding Tax", foreign.name, "business", other.name)
+		before = frappe.get_doc("Withholding Tax", foreign.name).as_dict()
+		row_name = batch.records[0].name
+		for operation in ("save", "db_update", "db_set", "set_value", "bulk"):
+			with self.subTest(operation=operation):
+				row = frappe.get_doc("TEJ Export Batch Item", row_name)
+				if operation == "bulk":
+					result = client.bulk_update(frappe.as_json([{"doctype": row.doctype,
+						"docname": row.name, "withholding_tax": foreign.name}]))
+					self.assertTrue(result["failed_docs"])
+				else:
+					with self.assertRaises(frappe.ValidationError):
+						if operation == "set_value":
+							client.set_value(row.doctype, row.name, "withholding_tax", foreign.name)
+						elif operation == "db_set":
+							row.db_set("withholding_tax", foreign.name)
+						else:
+							row.withholding_tax = foreign.name
+							getattr(row, operation)()
+				self.assertEqual(frappe.db.get_value(row.doctype, row.name, "withholding_tax"), tax.name)
+		frappe.db.set_value("TEJ Export Batch Item", row_name, "withholding_tax", foreign.name)
+		batch.reload()
+		for export in (lambda: serialize_batch(batch), lambda: generate_batch_xml(batch.name)):
+			with self.assertRaisesRegex(frappe.ValidationError, "same Business"):
+				export()
+		self.assertEqual(frappe.get_doc("Withholding Tax", foreign.name).as_dict(), before)
+		self.assertFalse(frappe.db.exists("File", {"attached_to_doctype": batch.doctype, "attached_to_name": batch.name}))
+		self.assertEqual(frappe.db.get_value(batch.doctype, batch.name, "status"), "DRAFT")
+
+	def test_export_rejects_duplicate_references_from_generic_child_update(self):
+		from frappe import client
+
+		self.opening_debt("2000")
+		taxes = []
+		for unused in range(2):
+			payment = self.payment().insert(); payment.submit()
+			taxes.append(frappe.get_doc("Withholding Tax", {"source_supplier_payment": payment.name}))
+		batch = frappe.get_doc({"doctype": "TEJ Export Batch", "business": self.business.name,
+			"declaration_year": 2026, "declaration_month": "2026-08-01",
+			"records": [{"withholding_tax": tax.name, "action": "ADD"} for tax in taxes]}).insert()
+		result = client.bulk_update(frappe.as_json([{"doctype": "TEJ Export Batch Item",
+			"docname": batch.records[1].name, "withholding_tax": taxes[0].name}]))
+		self.assertFalse(result["failed_docs"])
+		with self.assertRaisesRegex(frappe.ValidationError, "cannot appear twice"):
+			generate_batch_xml(batch.name)
+		self.assertFalse(frappe.db.exists("File", {"attached_to_doctype": batch.doctype, "attached_to_name": batch.name}))
+		for tax in taxes:
+			tax.reload()
+			self.assertEqual(tax.tej_state, "NOT_EXPORTED")
+
+	def test_export_rolls_back_all_database_effects_on_late_failure(self):
+		from pathlib import Path
+		from unittest.mock import patch
+		from frappe.core.doctype.file.file import File
+		from creditflow.creditflow.doctype.withholding_tax.withholding_tax import WithholdingTax
+
+		self.opening_debt("1000")
+		payment = self.payment().insert(); payment.submit()
+		tax = frappe.get_doc("Withholding Tax", {"source_supplier_payment": payment.name})
+		batch = frappe.get_doc({"doctype": "TEJ Export Batch", "business": self.business.name,
+			"declaration_year": 2026, "declaration_month": "2026-08-01", "declaration_type": "INITIAL",
+			"records": [{"withholding_tax": tax.name, "action": "ADD"}]}).insert()
+		files = []
+		original_insert = File.insert
+
+		def track_file(doc, *args, **kwargs):
+			result = original_insert(doc, *args, **kwargs)
+			files.append(Path(doc.get_full_path()))
+			self.assertTrue(files[-1].exists())
+			return result
+
+		with patch.object(File, "insert", track_file):
+			with patch.object(WithholdingTax, "db_set", side_effect=RuntimeError("late failure")):
+				with self.assertRaisesRegex(RuntimeError, "late failure"):
+					generate_batch_xml(batch.name)
+		self.assertEqual(len(files), 1)
+		self.assertFalse(files[0].exists(), "Failed export left XML bytes on disk")
+		batch.reload(); tax.reload()
+		self.assertEqual(batch.status, "DRAFT")
+		self.assertEqual(tax.tej_state, "NOT_EXPORTED")
+		self.assertFalse(frappe.db.exists("File", {"attached_to_doctype": batch.doctype, "attached_to_name": batch.name}))
