@@ -1,0 +1,74 @@
+[
+  {
+    "site": "development.localhost",
+    "product_count": 147,
+    "sale_count": 17
+  },
+  {
+    "site": "creditflow-staging.localhost",
+    "product_count": 1,
+    "sale_count": 1
+  },
+  {
+    "site": "kivo-fix001-tests.localhost",
+    "product_count": 0,
+    "sale_count": 0,
+    "patches": [
+      "creditflow.patches.v16_0.normalize_payment_methods",
+      "creditflow.patches.v16_0.scope_pilot_identifiers"
+    ],
+    "unique_indexes": {
+      "Product": [
+        {
+          "name": "PRIMARY",
+          "column": "name",
+          "sequence": 1
+        },
+        {
+          "name": "business_reference_unique",
+          "column": "business",
+          "sequence": 1
+        },
+        {
+          "name": "business_reference_unique",
+          "column": "reference",
+          "sequence": 2
+        },
+        {
+          "name": "business_legacy_product_id_unique",
+          "column": "business",
+          "sequence": 1
+        },
+        {
+          "name": "business_legacy_product_id_unique",
+          "column": "legacy_product_id",
+          "sequence": 2
+        }
+      ],
+      "Sale": [
+        {
+          "name": "PRIMARY",
+          "column": "name",
+          "sequence": 1
+        },
+        {
+          "name": "business_invoice_number_unique",
+          "column": "business",
+          "sequence": 1
+        },
+        {
+          "name": "business_invoice_number_unique",
+          "column": "invoice_number",
+          "sequence": 2
+        }
+      ]
+    },
+    "remaining_synthetic_race_businesses": 0,
+    "remaining_synthetic_migration_businesses": 0
+  },
+  {
+    "site": "kivo-recovery-test.localhost",
+    "product_count": 1,
+    "sale_count": 0
+  }
+]

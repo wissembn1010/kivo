@@ -1,0 +1,316 @@
+$ bench --site kivo-fix001-tests.localhost run-tests --module creditflow.tests.test_customer_payment_workflow
+Exit: 0
+Starting test run with parameters: site=kivo-fix001-tests.localhost, module=creditflow.tests.test_customer_payment_workflow, verbose=False, tests=(), force=False, profile=False, failfast=False, skip_before_tests=False, debug=False, selected_categories=[]
+View detailed logs (using --verbose): <BENCH>/logs/frappe.testing.log
+
+Running 11 integration tests for creditflow
+
+creditflow.tests.test_customer_payment_workflow.IntegrationTestCustomerPaymentWorkflow
+   [32m ✔ [0m test_bank_transfer_payment_preserves_reference
+   [32m ✔ [0m test_card_and_other_payment_methods_are_supported
+   [32m ✔ [0m test_cash_payment_reference_is_optional
+   [32m ✔ [0m test_cheque_payment_requires_and_preserves_reference
+   [32m ✔ [0m test_cross_business_payment_creation_is_denied
+   [32m ✔ [0m test_exact_settlement_succeeds_and_overpayment_is_rejected
+   [32m ✔ [0m test_overpayment_is_rejected_without_ledger_effect
+   [32m ✔ [0m test_payment_history_fields_are_visible_in_native_list
+   [32m ✔ [0m test_payment_posts_exactly_one_credit_effect_and_reversal_restores_debt
+   [32m ✔ [0m test_payment_receipt_contains_operational_payment_data
+   [32m ✔ [0m test_staff_can_submit_payment_but_cannot_create_credit_transaction
+
+
+----------------------------------------------------------------------
+Ran 11 tests in 3.116s
+
+OK
+
+
+$ bench --site kivo-fix001-tests.localhost run-tests --module creditflow.tests.test_onboarding_imports
+Exit: 0
+Starting test run with parameters: site=kivo-fix001-tests.localhost, module=creditflow.tests.test_onboarding_imports, verbose=False, tests=(), force=False, profile=False, failfast=False, skip_before_tests=False, debug=False, selected_categories=[]
+View detailed logs (using --verbose): <BENCH>/logs/frappe.testing.log
+
+Running 9 integration tests for creditflow
+
+creditflow.tests.test_onboarding_imports.IntegrationTestOnboardingImports
+   [32m ✔ [0m test_clean_install_metadata_is_complete_and_idempotent
+   [32m ✔ [0m test_clean_install_seeds_official_tej_references
+   [32m ✔ [0m test_customer_supplier_and_product_imports
+   [32m ✔ [0m test_first_business_end_to_end_after_imports
+   [32m ✔ [0m test_malformed_and_invalid_product_rows_reject_commit
+   [32m ✔ [0m test_opening_economic_identity_is_business_scoped
+   [32m ✔ [0m test_opening_import_preview_commit_and_duplicate_protection
+   [32m ✔ [0m test_semantic_opening_keys_backfill_and_database_uniqueness
+   [32m ✔ [0m test_staff_and_cross_business_attacks_are_denied
+
+
+----------------------------------------------------------------------
+Ran 9 tests in 6.634s
+
+OK
+
+
+$ bench --site kivo-fix001-tests.localhost run-tests --module creditflow.creditflow.doctype.payment.test_payment
+Exit: 0
+Starting test run with parameters: site=kivo-fix001-tests.localhost, module=creditflow.creditflow.doctype.payment.test_payment, verbose=False, tests=(), force=False, profile=False, failfast=False, skip_before_tests=False, debug=False, selected_categories=[]
+View detailed logs (using --verbose): <BENCH>/logs/frappe.testing.log
+
+Running 6 integration tests for creditflow
+
+creditflow.creditflow.doctype.payment.test_payment.IntegrationTestPayment
+[90m  Test Records created: Payment (0), Customer (0), Business (0), Country (0)[0m
+   [32m ✔ [0m test_credit_transaction_failure_has_no_partial_side_effects
+   [32m ✔ [0m test_customer_from_another_business_is_rejected
+   [32m ✔ [0m test_negative_amount_is_rejected
+   [32m ✔ [0m test_posted_payment_cannot_be_cancelled
+   [32m ✔ [0m test_successful_payment_posts_one_credit_transaction
+   [32m ✔ [0m test_zero_amount_is_rejected
+
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.802s
+
+OK
+
+
+$ bench --site kivo-fix001-tests.localhost run-tests --module creditflow.tests.test_pilot_integrity
+Exit: 0
+Starting test run with parameters: site=kivo-fix001-tests.localhost, module=creditflow.tests.test_pilot_integrity, verbose=False, tests=(), force=False, profile=False, failfast=False, skip_before_tests=False, debug=False, selected_categories=[]
+View detailed logs (using --verbose): <BENCH>/logs/frappe.testing.log
+
+Running 9 integration tests for creditflow
+
+creditflow.tests.test_pilot_integrity.IntegrationTestPilotIntegrity
+   [32m ✔ [0m test_authoritative_context_over_1000_rows_and_unlimited_credit
+   [32m ✔ [0m test_context_owner_staff_foreign_guest_authorization
+       ▸  <BENCH>/apps/frappe/frappe/model/qb_query.py:153: V17FrappeDeprecationWarning: This codepath was marked (DATE: 2024-01-01) deprecated for removal (from v17 onwards); note:
+       ▸   The 'limit_page_length' parameter is deprecated. Use 'limit' instead.
+       ▸
+       ▸    deprecation_warning(
+   [32m ✔ [0m test_historical_invoice_seeding_preserves_numbers_and_never_rewinds
+   [32m ✔ [0m test_historical_payment_alias_migration_is_idempotent
+   [32m ✔ [0m test_import_check_and_resolution_are_scoped
+   [32m ✔ [0m test_invoice_per_business_year_and_failed_submit_rollback
+   [32m ✔ [0m test_posted_payment_and_purchase_store_canonical_methods
+   [32m ✔ [0m test_product_identifiers_scoped_and_optional
+   [32m ✔ [0m test_vocabulary_normalization_and_workflow_boundaries
+
+
+----------------------------------------------------------------------
+Ran 9 tests in 3.045s
+
+OK
+
+
+$ bench --site kivo-fix001-tests.localhost run-tests --module creditflow.tests.test_pilot_integrity_concurrency
+Exit: 0
+Starting test run with parameters: site=kivo-fix001-tests.localhost, module=creditflow.tests.test_pilot_integrity_concurrency, verbose=False, tests=(), force=False, profile=False, failfast=False, skip_before_tests=False, debug=False, selected_categories=[]
+View detailed logs (using --verbose): <BENCH>/logs/frappe.testing.log
+
+Running 4 integration tests for creditflow
+
+creditflow.tests.test_pilot_integrity_concurrency.IntegrationTestPilotIntegrityConcurrency
+   [32m ✔ [0m test_invoice_default_snapshot_settings_safe_commit_or_retry
+       ▹  PILOT RACE: connection_ids=[1288, 1289], settings=[('REPEATABLE-READ', 1)], waited=True, result=QueryDeadlockError
+   [32m ✔ [0m test_invoice_other_business_does_not_wait_or_consume_sequence
+       ▹  PILOT RACE: connection_ids=[1288, 1290], settings=[('REPEATABLE-READ', 1)], waited=False, result=str
+   [32m ✔ [0m test_invoice_same_business_overlapping_submissions
+       ▹  PILOT RACE: connection_ids=[1288, 1291], settings=[('REPEATABLE-READ', 0)], waited=True, result=str
+   [32m ✔ [0m test_product_reference_and_legacy_races
+       ▹  PILOT RACE: connection_ids=[1288, 1292], settings=[('REPEATABLE-READ', 1)], waited=True, result=UniqueValidationError
+       ▹  PILOT RACE: connection_ids=[1288, 1293], settings=[('REPEATABLE-READ', 1)], waited=True, result=UniqueValidationError
+
+
+----------------------------------------------------------------------
+Ran 4 tests in 2.353s
+
+OK
+
+
+$ bench --site kivo-fix001-tests.localhost run-tests --module creditflow.tests.test_pilot_integrity_migration
+Exit: 0
+Starting test run with parameters: site=kivo-fix001-tests.localhost, module=creditflow.tests.test_pilot_integrity_migration, verbose=False, tests=(), force=False, profile=False, failfast=False, skip_before_tests=False, debug=False, selected_categories=[]
+View detailed logs (using --verbose): <BENCH>/logs/frappe.testing.log
+
+Running 2 integration tests for creditflow
+
+creditflow.tests.test_pilot_integrity_migration.IntegrationTestPilotIntegrityMigration
+   [32m ✔ [0m test_duplicate_preflight_fails_before_schema_or_data_changes
+       ▹  PILOT MIGRATION: duplicate preflight rejected before first DDL
+   [32m ✔ [0m test_upgrade_old_global_constraints_preserves_history_and_replays [31m (2.52s)[0m
+       ▹  PILOT MIGRATION: legacy rows preserved; aliases canonicalized; replay idempotent; next invoices 00074/00075
+
+
+----------------------------------------------------------------------
+Ran 2 tests in 3.985s
+
+OK
+
+
+$ bench --site kivo-fix001-tests.localhost run-tests --module creditflow.creditflow.doctype.product.test_product
+Exit: 0
+Starting test run with parameters: site=kivo-fix001-tests.localhost, module=creditflow.creditflow.doctype.product.test_product, verbose=False, tests=(), force=False, profile=False, failfast=False, skip_before_tests=False, debug=False, selected_categories=[]
+View detailed logs (using --verbose): <BENCH>/logs/frappe.testing.log
+
+Running 7 integration tests for creditflow
+
+creditflow.creditflow.doctype.product.test_product.IntegrationTestProduct
+[90m  Test Records created: Product (0), CreditFlow UOM (0), Business (0), Country (0)[0m
+   [32m ✔ [0m test_duplicate_conversion_uom_is_rejected
+   [32m ✔ [0m test_inactive_primary_uom_is_rejected
+   [32m ✔ [0m test_negative_conversion_factor_is_rejected
+   [32m ✔ [0m test_primary_uom_conversion_row_is_rejected
+   [32m ✔ [0m test_valid_alternate_conversion_succeeds
+   [32m ✔ [0m test_valid_primary_uom_succeeds
+   [32m ✔ [0m test_zero_conversion_factor_is_rejected
+
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.620s
+
+OK
+
+
+$ bench --site kivo-fix001-tests.localhost run-tests --module creditflow.tests.test_purchase_payment_modes
+Exit: 0
+Starting test run with parameters: site=kivo-fix001-tests.localhost, module=creditflow.tests.test_purchase_payment_modes, verbose=False, tests=(), force=False, profile=False, failfast=False, skip_before_tests=False, debug=False, selected_categories=[]
+View detailed logs (using --verbose): <BENCH>/logs/frappe.testing.log
+
+Running 15 integration tests for creditflow
+
+creditflow.tests.test_purchase_payment_modes.IntegrationTestPurchasePaymentModes
+   [32m ✔ [0m test_credit_purchase_posts_stock_and_full_supplier_debt_without_payment
+   [32m ✔ [0m test_existing_purchase_without_payment_status_remains_credit
+   [32m ✔ [0m test_historical_payment_reversal_is_not_a_today_cash_recovery
+   [32m ✔ [0m test_invalid_partial_amounts_are_rejected
+   [32m ✔ [0m test_paid_purchase_posts_purchase_and_payment_with_zero_final_debt
+   [32m ✔ [0m test_paid_purchase_requires_payment_method
+   [32m ✔ [0m test_partial_purchase_posts_only_remaining_supplier_debt
+   [32m ✔ [0m test_purchase_reversal_reverses_automatic_payment_stock_and_debt
+   [32m ✔ [0m test_purchases_report_shows_only_remaining_debt
+   [32m ✔ [0m test_rejected_generated_payment_rolls_back_purchase_effects
+   [32m ✔ [0m test_reversals_do_not_imply_a_supplier_cash_refund
+   [32m ✔ [0m test_second_submit_does_not_duplicate_automatic_payment
+   [32m ✔ [0m test_standalone_payment_reversal_does_not_reduce_cash_paid_metric
+   [32m ✔ [0m test_supplier_balances_and_last_payment_include_automatic_payment
+   [32m ✔ [0m test_supplier_statement_shows_purchase_payment_and_closing_balance
+
+
+----------------------------------------------------------------------
+Ran 15 tests in 3.093s
+
+OK
+
+
+$ bench --site kivo-fix001-tests.localhost run-tests --module creditflow.creditflow.doctype.sale.test_sale
+Exit: 0
+Starting test run with parameters: site=kivo-fix001-tests.localhost, module=creditflow.creditflow.doctype.sale.test_sale, verbose=False, tests=(), force=False, profile=False, failfast=False, skip_before_tests=False, debug=False, selected_categories=[]
+View detailed logs (using --verbose): <BENCH>/logs/frappe.testing.log
+
+Running 35 integration tests for creditflow
+
+creditflow.creditflow.doctype.sale.test_sale.IntegrationTestSale
+[90m  Test Records created: Sale (0), Product (0), CreditFlow UOM (0), Customer (0), Business (0), Country (0)[0m
+   [32m ✔ [0m test_administrator_can_override_credit_limit_with_reason
+   [32m ✔ [0m test_administrator_can_override_minimum_price_with_reason
+   [32m ✔ [0m test_administrator_minimum_price_override_requires_reason
+   [32m ✔ [0m test_amount_paid_greater_than_total_is_rejected
+   [32m ✔ [0m test_cash_sale_ignores_credit_limit
+   [32m ✔ [0m test_cash_walk_in_sale_succeeds
+   [32m ✔ [0m test_credit_override_without_reason_is_rejected
+   [32m ✔ [0m test_credit_sale_below_limit_succeeds
+   [32m ✔ [0m test_credit_sale_without_customer_is_rejected
+   [32m ✔ [0m test_customer_from_another_business_is_rejected
+   [32m ✔ [0m test_discount_calculates_final_unit_price
+   [32m ✔ [0m test_discount_over_100_is_rejected
+   [32m ✔ [0m test_full_cash_sale_posts_no_customer_debt
+   [32m ✔ [0m test_insufficient_stock_has_no_side_effects
+   [32m ✔ [0m test_invalid_cash_amount_is_rejected
+   [32m ✔ [0m test_invalid_credit_amount_is_rejected
+   [32m ✔ [0m test_invalid_mixed_amounts_are_rejected
+   [32m ✔ [0m test_mixed_sale_checks_only_outstanding_amount
+   [32m ✔ [0m test_mixed_sale_posts_partial_customer_debt
+   [32m ✔ [0m test_mixed_sale_without_customer_is_rejected
+   [32m ✔ [0m test_multiple_products_post_correct_movements
+   [32m ✔ [0m test_negative_discount_is_rejected
+   [32m ✔ [0m test_owner_can_override_credit_limit_with_reason
+   [32m ✔ [0m test_posted_sale_cannot_be_cancelled
+   [32m ✔ [0m test_product_from_another_business_is_rejected
+   [32m ✔ [0m test_product_selling_price_defaults_when_unit_price_is_blank
+   [32m ✔ [0m test_professional_customer_defaults_professional_price
+   [32m ✔ [0m test_professional_price_zero_falls_back_to_retail
+   [32m ✔ [0m test_retail_customer_defaults_retail_price
+   [32m ✔ [0m test_same_product_rows_are_aggregated_for_stock_check
+   [32m ✔ [0m test_staff_cannot_exceed_credit_limit
+   [32m ✔ [0m test_staff_cannot_sell_below_minimum_price
+   [32m ✔ [0m test_successful_sale_posts_ledger_and_stock
+   [32m ✔ [0m test_valid_sale_and_total_calculation
+   [32m ✔ [0m test_zero_quantity_is_rejected
+
+
+----------------------------------------------------------------------
+Ran 35 tests in 3.387s
+
+OK
+
+
+$ bench --site kivo-fix001-tests.localhost run-tests --module creditflow.tests.test_sale_fiscal_invoice
+Exit: 0
+Starting test run with parameters: site=kivo-fix001-tests.localhost, module=creditflow.tests.test_sale_fiscal_invoice, verbose=False, tests=(), force=False, profile=False, failfast=False, skip_before_tests=False, debug=False, selected_categories=[]
+View detailed logs (using --verbose): <BENCH>/logs/frappe.testing.log
+
+Running 13 integration tests for creditflow
+
+creditflow.tests.test_sale_fiscal_invoice.IntegrationTestSaleFiscalInvoice
+   [32m ✔ [0m test_business_and_product_changes_do_not_change_invoice_snapshots
+   [32m ✔ [0m test_cash_credit_and_mixed_use_ttc_for_economics
+   [32m ✔ [0m test_form_preview_discount_rounding_and_no_writes
+   [32m ✔ [0m test_form_preview_enforces_role_and_linked_tenants
+       ▸  <BENCH>/apps/frappe/frappe/model/qb_query.py:153: V17FrappeDeprecationWarning: This codepath was marked (DATE: 2024-01-01) deprecated for removal (from v17 onwards); note:
+       ▸   The 'limit_page_length' parameter is deprecated. Use 'limit' instead.
+       ▸
+       ▸    deprecation_warning(
+   [32m ✔ [0m test_form_preview_matches_submit_and_reload
+   [32m ✔ [0m test_invoice_number_is_unique_stable_and_not_forgeable
+   [32m ✔ [0m test_invoice_print_contains_snapshotted_fiscal_data
+   [32m ✔ [0m test_mixed_rates_and_discount_before_tva
+   [32m ✔ [0m test_product_changes_do_not_change_submitted_snapshot
+   [32m ✔ [0m test_reversal_preserves_invoice_and_tax_and_cannot_repeat
+   [32m ✔ [0m test_submitted_invoice_print_preserves_large_millime_value
+   [32m ✔ [0m test_uom_quantity_and_tax_are_independent
+   [32m ✔ [0m test_zero_and_standard_tva_snapshots
+
+
+----------------------------------------------------------------------
+Ran 13 tests in 4.203s
+
+OK
+
+
+$ node --test apps/creditflow/creditflow/tests/test_sale_form.cjs
+Exit: 0
+✔ taxed CASH preview uses TTC119 and MIXED leaves 69 outstanding (9.301944ms)
+✔ submitted refresh and payment events never mutate snapshots (1.255018ms)
+✔ out of order previews cannot overwrite newer quantities (1.315158ms)
+✔ validate waits for the authoritative preview (10.050164ms)
+✔ a stale Product pricing reply cannot replace the current Product price (1.546039ms)
+✔ validate waits for pending product pricing and then recalculates (3.214335ms)
+✔ discount edits use server fiscal totals rather than local HT (2.289756ms)
+✔ failed preview rejects save, and a late preview cannot mutate a submitted Sale (2.782921ms)
+✔ pricing and payment field-event chains settle before validation (3.40548ms)
+✔ customer context uses the server aggregate and rejects old replies (5.836878ms)
+✔ same-customer refresh order, Business change and clear discard stale context (1.899751ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 127.526121
+
+
+$ node --check apps/creditflow/creditflow/public/js/saas-access.js
+Exit: 0
+$ git -C apps/creditflow diff --check
+Exit: 0; no output

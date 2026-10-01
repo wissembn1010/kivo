@@ -54,64 +54,28 @@ function row_has_manual_price(row) {
 }
 
 async function load_customer_context(frm) {
-        if (!frm.doc.customer) {
+        const request = frm.__customer_context_request = (frm.__customer_context_request || 0) + 1;
+        const customer = frm.doc.customer;
+        const business = frm.doc.business;
+        // Drop old credit/pricing context immediately, including on request failure.
+        frm.__customer_context = null;
+        update_sale_warnings(frm);
+        if (!customer) {
                 frm.__customer_context = {
-                        customer: null,
-                        price_type: "RETAIL",
-                        credit_limit: 0,
-                        current_debt: 0,
+                        business, customer: null, price_type: "RETAIL",
+                        credit_limit: 0, current_debt: 0, available_credit: null,
                 };
-
-                update_sale_warnings(frm);
                 return frm.__customer_context;
         }
-
-        const customer_name = frm.doc.customer;
-
-        const [{ message }, transactions] = await Promise.all([
-                frappe.db.get_value(
-                        "Customer",
-                        customer_name,
-                        ["price_type", "credit_limit"]
-                ),
-                frappe.db.get_list("Credit Transaction", {
-                        filters: {
-                                business: frm.doc.business,
-                                customer: customer_name,
-                                docstatus: 1,
-                        },
-                        fields: ["direction", "amount"],
-                        limit: 1000,
-                }),
-        ]);
-
-        if (frm.doc.customer !== customer_name) {
-                return null;
-        }
-
-        const debt = (transactions || []).reduce((total, transaction) => {
-                const amount = flt(transaction.amount);
-
-                if (transaction.direction === "DEBIT") {
-                        return total + amount;
-                }
-
-                if (transaction.direction === "CREDIT") {
-                        return total - amount;
-                }
-
-                return total;
-        }, 0);
-
-        frm.__customer_context = {
-                customer: customer_name,
-                price_type: message?.price_type || "RETAIL",
-                credit_limit: flt(message?.credit_limit),
-                current_debt: debt,
-        };
-
+        const { message } = await frappe.call({
+                method: "creditflow.checkout.get_customer_context",
+                args: {business, customer},
+        });
+        if (request !== frm.__customer_context_request ||
+                frm.doc.customer !== customer || frm.doc.business !== business) return null;
+        frm.__customer_context = message;
         update_sale_warnings(frm);
-        return frm.__customer_context;
+        return message;
 }
 
 async function get_product_pricing(row) {
@@ -319,6 +283,7 @@ function update_sale_warnings(frm) {
         if (
                 context &&
                 context.customer === frm.doc.customer &&
+                context.business === frm.doc.business &&
                 (frm.doc.sale_mode || "CREDIT") !== "CASH" &&
                 flt(context.credit_limit) > 0
         ) {
@@ -486,6 +451,11 @@ frappe.ui.form.on("Sale", {
                         while (frm.__sale_edits?.size) await Promise.all([...frm.__sale_edits]);
                 } while (!(await recalculate_sale_total(frm)) || frm.__sale_edits?.size);
         },
+
+        business: sale_edit(async function(frm) {
+                await load_customer_context(frm);
+                await recalculate_sale_total(frm);
+        }),
 
         customer: sale_edit(async function(frm) {
                 await load_customer_context(frm);

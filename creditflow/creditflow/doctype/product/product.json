@@ -43,8 +43,7 @@
   {
    "fieldname": "legacy_product_id",
    "fieldtype": "Data",
-   "label": "Legacy Product ID",
-   "unique": 1
+   "label": "Legacy Product ID"
   },
   {
    "fieldname": "primary_unit",
@@ -97,8 +96,7 @@
    "fieldname": "reference",
    "fieldtype": "Data",
    "label": "Reference",
-   "reqd": 1,
-   "unique": 1
+   "reqd": 1
   },
   {
    "fieldname": "uom_conversions",

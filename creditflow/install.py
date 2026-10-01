@@ -52,6 +52,9 @@ def ensure_supplier_transaction_index():
 
 
 def after_install():
+    from creditflow.pilot_integrity import ensure_scoped_identifiers
+
+    ensure_scoped_identifiers()
     ensure_supplier_transaction_index()
     ensure_security_metadata()
     seed_default_uoms()

@@ -156,3 +156,39 @@ test("pricing and payment field-event chains settle before validation", async ()
     assert.equal(frm.doc.amount_paid, 95.2);
     assert.equal(frm.__sale_edits.size, 0);
 });
+
+test("customer context uses the server aggregate and rejects old replies", async () => {
+    const {sandbox, pending, frm} = setup();
+    frm.doc.customer = "c1";
+    const first = sandbox.load_customer_context(frm);
+    assert.equal(frm.__customer_context, null);
+    frm.doc.customer = "c2";
+    const second = sandbox.load_customer_context(frm);
+    pending[1]({message:{business:"b1", customer:"c2", price_type:"RETAIL", credit_limit:"100.000", current_debt:"21.123", available_credit:"78.877"}});
+    await second;
+    pending[0]({message:{business:"b1", customer:"c1", current_debt:"999.000"}});
+    await first;
+    assert.equal(frm.__customer_context.customer, "c2");
+    assert.equal(frm.__customer_context.current_debt, "21.123");
+    assert.equal(frm.__customer_context.available_credit, "78.877");
+});
+
+test("same-customer refresh order, Business change and clear discard stale context", async () => {
+    const {sandbox, pending, frm} = setup();
+    frm.doc.customer = "c1";
+    const first = sandbox.load_customer_context(frm);
+    const second = sandbox.load_customer_context(frm);
+    pending[1]({message:{business:"b1", customer:"c1", current_debt:"10.000"}}); await second;
+    pending[0]({message:{business:"b1", customer:"c1", current_debt:"2.000"}}); await first;
+    assert.equal(frm.__customer_context.current_debt, "10.000");
+    const changed = sandbox.load_customer_context(frm);
+    frm.doc.business = "b2";
+    pending[2]({message:{business:"b1", customer:"c1", current_debt:"50.000"}}); await changed;
+    assert.equal(frm.__customer_context, null);
+    const old = sandbox.load_customer_context(frm);
+    frm.doc.customer = null;
+    await sandbox.load_customer_context(frm);
+    pending[3]({message:{business:"b2", customer:"c1", current_debt:"50.000"}}); await old;
+    assert.equal(frm.__customer_context.customer, null);
+    assert.equal(frm.__customer_context.current_debt, 0);
+});

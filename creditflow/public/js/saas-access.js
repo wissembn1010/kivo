@@ -11,7 +11,7 @@ if (window.frappe?.boot?.lang === "ar-TN") {
   }
 }
 
-frappe.ready(() => {
+$(document).ready(() => {
   const policy = frappe.boot && frappe.boot.creditflow_saas;
   if (!policy) return;
   if (policy.banner) {

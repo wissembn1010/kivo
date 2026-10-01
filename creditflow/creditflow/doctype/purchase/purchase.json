@@ -68,7 +68,7 @@
    "fieldname": "payment_method",
    "fieldtype": "Select",
    "label": "Payment Method",
-   "options": "\nCASH\nBANK TRANSFER\nCHEQUE\nTRAITE\nOTHER"
+   "options": "\nCASH\nBANK_TRANSFER\nCHEQUE\nTRAITE\nOTHER"
   },
   {
    "default": "0",

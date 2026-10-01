@@ -4,6 +4,8 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from creditflow.payment_methods import SUPPLIER_PAYMENT_METHODS, normalize_payment_method
+
 
 MONEY_PRECISION = Decimal("0.001")
 
@@ -72,9 +74,7 @@ class SupplierPayment(Document):
 		self.operation_amount_ht, self.vat_rate, self.vat_amount = ht, vat_rate, vat
 
 	def validate_payment_method(self):
-		allowed = {"CASH", "BANK_TRANSFER", "CHEQUE", "TRAITE", "OTHER"}
-		if self.payment_method and self.payment_method not in allowed:
-			frappe.throw(_("Payment Method is invalid."))
+		self.payment_method = normalize_payment_method(self.payment_method, SUPPLIER_PAYMENT_METHODS)
 
 	def validate_source_purchase(self):
 		if not self.source_purchase:

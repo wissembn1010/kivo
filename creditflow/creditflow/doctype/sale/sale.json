@@ -56,7 +56,6 @@
    "fieldtype": "Data",
    "label": "Invoice Number",
    "read_only": 1,
-   "unique": 1,
    "no_copy": 1,
    "in_list_view": 1
   },
@@ -130,7 +129,7 @@
    "fieldname": "payment_method",
    "fieldtype": "Select",
    "label": "Payment Method",
-   "options": "CASH\nBANK_TRANSFER\nCHEQUE\nOTHER"
+   "options": "CASH\nBANK_TRANSFER\nCHEQUE\nCARD\nOTHER"
   },
   {
    "fieldname": "payment_reference",

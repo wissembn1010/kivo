@@ -4,9 +4,11 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from creditflow.payment_methods import CUSTOMER_PAYMENT_METHODS, normalize_payment_method
+
 
 MONEY_PRECISION = Decimal("0.001")
-PAYMENT_METHODS = {"CASH", "BANK_TRANSFER", "CHEQUE", "CARD", "OTHER"}
+PAYMENT_METHODS = CUSTOMER_PAYMENT_METHODS
 
 
 class Payment(Document):
@@ -41,7 +43,7 @@ class Payment(Document):
 		self.amount = amount
 
 	def validate_payment_method(self):
-		self.payment_method = (self.payment_method or "CASH").strip().upper()
+		self.payment_method = normalize_payment_method(self.payment_method, PAYMENT_METHODS, default="CASH")
 		if self.payment_method not in PAYMENT_METHODS:
 			frappe.throw(_("Payment Method is not supported."))
 		self.reference = (self.reference or "").strip()

@@ -5,16 +5,11 @@ from frappe import _
 from frappe.model.document import Document
 
 from creditflow.uom import resolve_uom_snapshot
+from creditflow.payment_methods import SUPPLIER_PAYMENT_METHODS, normalize_payment_method
 
 
 MONEY_PRECISION = Decimal("0.001")
-PAYMENT_METHOD_MAP = {
-	"CASH": "CASH",
-	"BANK TRANSFER": "BANK_TRANSFER",
-	"CHEQUE": "CHEQUE",
-	"TRAITE": "TRAITE",
-	"OTHER": "OTHER",
-}
+PAYMENT_METHOD_MAP = {method: method for method in SUPPLIER_PAYMENT_METHODS}
 
 
 class Purchase(Document):
@@ -87,6 +82,7 @@ class Purchase(Document):
 			self.payment_reference = None
 			return
 
+		self.payment_method = normalize_payment_method(self.payment_method, SUPPLIER_PAYMENT_METHODS)
 		if self.payment_method not in PAYMENT_METHOD_MAP:
 			frappe.throw(_("Payment Method is required for PAID and PARTIAL purchases."))
 

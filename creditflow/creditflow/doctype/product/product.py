@@ -10,10 +10,25 @@ from frappe.model.document import Document
 
 class Product(Document):
     def validate(self):
+        self.validate_identifiers()
         self.validate_tva_rate()
         self.validate_minimum_stock()
         self.validate_primary_uom()
         self.validate_uom_conversions()
+
+    def validate_identifiers(self):
+        # Optional blank IDs must be NULL for the composite unique constraint.
+        if not self.legacy_product_id:
+            self.legacy_product_id = None
+        for field in ("reference", "legacy_product_id"):
+            value = self.get(field)
+            if not value:
+                continue
+            filters = {"business": self.business, field: value}
+            if not self.is_new():
+                filters["name"] = ["!=", self.name]
+            if frappe.db.exists("Product", filters):
+                frappe.throw(_("Product {0} already exists in this Business.").format(field))
 
     def validate_tva_rate(self):
         try:

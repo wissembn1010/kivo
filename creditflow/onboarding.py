@@ -128,7 +128,7 @@ def _validate_row(import_type, row, business):
         if not row.get("product_name") or not row.get("reference"): raise ValueError("product_name and reference are required")
         uom=(row.get("base_uom") or "UNIT").upper()
         if not frappe.db.get_value("CreditFlow UOM",uom,"active"): raise ValueError(f"base_uom '{uom}' does not exist or is inactive")
-        if frappe.db.exists("Product", {"reference":row["reference"]}): raise ValueError("duplicate product reference/SKU")
+        if frappe.db.exists("Product", {"business":business,"reference":row["reference"]}): raise ValueError("duplicate product reference/SKU in this Business")
         data={"product_name":row["product_name"],"reference":row["reference"],"primary_unit":uom,"active":_boolean(row.get("active"))}
         for field in ("selling_price","professional_price","minimum_selling_price","tva_rate","minimum_stock"):
             data[field]=_decimal(row.get(field) or 0,field,non_negative=True)
