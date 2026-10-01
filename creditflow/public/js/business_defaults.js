@@ -272,7 +272,7 @@ function update_sale_warnings(frm) {
                         .join(", ");
 
                 warnings.push(
-                        `Price below minimum selling price on row(s): ${rows}.`
+                        __("Price below minimum selling price on row(s): {0}.", [rows])
                 );
         }
 
@@ -295,9 +295,11 @@ function update_sale_warnings(frm) {
                         credit_issue = true;
 
                         warnings.push(
-                                `Credit limit exceeded: current debt ${flt(context.current_debt).toFixed(3)}, ` +
-                                `projected debt ${projected_debt.toFixed(3)}, ` +
-                                `limit ${flt(context.credit_limit).toFixed(3)}.`
+                                __("Credit limit exceeded: current debt {0}, projected debt {1}, limit {2}.", [
+                                        flt(context.current_debt).toFixed(3),
+                                        projected_debt.toFixed(3),
+                                        flt(context.credit_limit).toFixed(3),
+                                ])
                         );
                 }
         }
@@ -420,6 +422,14 @@ frappe.ui.form.on(cur_frm.doctype, {
 });
 
 frappe.ui.form.on("Sale", {
+        setup(frm) {
+                frm.set_df_property("sale_mode", "formatter", value => __(value, null, "Sale Mode"));
+                frm.set_df_property("sale_mode", "options",
+                        ["CASH", "CREDIT", "MIXED"].map(value => ({
+                                value, label: __(value, null, "Sale Mode"),
+                        }))
+                );
+        },
         async refresh(frm) {
                 if (frm.doc.docstatus !== 0) {
                         sync_sale_payment_fields(frm);

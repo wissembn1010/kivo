@@ -1,4 +1,5 @@
 import frappe
+from frappe import _
 
 from creditflow.signup import inspect_verification_token
 
@@ -9,7 +10,7 @@ MAX_TOKEN_LENGTH = 256
 
 def get_context(context):
     context.no_cache = 1
-    context.title = "Verify your Kivo email"
+    context.title = _('Verify your Kivo email')
     context.token = ""
     context.verification = INVALID_VERIFICATION.copy()
 

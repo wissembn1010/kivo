@@ -68,9 +68,9 @@ def _clean_rpc_unsupported_fields(unsupported, expected_cmd, error_message):
 def _clean_required(value, label, max_length=140):
     value = (value or "").strip()
     if not value:
-        frappe.throw(_("{0} is required.").format(label))
+        frappe.throw(_("{0} is required.").format(_(label)))
     if len(value) > max_length:
-        frappe.throw(_("{0} is too long.").format(label))
+        frappe.throw(_("{0} is too long.").format(_(label)))
     return value
 
 

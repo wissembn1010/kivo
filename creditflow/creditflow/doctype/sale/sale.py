@@ -116,7 +116,7 @@ class Sale(Document):
                         self.invoice_customer_address = customer.address
                         self.invoice_customer_phone = customer.phone
                 else:
-                        self.invoice_customer_name = _("Walk-in Customer")
+                        self.invoice_customer_name = "Walk-in Customer"
                         self.invoice_customer_address = ""
                         self.invoice_customer_phone = ""
                 self.legacy_fiscal_data = 0
@@ -405,13 +405,13 @@ class Sale(Document):
                 try:
                         return Decimal(str(value))
                 except (InvalidOperation, TypeError, ValueError):
-                        frappe.throw(_("{0} in row {1} must be a valid number.").format(label, row_index))
+                        frappe.throw(_("{0} in row {1} must be a valid number.").format(_(label), row_index))
 
         def to_money_decimal(self, value, label):
                 try:
                         return Decimal(str(value)).quantize(MONEY_PRECISION, rounding=ROUND_HALF_UP)
                 except (InvalidOperation, TypeError, ValueError):
-                        frappe.throw(_("{0} must be a valid number.").format(label))
+                        frappe.throw(_("{0} must be a valid number.").format(_(label)))
 
         def get_effective_sale_mode(self):
                 return (self.sale_mode or "CREDIT").strip().upper()

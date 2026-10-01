@@ -193,4 +193,4 @@ class Purchase(Document):
 		try:
 			return Decimal(str(value))
 		except (InvalidOperation, TypeError, ValueError):
-			frappe.throw(_("{0} in row {1} must be a valid number.").format(label, row_index))
+			frappe.throw(_("{0} in row {1} must be a valid number.").format(_(label), row_index))

@@ -48,4 +48,8 @@ frappe.query_reports["Purchases Report"] = {
 			on_change: refresh_report,
 		},
 	],
+	formatter(value, row, column, data, default_formatter) {
+		if (column.fieldname === "reversal_status") value = __(value);
+		return default_formatter(value, row, column, data);
+	}
 };

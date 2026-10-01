@@ -25,4 +25,9 @@ frappe.query_reports["Stock On Hand"] = {
 			default: 0,
 		},
 	],
+	formatter(value, row, column, data, default_formatter) {
+		if (column.fieldname === "stock_status") value = __(value);
+		if (column.fieldname === "unit") value = __(value);
+		return default_formatter(value, row, column, data);
+	}
 };

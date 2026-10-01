@@ -10,7 +10,7 @@ from creditflow.permissions import get_user_business, has_cross_business_access
 DEFAULT_TRIAL_DAYS = 14
 DEFAULT_TRIAL_PLAN = "STARTER"
 WRITABLE_STATES = {"TRIAL", "ACTIVE", "LEGACY_ACCESS", "ADMIN_OVERRIDE"}
-READ_ONLY_MESSAGE = _("Your Kivo subscription is currently read-only. Your existing data is safe.")
+READ_ONLY_MESSAGE = "Your Kivo subscription is currently read-only. Your existing data is safe."
 
 
 def get_default_trial_plan():
@@ -87,7 +87,7 @@ def can_write(business=None, at=None):
 def require_write_access(business=None):
     business = _authorized_business(business)
     if not can_write(business):
-        frappe.throw(READ_ONLY_MESSAGE, frappe.PermissionError)
+        frappe.throw(_(READ_ONLY_MESSAGE), frappe.PermissionError)
     return get_access_state(business)
 
 
@@ -136,7 +136,7 @@ def require_feature(business, feature):
     business = _authorized_business(business)
     require_write_access(business)
     if not can_use_feature(business, feature):
-        frappe.throw(_("Your Kivo plan does not include entitlement: {0}").format(feature), frappe.PermissionError)
+        frappe.throw(_("Your Kivo plan does not include entitlement: {0}").format(_(feature)), frappe.PermissionError)
     return get_entitlement(business, feature, True if get_access_state(business) == "LEGACY_ACCESS" else None)
 
 

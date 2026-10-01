@@ -10,7 +10,7 @@
       const response = await frappe.call("creditflow.saas_onboarding.complete_business_profile", args);
       window.location.assign(response.message.redirect_to);
     } catch (_) {
-      message.textContent = "We couldn't save your profile. Check the details and try again.";
+      message.textContent = __("We couldn't save your profile. Check the details and try again.");
       message.className = "cf-message cf-error"; button.disabled = false;
     }
   };

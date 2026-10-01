@@ -46,7 +46,7 @@ Units of Measure,Unités de mesure
 Subscription & Billing,Abonnement et facturation
 New,Nouveau
 Save,Enregistrer
-Submit,Soumettre
+Submit,Valider
 Cancel,Annuler
 Delete,Supprimer
 Edit,Modifier
@@ -103,17 +103,920 @@ Custom,Personnalisé
 Withholding Tax,Retenue à la source
 Matricule fiscal,Matricule fiscal
 Draft,Brouillon
-Submitted,Soumis
+Submitted,Validé
 Confirmed,Confirmé
 Reversed,Annulé
 Exported,Exporté
 Accepted,Accepté
 Rejected,Rejeté
 Validation Failed,Échec de validation
-Verify your Kivo email,Vérifiez votre adresse e-mail Kivo
 "<p>Confirm your email to create your Kivo Business and start your 14-day trial.</p><p><a href=""{0}"">Verify email and continue</a></p><p>This single-use link expires in {1} minutes.</p>","<p>Confirmez votre e-mail pour créer votre entreprise Kivo et démarrer votre essai de 14 jours.</p><p><a href=""{0}"">Vérifier l’e-mail et continuer</a></p><p>Ce lien à usage unique expire dans {1} minutes.</p>"
 "<span class=""h2"">Kivo</span><p class=""text-muted"">Your business dashboard</p>",Kivo — Tableau de bord de votre entreprise
 "<span class=""h4"">Business Snapshot</span>",Aperçu de l’activité
 "<span class=""h4"">Money Owed</span>",Créances et dettes
 "<span class=""h4"">Inventory Attention</span>",Alertes de stock
 "<span class=""h4"">Quick Actions</span>",Actions rapides
+Business,Entreprise
+Sale,Vente
+Purchase,Achat
+Payment,Paiement
+Payment Method,Mode de paiement
+Product Name,Nom du produit
+Customer Name,Nom du client
+Supplier Name,Nom du fournisseur
+Business Name,Nom de l’entreprise
+Business Date,Date d’opération
+Business Details,Informations sur l’entreprise
+Customer Details,Informations sur le client
+Product Details,Informations sur le produit
+Stock Movement Details,Informations sur le mouvement de stock
+Transaction Details,Informations sur l’opération
+Amount,Montant
+Amount HT,Montant HT
+Amount Paid,Montant payé
+Paid Amount,Montant payé
+Outstanding,Reste à payer
+Outstanding Amount,Reste à payer
+Outstanding Debt,Reste à payer
+Amount Owed,Reste à payer
+Credit Limit,Limite de crédit
+Available Credit,Crédit disponible
+Credit Used %,Crédit utilisé (%)
+Customer Debt,Créance client
+Current Stock,Stock actuel
+Available Stock,Stock disponible
+Minimum Stock,Stock minimum
+Minimum Price,Prix minimum
+Minimum Selling Price,Prix minimum
+Selling Price,Prix de vente
+Professional Price,Prix professionnel
+Base Price,Prix de base
+Net Unit Price HT,Prix unitaire net HT
+Unit Cost,Coût unitaire
+Primary Unit,Unité de base
+Base UOM,Unité de base
+UOM,Unité
+UOM Code,Code de l’unité
+UOM Name,Nom de l’unité
+UOM Conversions,Conversions d’unités
+Product UOM Conversion,Conversion d’unité du produit
+CreditFlow UOM,Unité de mesure
+Conversion Factor,Facteur de conversion
+Base Quantity,Quantité en unité de base
+Stock Status,État du stock
+Negative,Négatif
+Out of Stock,Rupture de stock
+In Stock,En stock
+Show Zero Stock,Afficher les stocks à zéro
+Show Negative Stock Only,Afficher uniquement les stocks négatifs
+Show Zero Balances,Afficher les soldes à zéro
+Reference / SKU,Référence / SKU
+Reference,Référence
+Reference:,Référence :
+Due Date,Date d’échéance
+SUBMITTED,Validé
+Actions,Actions
+Total Customer Debt,Créances clients
+Total Supplier Debt,Dettes fournisseurs
+Net Sales Today,Ventes nettes du jour
+Net Sales This Month,Ventes nettes du mois
+Sales Today,Ventes du jour
+Purchases Today,Achats du jour
+Purchases This Month,Achats du mois
+Returns This Month,Retours du mois
+Cash Collected Today,Espèces encaissées aujourd’hui
+Payments Today,Paiements du jour
+Supplier Payments Today,Paiements fournisseurs du jour
+Low / Out of Stock Products,Produits à stock faible ou en rupture
+Negative Stock Products,Produits à stock négatif
+New Customer Payment,Nouveau paiement client
+Your business dashboard,Tableau de bord de votre entreprise
+Sale Date,Date de vente
+Purchase Date,Date d’achat
+Payment Date,Date de paiement
+Transaction Date,Date d’opération
+Return Date,Date de retour
+Invoice Number,Numéro de facture
+Invoice,Facture
+Fiscal Invoice,Facture
+Sale Mode,Mode de vente
+Price Type,Type de tarif
+Discount %,Remise (%)
+Paid Immediately,Payé immédiatement
+Debt Created,Créance créée
+Returned,Retourné
+Net Sale,Vente nette
+Net Supplier Debt,Dette fournisseur nette
+Gross Sales TTC,Ventes brutes TTC
+Net Sales TTC,Ventes nettes TTC
+Quantity Sold (Base UOM),Quantité vendue (unité de base)
+Quantity Returned,Quantité retournée
+Net Quantity Sold,Quantité nette vendue
+Last Purchase,Dernier achat
+Last Payment,Dernier paiement
+Total Debit,Total des débits
+Total Credit,Total des crédits
+Debit,Débit
+Running Balance,Solde cumulé
+Opening balance,Solde initial
+Movement,Mouvement
+Movement Reason,Motif du mouvement
+Direction,Sens
+Transaction Type,Type d’opération
+Settlement,Règlement
+Settlement Amount,Montant du règlement
+Net Paid,Net payé
+Net Cash / Bank Paid,Net payé en espèces / par banque
+Payment Status,État du paiement
+Payment Reference,Référence du paiement
+Payment Receipt,Reçu de paiement
+Receipt,Reçu
+Return Receipt,Reçu de retour
+Sale Return Receipt,Reçu de retour
+Original Invoice:,Facture d’origine :
+Business:,Entreprise :
+Customer:,Client :
+Return Date:,Date de retour :
+Reason:,Motif :
+Notes:,Notes :
+Payment Method:,Mode de paiement :
+Status:,Statut :
+Payment Reversal,Annulation de paiement
+Supplier Payment,Paiement fournisseur
+Supplier Payment Reversal,Annulation de paiement fournisseur
+Sale Reversal,Annulation de vente
+Purchase Reversal,Annulation d’achat
+Sale Return,Retour de vente
+Sale Item,Ligne de vente
+Purchase Item,Ligne d’achat
+Sale Return Item,Ligne de retour
+Return Items,Produits retournés
+Return Quantity,Quantité retournée
+Return Reason,Motif du retour
+Return HT,Retour HT
+Return TVA,TVA du retour
+Return TTC,Retour TTC
+Debt Reduction,Réduction de la créance
+Refund Amount,Montant à rembourser
+Refund Date,Date de remboursement
+Refund Method,Mode de remboursement
+Refund Reference,Référence du remboursement
+Refund Status,État du remboursement
+Reversal Of,Annulation de
+Reversed By,Annulé par
+Original Sale,Vente d’origine
+Original Sale Item,Ligne de vente d’origine
+Original Purchase,Achat d’origine
+Original Payment,Paiement d’origine
+Original Supplier Payment,Paiement fournisseur d’origine
+Credit Transaction,Opération de crédit client
+Supplier Transaction,Opération fournisseur
+Stock Movement,Mouvement de stock
+Secondary Phone,Téléphone secondaire
+Commercial Registration,Registre commercial
+Commercial Registration:,Registre commercial :
+Matricule Fiscal,Matricule fiscal
+Matricule Fiscal:,Matricule fiscal :
+Retenue à la Source,Retenue à la source
+TVA Rate,Taux de TVA
+VAT Rate,Taux de TVA
+TVA Amount,Montant de TVA
+VAT Amount,Montant de TVA
+Line HT,Montant HT de la ligne
+Line TTC,Montant TTC de la ligne
+Unit Price HT,Prix unitaire HT
+Overrides,Dérogations
+Price Override,Dérogation au prix minimum
+Price Override Reason,Motif de la dérogation au prix
+Credit Limit Override,Dérogation à la limite de crédit
+Credit Override Reason,Motif de la dérogation au crédit
+Legacy Customer ID,Identifiant client historique
+Legacy Product ID,Identifiant produit historique
+Legacy Reference,Référence historique
+Legacy Fiscal Data,Données fiscales historiques
+Legal Identity Snapshot,Identité fiscale à la date du document
+Invoice Customer Name,Nom du client sur la facture
+Invoice Customer Address,Adresse du client sur la facture
+Invoice Customer Phone,Téléphone du client sur la facture
+Seller Business Name,Nom de l’entreprise émettrice
+Seller Address,Adresse de l’émetteur
+Seller Phone,Téléphone de l’émetteur
+Seller Email,E-mail de l’émetteur
+Seller Matricule Fiscal,Matricule fiscal de l’émetteur
+Seller Commercial Registration,Registre commercial de l’émetteur
+Historical archive:,Archive antérieure :
+Historical TVA breakdown has not been reconstructed.,La ventilation TVA historique n’a pas été reconstituée.
+Walk-in Customer,Client de passage
+Partially Paid,Partiellement payé
+CASH,Espèces
+BANK_TRANSFER,Virement bancaire
+BANK TRANSFER,Virement bancaire
+CHEQUE,Chèque
+CARD,Carte bancaire
+OTHER,Autre
+TRAITE,Traite
+CREDIT,Crédit
+MIXED,Paiement partiel
+PAID,Payé
+PARTIAL,Partiellement payé
+ACTIVE,Actif
+Active,Actif
+TRIAL,Essai
+PAST_DUE,Paiement en retard
+EXPIRED,Expiré
+CANCELLED,Annulé
+PENDING,En attente
+SUCCEEDED,Confirmé
+FAILED,Échec
+COMPLETED,Terminé
+READY,Prêt
+REFUNDED,Remboursé
+REFUND_DUE,À rembourser
+NO_REFUND,Aucun remboursement
+REVERSED,Annulé
+NOT_EXPORTED,Non exporté
+EXPORTED,Exporté
+EXPORTED_THEN_REVERSED,Exporté puis annulé
+EXPORT_READY,Prêt à exporter
+NOT_SUBMITTED,Non validé
+VALIDATION_FAILED,Échec de validation
+VALID,Valide
+INVALID,Non valide
+GENERATED,Généré
+ACCEPTED,Accepté
+REJECTED,Rejeté
+ROLLED BACK,Annulé
+EXCEEDED,Limite dépassée
+OK,Dans la limite
+RETAIL,Détail
+PROFESSIONAL,Professionnel
+DEBIT,Débit
+IN,Entrée
+OUT,Sortie
+SALE,Vente
+PURCHASE,Achat
+PAYMENT,Paiement
+SUPPLIER_PAYMENT,Paiement fournisseur
+CUSTOMER_RETURN,Retour client
+SUPPLIER_RETURN,Retour fournisseur
+RETURN,Retour
+REVERSAL,Annulation
+MANUAL_ADJUSTMENT,Ajustement manuel
+OPENING,Solde initial
+OPENING_BALANCE,Solde initial
+OPENING_STOCK,Stock initial
+OPENING_CUSTOMER_DEBT,Créances clients initiales
+OPENING_SUPPLIER_DEBT,Dettes fournisseurs initiales
+CUSTOMERS,Clients
+SUPPLIERS,Fournisseurs
+PRODUCTS,Produits
+OWNER,Responsable
+STAFF,Employé
+MONTHLY,Mensuel
+ANNUAL,Annuel
+INITIAL,Initiale
+CORRECTIVE,Rectificative
+ADD,Ajouter
+MODIFY,Modifier
+CANCEL,Annuler
+BOOLEAN,Oui / non
+INTEGER,Nombre entier
+DECIMAL,Nombre décimal
+TEXT,Texte
+PM,Personne morale
+PP,Personne physique
+UNIT,Unité
+BOX,Boîte
+PACK,Lot
+ROLL,Rouleau
+Unit / Piece,Unité / pièce
+Kilogram,Kilogramme
+Meter,Mètre
+Liter,Litre
+Box,Boîte
+Pack,Paquet
+Roll,Rouleau
+Other,Autre
+CreditFlow,Kivo
+Kivo Business,Entreprise Kivo
+Subscription,Abonnement
+CreditFlow Subscription,Abonnement Kivo
+CreditFlow Plan,Offre Kivo
+CreditFlow Billing Payment,Paiement d’abonnement Kivo
+CreditFlow Plan Entitlement,Droit de l’offre Kivo
+CreditFlow Pending Signup,Inscription Kivo en attente
+Plan,Offre
+Plan Name,Nom de l’offre
+Plan Code,Code de l’offre
+Billing Cycle,Périodicité de facturation
+Billing Period Start,Début de la période facturée
+Billing Period End,Fin de la période facturée
+Monthly Price,Prix mensuel
+Annual Price,Prix annuel
+Trial Start,Début de l’essai
+Trial End,Fin de l’essai
+Subscription Start,Début de l’abonnement
+Current Period Start,Début de la période en cours
+Current Period End,Fin de la période en cours
+Cancel at Period End,Annuler à la fin de la période
+Cancelled At,Date d’annulation
+Next Billing Date,Prochaine date de facturation
+Paid At,Date du paiement
+Last Payment At,Date du dernier paiement
+Provider Status,État chez le prestataire
+External Provider,Prestataire externe
+Provider Payment ID,Identifiant du paiement chez le prestataire
+External Customer ID,Identifiant client externe
+External Subscription ID,Identifiant d’abonnement externe
+Internal Order ID,Référence interne de commande
+Checkout URL,Lien de paiement
+Reconciliation Count,Nombre de vérifications
+Last Reconciled At,Dernière vérification
+Last Reconciliation Message,Message de la dernière vérification
+Safe Provider Metadata,Informations du prestataire
+Entitlements,Droits inclus
+Entitlement Key,Code du droit
+Value Type,Type de valeur
+Onboarded At,Date de configuration
+Onboarding Completed At,Configuration terminée le
+SaaS Onboarding,Premiers pas sur Kivo
+Onboarding Import Batch,Import de données
+Onboarding Import Result,Résultat de l’import
+Import Entity,Données à importer
+Import Key,Identifiant de l’import
+Imported By,Importé par
+Imported On,Importé le
+Original Filename,Nom du fichier d’origine
+File Hash,Empreinte du fichier
+Input Row Count,Nombre de lignes du fichier
+Success Count,Lignes importées
+Failure Count,Lignes en erreur
+Row Count,Nombre de lignes
+Row Results,Résultats par ligne
+Result Status,État du résultat
+Source Row,Ligne d’origine
+Source Identifier,Référence d’origine
+Source DocType,Type de document d’origine
+Created DocType,Type de document créé
+Created Document,Document créé
+Economic Key,Identifiant de l’opération
+Structured Errors,Détail des erreurs
+Total / Quantity,Montant / quantité
+Kivo CSV Import,Import CSV Kivo
+Import Type,Données à importer
+Download Template,Télécharger le modèle
+Preview,Vérifier le fichier
+Commit Valid Import,Importer les lignes validées
+Import completed,Import terminé
+Kivo Billing,Abonnement et facturation Kivo
+Kivo Subscription,Abonnement Kivo
+SUBSCRIPTION & BILLING,ABONNEMENT ET FACTURATION
+Effective status:,État actuel :
+· Paid through,· Payé jusqu’au
+trial days remaining.,jours d’essai restants.
+Available plans,Offres disponibles
+TND/month,TND/mois
+TND/year,TND/an
+Pay monthly,Payer mensuellement
+Pay annually,Payer annuellement
+Payment history,Historique des paiements
+Cycle,Périodicité
+Check,Vérifier
+No billing payments yet.,Aucun paiement d’abonnement pour le moment.
+Return to Kivo,Retour à Kivo
+Return to billing,Retour à la facturation
+Checking payment,Vérification du paiement
+Checking payment status…,Vérification du paiement…
+KONNECT PAYMENT,PAIEMENT KONNECT
+WELCOME TO KIVO,BIENVENUE SUR KIVO
+Tell us about your Business,Présentez votre entreprise
+Only the name is required. You can skip optional legal details and complete them later.,Seul le nom est obligatoire. Vous pouvez compléter les informations légales plus tard.
+Business display / legal name,Nom commercial / raison sociale
+Already have an account? Sign in,Vous avez déjà un compte ? Connectez-vous
+Sending…,Envoi en cours…
+Creating workspace…,Création de votre espace…
+Start free trial,Démarrer l’essai gratuit
+Kivo is read-only. Your historical business data is safe.,Kivo est en lecture seule. Vos données historiques sont conservées.
+LEGACY_ACCESS,Accès existant
+ADMIN_OVERRIDE,Accès autorisé par l’administrateur
+PROFILE_PENDING,Profil à compléter
+PROVISIONED,Compte créé
+Source Sale,Vente d’origine
+Source Payment,Paiement d’origine
+Source Purchase,Achat d’origine
+Source Supplier Payment,Paiement fournisseur d’origine
+Source Sale Return,Retour de vente d’origine
+Source Sale Return Item,Ligne du retour d’origine
+Source Sale Reversal,Annulation de vente d’origine
+Source Purchase Reversal,Annulation d’achat d’origine
+Source Payment Reversal,Annulation de paiement d’origine
+Source Supplier Payment Reversal,Annulation de paiement fournisseur d’origine
+Automatic Supplier Payment,Paiement fournisseur automatique
+Automatic Supplier Payment Reversal,Annulation automatique du paiement fournisseur
+Withholding Tax Certificate,Certificat de retenue à la source
+Withholding Enabled,Appliquer une retenue à la source
+Withholding Base,Base de retenue
+Withholding Rate,Taux de retenue
+Withholding Amount,Montant de la retenue
+Withholding Records,Retenues à la source
+Withheld,Retenue
+Operation Amount Excluding Tax,Montant de l’opération HT
+Total Base,Base totale
+Total Withheld,Total des retenues
+Beneficiary Category,Catégorie du bénéficiaire
+Beneficiary ID,Identifiant du bénéficiaire
+Beneficiary ID Type,Type d’identifiant du bénéficiaire
+Beneficiary Name,Nom du bénéficiaire
+Beneficiary,Bénéficiaire
+Declarant,Déclarant
+Declarant Address,Adresse du déclarant
+Declarant Category,Catégorie du déclarant
+Declarant Email,E-mail du déclarant
+Declarant Fiscal ID,Matricule fiscal du déclarant
+Declarant Name,Nom du déclarant
+Declarant Phone,Téléphone du déclarant
+Declaration Month,Mois de déclaration
+Declaration Year,Année de déclaration
+Declaration Type,Type de déclaration
+Correction Of,Rectification de
+Certificate Reference,Référence du certificat
+Certificate State,État du certificat
+TEJ Export Batch,Lot d’export TEJ
+TEJ Export Batch Item,Ligne d’export TEJ
+TEJ Identifier Type,Type d’identifiant TEJ
+TEJ Beneficiary Identity,Identité du bénéficiaire TEJ
+TEJ Country Code,Code pays TEJ
+TEJ Operation Code,Code opération TEJ
+Official TEJ Operation Code,Code opération TEJ officiel
+TEJ State,État TEJ
+Official Code,Code officiel
+Official Country Name,Nom officiel du pays
+Official Description,Description officielle
+Identification Number,Numéro d’identification
+Identifier Type,Type d’identifiant
+Taxpayer Category,Catégorie du contribuable
+Tax Borne by Payer (P_Charge),Impôt pris en charge par le payeur (P_Charge)
+Non-double-taxation Convention (CNPC),Convention de non-double imposition (CNPC)
+Resident,Résident
+Resident in Tunisia,Résident en Tunisie
+Date of Birth,Date de naissance
+Country Code,Code pays
+Rate,Taux
+Record Count,Nombre de documents
+Generated Filename,Nom du fichier généré
+Validated XML,XML validé
+XML Generation,Génération XML
+XSD Validation,Validation XSD
+Validation Errors,Erreurs de validation
+Manual Submission State,État du dépôt manuel
+Submission Notes,Notes de dépôt
+Final Status,État final
+Last TEJ Export Batch,Dernier lot d’export TEJ
+Use the first day of the monthly period,Utilisez le premier jour du mois concerné
+"1 Fiscal ID, 2 CIN, 3 Passport, 4 Residence Card, 5 Other foreign fiscal ID","1 Matricule fiscal, 2 CIN, 3 Passeport, 4 Carte de séjour, 5 Autre identifiant fiscal étranger"
+Token Expires At,Expiration du lien
+Consumed Token Hash,Empreinte du lien utilisé
+Verification Token Hash,Empreinte du lien de vérification
+Last Verification Sent At,Dernier e-mail de vérification
+Resend Count,Nombre de renvois
+Resend Window Start,Début de la période de renvoi
+Failed/Expired At,Date d’échec / d’expiration
+Provisioned User,Compte créé
+This document acknowledges receipt of the payment shown above.,Ce document atteste la réception du paiement indiqué ci-dessus.
+Certificate issued from the fiscal details recorded at payment.,Certificat établi à partir des données fiscales figées lors du paiement.
+Outstanding Balance: {0} TND,Reste à payer : {0} TND
+Price below minimum selling price on row(s): {0}.,Prix inférieur au prix minimum sur la ou les lignes : {0}.
+"Credit limit exceeded: current debt {0}, projected debt {1}, limit {2}.","Limite de crédit dépassée : encours actuel {0}, encours après cette vente {1}, limite {2}."
+A Credit Transaction already exists for this source document.,Une opération de crédit existe déjà pour ce document.
+A Sale with submitted partial returns cannot be fully reversed.,Une vente ayant des retours partiels validés ne peut pas être annulée entièrement.
+A Stock Movement already exists for this Sale Return row.,Un mouvement de stock existe déjà pour cette ligne de retour.
+A Stock Movement already exists for this source item row.,Un mouvement de stock existe déjà pour cette ligne de document.
+A Supplier Payment already exists for this Purchase.,Un paiement fournisseur existe déjà pour cet achat.
+A Supplier Transaction already exists for this source document.,Une opération fournisseur existe déjà pour ce document.
+A fully reversed Sale cannot be partially returned.,Une vente entièrement annulée ne peut pas faire l’objet d’un retour partiel.
+A paid period for another plan is still active.,Une période payée pour une autre offre est encore active.
+A valid Business is required for an administrative import.,Sélectionnez une entreprise valide pour cet import administratif.
+A valid official TEJ Operation Code is required for withholding.,Un code opération TEJ officiel valide est obligatoire pour la retenue.
+A withholding record cannot appear twice in one TEJ batch.,Une même retenue ne peut pas figurer deux fois dans un lot TEJ.
+All withholding dates must match the batch month.,Toutes les dates de retenue doivent correspondre au mois du lot.
+Amount Paid cannot be greater than Total Amount.,Le montant payé ne peut pas dépasser le montant total.
+Amount Paid must be greater than or equal to 0.,Le montant payé doit être positif ou nul.
+Amount must be a valid TND value.,Le montant doit être valide en TND.
+Amount must be a valid number.,Le montant doit être un nombre valide.
+Amount must be greater than 0.,Le montant doit être supérieur à zéro.
+Amount must be greater than zero.,Le montant doit être supérieur à zéro.
+An initial TEJ batch already exists for this Business and month. Use a corrective batch.,Un lot TEJ initial existe déjà pour cette entreprise et ce mois. Utilisez un lot rectificatif.
+At least one Withholding Tax record is required.,Sélectionnez au moins une retenue à la source.
+Authentication is required.,Connectez-vous pour continuer.
+Automatic payment reversal for Purchase Reversal {0},Annulation automatique du paiement liée à l’annulation d’achat {0}
+Automatically created from Purchase {0},Créé automatiquement depuis l’achat {0}
+Billing cycle must be MONTHLY or ANNUAL.,Choisissez une facturation mensuelle ou annuelle.
+Billing payment is outside your Business.,Ce paiement d’abonnement n’appartient pas à votre entreprise.
+Billing subscription is outside your Business.,Cet abonnement n’appartient pas à votre entreprise.
+Business does not exist.,L’entreprise est introuvable.
+Business is required for administrative subscription access.,Sélectionnez une entreprise pour accéder à son abonnement.
+Business name is required.,Le nom de l’entreprise est obligatoire.
+"Business setup is ready. Continue with Customers, Suppliers, Products and opening-balance imports.","Votre entreprise est configurée. Ajoutez vos clients, fournisseurs et produits, puis importez vos soldes initiaux."
+Business {0} already has a subscription.,L’entreprise {0} possède déjà un abonnement.
+CSV column names must be unique.,Les noms de colonnes du fichier CSV doivent être uniques.
+CSV header row is required.,La première ligne du fichier CSV doit contenir les noms des colonnes.
+CSV imports can only target your assigned Business.,Vous pouvez importer des données uniquement dans votre entreprise.
+Cash Sales must have Amount Paid equal to Total Amount.,"Pour une vente au comptant, le montant payé doit être égal au montant total."
+Cash Sales must use the CASH payment method.,Les ventes au comptant doivent être réglées en espèces.
+Checkout could not be created safely.,Le paiement n’a pas pu être préparé. Réessayez.
+Checkout is pending. Please retry.,Le paiement est en attente. Réessayez.
+Choose a CSV file first.,Choisissez d’abord un fichier CSV.
+"Complete address, phone and matricule fiscal before issuing customer invoices.","Complétez l’adresse, le téléphone et le matricule fiscal avant d’émettre des factures clients."
+Completed refund details cannot be modified.,Les informations d’un remboursement effectué ne peuvent pas être modifiées.
+Conversion Factor in row {0} must be a finite number.,Le facteur de conversion de la ligne {0} doit être un nombre fini.
+Conversion Factor in row {0} must be a valid number.,Le facteur de conversion de la ligne {0} doit être un nombre valide.
+Conversion Factor in row {0} must be greater than 0.,Le facteur de conversion de la ligne {0} doit être supérieur à zéro.
+Conversion row {0} must not repeat the Primary Unit. The Primary Unit always has conversion factor 1.,"La ligne de conversion {0} ne doit pas répéter l’unité de base, dont le facteur est toujours 1."
+Country is invalid.,Le pays sélectionné n’est pas valide.
+Credit Sales must have Amount Paid equal to 0.,"Pour une vente à crédit, le montant payé doit être nul."
+Credit Transaction Amount must match Sale Return Debt Reduction.,Le montant de l’opération de crédit doit correspondre à la réduction de créance du retour.
+Credit Transaction Amount must match its source.,Le montant de l’opération de crédit ne correspond pas au document d’origine.
+Credit Transaction Business and Customer must match its source.,L’entreprise et le client de l’opération de crédit doivent correspondre au document d’origine.
+Credit Transaction Business must match its source.,L’entreprise de l’opération de crédit doit correspondre au document d’origine.
+Credit Transaction must match its Sale Return source.,L’opération de crédit doit correspondre au retour de vente d’origine.
+Credit Transaction source fields do not match its Event Type.,Les documents d’origine ne correspondent pas au type d’opération de crédit.
+Credit limit override requested but credit_limit_override flag not set.,Activez la dérogation à la limite de crédit pour demander cette autorisation.
+Credit override reason is required when exceeding credit limit.,Indiquez le motif de la dérogation à la limite de crédit.
+CreditFlow billing requires an HTTPS public base URL.,L’adresse publique de facturation Kivo doit utiliser HTTPS.
+Current Period End cannot be before Current Period Start.,La fin de période ne peut pas précéder son début.
+Customer Return Stock Movement must restore stock with direction IN.,Un retour client doit augmenter le stock.
+Customer Return Stock Movements require their Sale Return row source.,Le mouvement de retour client doit être lié à sa ligne de retour de vente.
+Customer and Credit Transaction must belong to the same Business.,Le client et l’opération de crédit doivent appartenir à la même entreprise.
+Customer does not exist.,Le client est introuvable.
+Customer is outside your Business.,Ce client n’appartient pas à votre entreprise.
+Customer is required for Credit Sales.,Sélectionnez un client pour une vente à crédit.
+Customer is required for Mixed Sales.,Sélectionnez un client pour une vente avec paiement partiel.
+Customer is required.,Le client est obligatoire.
+Customer must belong to the same Business as the Payment.,Le client doit appartenir à la même entreprise que le paiement.
+Customer must belong to the same Business as the Sale.,Le client doit appartenir à la même entreprise que la vente.
+Declaration Month must belong to Declaration Year.,Le mois de déclaration doit appartenir à l’année déclarée.
+Direction must be IN or OUT.,Choisissez une entrée ou une sortie de stock.
+Direction {0} is invalid for {1}.,Le sens {0} n’est pas valide pour {1}.
+Discount % in row {0} must be between 0 and 100.,La remise de la ligne {0} doit être comprise entre 0 et 100 %.
+Duplicate UOM {0} in conversion rows.,L’unité {0} apparaît plusieurs fois dans les conversions.
+Duplicate entitlement: {0},Droit en double : {0}
+Entitlement Key is required.,Le code du droit est obligatoire.
+Every TEJ batch record must be a submitted withholding of the same Business.,Toutes les retenues du lot TEJ doivent être validées et appartenir à la même entreprise.
+Generated TEJ batch fiscal content is immutable; create a corrective batch.,Le contenu fiscal d’un lot TEJ généré ne peut pas être modifié. Créez un lot rectificatif.
+Generated TEJ batches are audit records and cannot be deleted.,Les lots TEJ générés doivent être conservés et ne peuvent pas être supprimés.
+"If a pending registration exists, a new verification message will arrive shortly.","Si une inscription est en attente, un nouvel e-mail de vérification vous sera envoyé."
+"If this email can be registered, a verification message will arrive shortly.","Si cette adresse peut être inscrite, un e-mail de vérification vous sera envoyé."
+Import contains no data rows.,Le fichier ne contient aucune ligne de données.
+Import has invalid rows: {0},L’import contient des lignes non valides : {0}
+"Insufficient stock for Product {0}: available {1}, required {2}.","Stock insuffisant pour le produit {0} : disponible {1}, demandé {2}."
+Invalid Event Type.,Le type d’opération n’est pas valide.
+Invalid TND amount.,Le montant en TND n’est pas valide.
+Invalid {0} value for entitlement {1}.,La valeur {0} du droit {1} n’est pas valide.
+Invoice Number is generated by the system when the Sale is submitted.,Le numéro de facture est généré automatiquement lors de la validation de la vente.
+Items must be a list of sale rows.,Les produits doivent être présentés sous forme de lignes de vente.
+Kivo public URLs require HTTPS.,Les adresses publiques Kivo doivent utiliser HTTPS.
+Konnect billing is not configured.,Le paiement Konnect n’est pas configuré.
+Konnect has not confirmed this payment yet. You can check again safely.,Konnect n’a pas encore confirmé ce paiement. Vous pouvez le vérifier à nouveau.
+Manual Opening Balances cannot contain system source links.,Un solde initial saisi manuellement ne peut pas être lié à un document généré automatiquement.
+Manual Stock Movements cannot contain system source links.,Un mouvement de stock manuel ne peut pas être lié à un document généré automatiquement.
+Minimum Stock must be a valid number.,Le stock minimum doit être un nombre valide.
+Minimum Stock must be greater than or equal to 0.,Le stock minimum doit être positif ou nul.
+Mixed Sales must have Amount Paid greater than 0.,"Pour un paiement partiel, le montant payé doit être supérieur à zéro."
+Mixed Sales must have Amount Paid less than Total Amount.,"Pour un paiement partiel, le montant payé doit être inférieur au montant total."
+Month must be between 1 and 12.,Le mois doit être compris entre 1 et 12.
+Movement Reason is not supported by an implemented workflow.,Ce motif de mouvement de stock n’est pas disponible pour cette opération.
+"No eligible active, unexported withholding records exist for this month.",Aucune retenue active non exportée n’est disponible pour ce mois.
+Non-reversal Credit Transactions cannot set Reversal Of.,Seule une annulation peut référencer l’opération de crédit annulée.
+Non-reversal Supplier Transactions cannot set Reversal Of.,Seule une annulation peut référencer l’opération fournisseur annulée.
+Only OWNER users can set pricing or credit limit overrides.,Seul le responsable peut autoriser une dérogation au prix ou à la limite de crédit.
+Only a Business OWNER can complete onboarding.,Seul le responsable de l’entreprise peut terminer la configuration.
+Only a Business OWNER can manage billing.,Seul le responsable de l’entreprise peut gérer la facturation de l’abonnement.
+Only a Business OWNER can view subscription details.,Seul le responsable de l’entreprise peut consulter l’abonnement.
+Only an OWNER can run onboarding imports.,Seul le responsable peut importer les données initiales.
+Only platform administrators can modify shared units of measure.,Seuls les administrateurs Kivo peuvent modifier les unités de mesure partagées.
+Original Payment must have exactly one submitted PAYMENT transaction.,Le paiement d’origine doit avoir une seule opération de paiement validée.
+Original Purchase has no submitted PURCHASE stock movements.,L’achat d’origine ne comporte aucun mouvement de stock d’achat validé.
+Original Purchase must have exactly one submitted PURCHASE supplier transaction.,L’achat d’origine doit avoir une seule opération fournisseur d’achat validée.
+Original Sale has no submitted SALE stock movements.,La vente d’origine ne comporte aucun mouvement de stock de vente validé.
+Original Sale must not have more than one submitted SALE transaction.,La vente d’origine ne peut pas avoir plusieurs opérations de crédit validées.
+Original Sale Item {0} is duplicated in this return.,La ligne de vente d’origine {0} apparaît plusieurs fois dans ce retour.
+Original Supplier Payment must have exactly one submitted SUPPLIER_PAYMENT transaction.,Le paiement fournisseur d’origine doit avoir une seule opération fournisseur validée.
+Paid checkout is disabled on this site.,Le paiement des abonnements est désactivé sur ce site.
+Partial Paid Amount must be greater than 0.,Le paiement partiel doit être supérieur à zéro.
+Partial Paid Amount must be less than Total Amount; use PAID instead.,"Le paiement partiel doit être inférieur au montant total. Sinon, choisissez Payé."
+Partial Sale Return ledger entries cannot set Reversal Of.,Un retour partiel de vente ne peut pas annuler l’opération d’origine.
+Passwords do not match.,Les mots de passe ne correspondent pas.
+Payment Method is not supported.,Ce mode de paiement n’est pas disponible.
+Payment Method is required for Mixed Sales.,Choisissez un mode de paiement pour une vente avec paiement partiel.
+Payment Method is required for PAID and PARTIAL purchases.,Choisissez un mode de paiement pour un achat payé ou partiellement payé.
+"Payment Status must be CREDIT, PAID, or PARTIAL.","Choisissez À crédit, Payé ou Partiellement payé."
+Payment amount {0} exceeds the customer's outstanding debt of {1}.,"Le paiement de {0} dépasse le reste à payer du client, qui est de {1}."
+Payment confirmed,Paiement confirmé
+Payment issue — Kivo is currently read-only,Paiement en retard — Kivo est actuellement en lecture seule
+Payment not completed,Paiement non effectué
+Payment reversal ledger entries can only be created by Payment Reversal.,L’opération d’annulation du paiement doit être créée depuis une annulation de paiement.
+Payment reversal ledger entries must be DEBIT reversals.,L’annulation d’un paiement doit rétablir la créance client.
+Payment still pending,Paiement toujours en attente
+"Plan Code must contain only uppercase letters, numbers, and underscores.","Le code de l’offre peut contenir uniquement des lettres majuscules, des chiffres et des traits de soulignement."
+Plan changes are available when the current paid period ends.,Vous pourrez changer d’offre à la fin de la période payée en cours.
+Please log in to continue.,Connectez-vous pour continuer.
+Posted ledger entries cannot be cancelled. Create a reversal instead.,Une opération validée doit être corrigée par une annulation dédiée.
+Posted stock ledger entries cannot be cancelled. Create a reversal instead.,Un mouvement de stock validé doit être corrigé par une annulation dédiée.
+Previous returns exceed the original fiscal amount for row {0}.,Les retours précédents dépassent le montant fiscal d’origine de la ligne {0}.
+Price override reason is required when selling below minimum price.,Indiquez le motif de la dérogation au prix minimum.
+Price override requested but price_override flag not set.,Activez la dérogation au prix minimum pour demander cette autorisation.
+Primary Unit cannot be changed after stock history exists.,L’unité de base ne peut plus être modifiée après un mouvement de stock.
+Primary Unit is required.,L’unité de base est obligatoire.
+Product does not exist.,Le produit est introuvable.
+Product in row {0} does not exist.,Le produit de la ligne {0} est introuvable.
+Product in row {0} must belong to the same Business as the Purchase.,Le produit de la ligne {0} doit appartenir à la même entreprise que l’achat.
+Product in row {0} must belong to the same Business as the Sale.,Le produit de la ligne {0} doit appartenir à la même entreprise que la vente.
+Product must belong to the same Business as the Stock Movement.,Le produit et le mouvement de stock doivent appartenir à la même entreprise.
+Product {0} already exists in this Business.,Le produit {0} existe déjà dans cette entreprise.
+Product {0} does not have a Primary Unit.,Le produit {0} n’a pas d’unité de base.
+Product {0} has no conversion from {1} to its Primary Unit {2}.,Le produit {0} n’a pas de conversion de l’unité {1} vers son unité de base {2}.
+Purchase must contain at least one item.,L’achat doit contenir au moins un produit.
+Purchase reversal movement does not match the original Purchase movement.,Le mouvement d’annulation ne correspond pas au mouvement de l’achat d’origine.
+Purchase-linked Supplier Payments can only be created by a Purchase.,Les paiements fournisseurs liés à un achat doivent être créés depuis cet achat.
+Quantity in row {0} must be greater than 0.,La quantité de la ligne {0} doit être supérieure à zéro.
+Quantity must be a valid number.,La quantité doit être un nombre valide.
+Quantity must be greater than 0.,La quantité doit être supérieure à zéro.
+RETURN Credit Transactions must reference the original transaction.,Un retour de crédit client doit référencer l’opération d’origine.
+RETURN Supplier Transactions must reference the original transaction.,Un retour fournisseur doit référencer l’opération d’origine.
+REVERSAL Stock Movements must reference the original movement.,Une annulation de stock doit référencer le mouvement d’origine.
+REVERSAL Stock Movements require a Sale or Purchase Reversal source.,Une annulation de stock doit être liée à une annulation de vente ou d’achat.
+Reference is required for Cheque payments.,La référence du chèque est obligatoire.
+Refund Method and Refund Date are required to mark a refund completed.,Indiquez le mode et la date de remboursement pour le marquer comme effectué.
+Refund Status can only move from Refund Due to Refunded.,Un remboursement à effectuer peut uniquement passer à l’état Remboursé.
+Return Quantity exceeds the quantity originally sold in row {0}.,La quantité retournée dépasse la quantité vendue sur la ligne {0}.
+Return Quantity exceeds the remaining returnable quantity for row {0}.,La quantité retournée dépasse la quantité encore retournable sur la ligne {0}.
+Return Quantity in row {0} must be greater than 0.,La quantité retournée de la ligne {0} doit être supérieure à zéro.
+Return Quantity in row {0} must be valid.,La quantité retournée de la ligne {0} doit être valide.
+Return row {0} must reference an item from the Original Sale.,La ligne de retour {0} doit référencer un produit de la vente d’origine.
+Reversal Of does not match the original economic transaction.,L’opération annulée ne correspond pas à l’opération d’origine.
+Reversal Of must be a submitted Stock Movement.,Le mouvement de stock annulé doit être validé.
+"Reversal must match the original movement Business, Product, and Quantity.","L’annulation doit reprendre l’entreprise, le produit et la quantité du mouvement d’origine."
+Sale Mode is not supported.,Ce mode de vente n’est pas disponible.
+Sale Return must contain at least one item.,Le retour de vente doit contenir au moins un produit.
+"Sale exceeds customer's credit limit. Current debt: {0}, Additional credit: {1}, Limit: {2}. Credit limit override requires owner approval.","Cette vente dépasse la limite de crédit du client. Encours actuel : {0}, crédit supplémentaire : {1}, limite : {2}. Une dérogation nécessite l’accord du responsable."
+Sale must contain at least one item.,La vente doit contenir au moins un produit.
+Sale reversal movement does not match the original Sale movement.,Le mouvement d’annulation ne correspond pas au mouvement de la vente d’origine.
+Sales with an upfront payment must use Sale Return to record any refund.,"Pour une vente déjà payée en partie ou en totalité, utilisez un retour de vente pour enregistrer un remboursement."
+Source Supplier Payment is required.,Le paiement fournisseur d’origine est obligatoire.
+"Start with the legal name. Address, contact and fiscal fields can be completed before issuing invoices.","Commencez par la raison sociale. Complétez l’adresse, les coordonnées et les informations fiscales avant d’émettre des factures."
+Stock Movement Product and Quantity must match a source item row.,Le produit et la quantité du mouvement de stock doivent correspondre à une ligne du document d’origine.
+Stock Movement Product and Quantity must match its Sale Return row.,Le produit et la quantité du mouvement de stock doivent correspondre à la ligne de retour de vente.
+Stock Movement does not match its reversal source.,Le mouvement de stock ne correspond pas à l’annulation d’origine.
+Stock Movement does not match its source {0}.,Le mouvement de stock ne correspond pas au document d’origine {0}.
+Stock Movement must match its Sale Return source.,Le mouvement de stock doit correspondre au retour de vente d’origine.
+Stock Movement source fields do not match CUSTOMER_RETURN.,Les documents d’origine ne correspondent pas à un retour client.
+Stock Movement source fields do not match its Movement Reason.,Les documents d’origine ne correspondent pas au motif du mouvement de stock.
+Submitted Sale Return economic data cannot be modified.,Les montants et quantités d’un retour validé ne peuvent pas être modifiés.
+Submitted Supplier Payments cannot be deleted. Use a reversal workflow instead.,Un paiement fournisseur validé ne peut pas être supprimé. Utilisez une annulation de paiement fournisseur.
+Submitted Withholding Tax records cannot be deleted.,Une retenue à la source validée ne peut pas être supprimée.
+Subscription cancelled — Kivo is read-only,Abonnement annulé — Kivo est en lecture seule
+Supplier Payment amount {0} exceeds the supplier's outstanding debt of {1}.,"Le paiement de {0} dépasse le reste à payer au fournisseur, qui est de {1}."
+Supplier Payment must match its source Purchase.,Le paiement fournisseur doit correspondre à l’achat d’origine.
+Supplier Transaction Amount must match its source.,Le montant de l’opération fournisseur doit correspondre au document d’origine.
+Supplier Transaction Business and Supplier must match its source.,L’entreprise et le fournisseur doivent correspondre au document d’origine.
+Supplier Transaction source fields do not match its Event Type.,Les documents d’origine ne correspondent pas au type d’opération fournisseur.
+Supplier and Supplier Transaction must belong to the same Business.,Le fournisseur et son opération doivent appartenir à la même entreprise.
+Supplier does not exist.,Le fournisseur est introuvable.
+Supplier is outside your Business.,Ce fournisseur n’appartient pas à votre entreprise.
+Supplier is required.,Le fournisseur est obligatoire.
+Supplier must belong to the same Business as the Purchase.,Le fournisseur doit appartenir à la même entreprise que l’achat.
+Supplier must belong to the same Business as the Supplier Payment.,Le fournisseur doit appartenir à la même entreprise que le paiement.
+Supplier payment reversal ledger entries can only be created by Supplier Payment Reversal.,L’annulation du paiement fournisseur doit être créée depuis une annulation de paiement fournisseur.
+Supplier payment reversal ledger entries must be DEBIT reversals.,L’annulation d’un paiement fournisseur doit rétablir la dette fournisseur.
+TND amount cannot be represented exactly in millimes.,Le montant en TND ne peut pas être représenté exactement en millimes.
+TND amount must be positive with at most three decimal places.,Le montant en TND doit être positif et comporter au plus trois décimales.
+TVA Rate in row {0} must be between 0 and 100.,Le taux de TVA de la ligne {0} doit être compris entre 0 et 100 %.
+TVA Rate must be a valid number.,Le taux de TVA doit être un nombre valide.
+TVA Rate must be between 0 and 100.,Le taux de TVA doit être compris entre 0 et 100 %.
+TVA percentage applied to new Sale Items. Use 0 for exempt or zero-rated products.,Taux de TVA appliqué aux nouvelles lignes de vente. Utilisez 0 pour les produits exonérés ou à taux nul.
+The automatic Supplier Payment for this Purchase is not submitted.,Le paiement fournisseur automatique de cet achat n’est pas validé.
+The max_users entitlement is invalid.,La limite du nombre d’utilisateurs n’est pas valide.
+The payment provider is temporarily unavailable. Please retry safely.,Le prestataire de paiement est temporairement indisponible. Réessayez plus tard.
+The payment provider returned an invalid reference. Please retry safely.,La référence renvoyée par le prestataire de paiement n’est pas valide. Réessayez.
+The selected CreditFlow plan is not available.,L’offre Kivo sélectionnée n’est pas disponible.
+The withholding fiscal effect has already been reversed.,La retenue à la source a déjà été annulée.
+There is no active subscription to cancel.,Aucun abonnement actif ne peut être annulé.
+This checkout did not activate or extend your subscription.,Ce paiement n’a pas activé ni prolongé votre abonnement.
+This exact CSV was already imported for this Business and import type.,Ce fichier CSV a déjà été importé dans cette entreprise pour ce type de données.
+"This link is invalid, expired, or could not be completed. Request a new verification email.","Ce lien est invalide, expiré ou ne peut pas être utilisé. Demandez un nouvel e-mail de vérification."
+This verification link has expired.,Ce lien de vérification a expiré.
+This verification link is invalid.,Ce lien de vérification n’est pas valide.
+Trial End must be after Trial Start.,La fin de l’essai doit être postérieure à son début.
+Trial Start and Trial End are required for a trial subscription.,Les dates de début et de fin d’essai sont obligatoires.
+Trial/subscription expired — Kivo is read-only,Essai / abonnement expiré — Kivo est en lecture seule
+UOM is required in conversion row {0}.,L’unité est obligatoire sur la ligne de conversion {0}.
+UOM {0} does not exist.,L’unité {0} est introuvable.
+UOM {0} in row {1} does not exist.,L’unité {0} de la ligne {1} est introuvable.
+UOM {0} in row {1} is inactive.,L’unité {0} de la ligne {1} est inactive.
+UOM {0} is inactive.,L’unité {0} est inactive.
+Unable to complete signup with these details.,L’inscription ne peut pas être terminée avec ces informations.
+Unable to verify right now,La vérification est indisponible pour le moment.
+Unit Cost in row {0} must be greater than or equal to 0.,Le coût unitaire de la ligne {0} doit être positif ou nul.
+Unit Price in row {0} is below minimum selling price of {1}. Price Override requires owner approval.,Le prix unitaire de la ligne {0} est inférieur au prix minimum de {1}. Une dérogation nécessite l’accord du responsable.
+Unit Price in row {0} must be greater than or equal to 0.,Le prix unitaire de la ligne {0} doit être positif ou nul.
+Unsupported CSV column(s): {0},Colonnes CSV non reconnues : {0}
+Unsupported billing provider.,Ce prestataire de paiement n’est pas disponible.
+Unsupported checkout fields.,Le formulaire de paiement contient des informations non reconnues.
+Unsupported import type.,Ce type d’import n’est pas disponible.
+Unsupported language.,Cette langue n’est pas disponible.
+Unsupported onboarding fields.,Le formulaire de configuration contient des informations non reconnues.
+Unsupported signup fields.,Le formulaire d’inscription contient des informations non reconnues.
+Unsupported verification fields.,Le formulaire de vérification contient des informations non reconnues.
+Users can only be assigned to your own Kivo Business.,Les utilisateurs peuvent uniquement être rattachés à votre entreprise Kivo.
+Verified signup provisioning context does not match.,L’inscription vérifiée ne correspond pas au compte à créer.
+View subscription,Voir l’abonnement
+We couldn’t start signup. Check your details and try again.,L’inscription n’a pas pu démarrer. Vérifiez vos informations et réessayez.
+We couldn't save your profile. Check the details and try again.,Votre profil n’a pas pu être enregistré. Vérifiez vos informations et réessayez.
+Withholding Amount cannot exceed the supplier debt settlement amount.,La retenue ne peut pas dépasser le montant du règlement fournisseur.
+"Withholding Base, Rate and Operation Amount Excluding Tax must be greater than zero.","La base de retenue, le taux et le montant HT doivent être supérieurs à zéro."
+Withholding Tax must match its source Supplier Payment.,La retenue à la source doit correspondre au paiement fournisseur d’origine.
+Withholding Tax records are append-only and cannot be cancelled.,Une retenue à la source doit être conservée. Utilisez l’annulation du paiement pour la corriger.
+Withholding Tax records can only be created by a Supplier Payment.,Les retenues à la source doivent être créées depuis un paiement fournisseur.
+"Withholding base, rate, HT and VAT values cannot be negative; rate cannot exceed 100%.","La base, le taux, le montant HT et la TVA doivent être positifs ou nuls. Le taux ne peut pas dépasser 100 %."
+Withholding values must be valid numbers.,Les montants et le taux de retenue doivent être des nombres valides.
+You can only access records for your assigned Kivo Business.,Vous pouvez consulter uniquement les données de votre entreprise Kivo.
+You can only access the subscription for your assigned Business.,Vous pouvez accéder uniquement à l’abonnement de votre entreprise.
+You can only create TEJ exports for your assigned Business.,Vous pouvez créer des exports TEJ uniquement pour votre entreprise.
+You can only report on your assigned Kivo Business.,Vous pouvez consulter les rapports uniquement pour votre entreprise Kivo.
+You cannot access or move this child record under the requested parent.,Vous ne pouvez pas accéder à cette ligne ni la déplacer vers ce document.
+You cannot modify or transfer a record belonging to another Kivo Business.,Vous ne pouvez pas modifier ni transférer un document d’une autre entreprise Kivo.
+Your Kivo plan allows a maximum of {0} users.,Votre offre Kivo autorise au maximum {0} utilisateurs.
+Your Kivo plan does not include entitlement: {0},Votre offre Kivo n’inclut pas ce droit : {0}
+Your Kivo subscription is active.,Votre abonnement Kivo est actif.
+Your Kivo subscription is currently read-only. Your existing data is safe.,Votre abonnement Kivo est actuellement en lecture seule. Vos données sont conservées.
+Your Kivo subscription is read-only. Your existing data is safe.,Votre abonnement Kivo est en lecture seule. Vos données sont conservées.
+Your user is not assigned to a CreditFlow Business.,Votre compte n’est rattaché à aucune entreprise Kivo.
+Your user is not assigned to a Kivo Business.,Votre compte n’est rattaché à aucune entreprise Kivo.
+{0} Credit Transactions can only be created by their source document.,Les opérations de crédit {0} doivent être créées depuis leur document d’origine.
+{0} Stock Movement direction or reversal link is invalid.,Le sens ou le lien d’annulation du mouvement de stock {0} n’est pas valide.
+{0} Stock Movements can only be created by their source document.,Les mouvements de stock {0} doivent être créés depuis leur document d’origine.
+{0} Supplier Transactions can only be created by their source document.,Les opérations fournisseur {0} doivent être créées depuis leur document d’origine.
+{0} days left in your trial,Il reste {0} jours d’essai
+{0} in row {1} must be a finite number.,{0} sur la ligne {1} doit être un nombre fini.
+{0} in row {1} must be a valid number.,{0} sur la ligne {1} doit être un nombre valide.
+{0} is too long.,{0} est trop long.
+{0} must be a valid number.,{0} doit être un nombre valide.
+Payment not found,Le paiement est introuvable.
+Too many payment notifications. Please retry later.,Trop de notifications de paiement. Réessayez plus tard.
+Kivo is checking your payment with Konnect. You can check again safely.,Kivo vérifie votre paiement auprès de Konnect. Vous pouvez le vérifier à nouveau.
+"Download a template, choose a CSV, preview every row, then commit only after validation succeeds.","Téléchargez un modèle, choisissez un fichier CSV, vérifiez chaque ligne, puis importez les données après validation."
+Original Payment does not exist.,Le document d’origine (paiement client) est introuvable.
+Only a submitted Payment can be reversed.,Seul un document validé (paiement client) peut être contrepassé.
+This Payment has already been reversed.,Ce document (paiement client) a déjà été contrepassé.
+Original Sale does not exist.,Le document d’origine (vente) est introuvable.
+Only a submitted Sale can be reversed.,Seul un document validé (vente) peut être contrepassé.
+This Sale has already been reversed.,Ce document (vente) a déjà été contrepassé.
+Original Purchase does not exist.,Le document d’origine (achat) est introuvable.
+Only a submitted Purchase can be reversed.,Seul un document validé (achat) peut être contrepassé.
+This Purchase has already been reversed.,Ce document (achat) a déjà été contrepassé.
+Original Supplier Payment does not exist.,Le document d’origine (paiement fournisseur) est introuvable.
+Only a submitted Supplier Payment can be reversed.,Seul un document validé (paiement fournisseur) peut être contrepassé.
+This Supplier Payment has already been reversed.,Ce document (paiement fournisseur) a déjà été contrepassé.
+CASH,Au comptant,Sale Mode
+CREDIT,À crédit,Sale Mode
+MIXED,Paiement partiel,Sale Mode
+14-day STARTER trial · No card required,Essai de 14 jours · Aucune carte bancaire requise
+Already registered?,Déjà inscrit ?
+CREATE YOUR WORKSPACE,CRÉEZ VOTRE ESPACE
+Choose your password. Your Business and 14-day trial are created only after this step succeeds.,Choisissez votre mot de passe. Votre entreprise et votre essai de 14 jours seront créés après cette étape.
+Commercial registration,Registre de commerce
+Continue to sign in,Continuer vers la connexion
+Create your Kivo workspace and start a 14-day trial. No card required.,Créez votre espace Kivo et commencez un essai de 14 jours. Aucune carte bancaire requise.
+Created records: {0},Éléments créés : {0}
+"Customers, suppliers, stock and cash flow—together in one secure workspace.","Clients, fournisseurs, stock et trésorerie réunis dans un espace sécurisé."
+EMAIL VERIFIED,ADRESSE E-MAIL VÉRIFIÉE
+Email already verified,Adresse e-mail déjà vérifiée
+Invalid rows: {0},Lignes non valides : {0}
+It may have expired or been replaced by a newer verification email.,Il a peut-être expiré ou été remplacé par un nouvel e-mail de vérification.
+Message,Message
+ONE MORE STEP,ENCORE UNE ÉTAPE
+Only a submitted Sale can be returned.,Seule une vente validée peut faire l’objet d’un retour.
+Payments,Paiements
+Primary Unit {0} does not exist.,L’unité de base {0} est introuvable.
+Primary Unit {0} is inactive.,L’unité de base {0} est inactive.
+Request another email,Demander un nouvel e-mail
+Resend verification,Renvoyer l’e-mail de vérification
+Row {0} contains more values than declared columns.,La ligne {0} contient plus de valeurs que de colonnes déclarées.
+Row {0}: {1},Ligne {0} : {1}
+Run your business with clarity.,Gérez votre activité en toute clarté.
+Secure your account,Sécurisez votre compte
+Start over or change email,Recommencer ou changer d’adresse e-mail
+The link expires in 45 minutes. Check spam or junk mail if it doesn’t arrive.,Le lien expire dans 45 minutes. Vérifiez les courriers indésirables si vous ne le recevez pas.
+This Stock Movement has already been reversed.,Ce mouvement de stock a déjà été contrepassé.
+This file has already been imported.,Ce fichier a déjà été importé.
+This link is no longer valid,Ce lien n’est plus valide
+This opening event was already imported for this Business.,Ce solde initial a déjà été importé pour cette entreprise.
+Total Amount,Montant total
+Total HT,Total HT
+Total TTC,Total TTC
+Total TVA,Total TVA
+Valid rows: {0},Lignes valides : {0}
+Verify your email first. You’ll choose a secure password on the next step.,Vérifiez d’abord votre adresse e-mail. Vous choisirez un mot de passe sécurisé à l’étape suivante.
+We sent a single-use verification link to,Nous avons envoyé un lien de vérification à usage unique à
+Your workspace is ready. Sign in to continue.,Votre espace est prêt. Connectez-vous pour continuer.
+"active must be 1/0, true/false, or yes/no","La colonne active doit contenir 1/0, true/false ou yes/no."
+base_uom '{0}' does not exist or is inactive,L’unité de base « {0} » est introuvable ou inactive.
+customer_name is required,Le nom du client est obligatoire.
+duplicate customer_name in this Business,Ce nom de client existe déjà dans cette entreprise.
+duplicate opening event first appeared on row {0},Ce solde initial figure déjà à la ligne {0}.
+duplicate product reference/SKU in this Business,Cette référence / SKU existe déjà dans cette entreprise.
+duplicate supplier_name in this Business,Ce nom de fournisseur existe déjà dans cette entreprise.
+duplicate {0} first appeared on row {1},Doublon ({0}) : première occurrence à la ligne {1}.
+price_type must be RETAIL or PROFESSIONAL,La colonne price_type doit contenir RETAIL (particulier) ou PROFESSIONAL (professionnel).
+product_name and reference are required,Le nom du produit et sa référence sont obligatoires.
+supplier_name is required,Le nom du fournisseur est obligatoire.
+tva_rate must be between 0 and 100,Le taux de TVA doit être compris entre 0 et 100.
+your email address,votre adresse e-mail
+{0} '{1}' is ambiguous; use its document ID,Plusieurs éléments {0} correspondent à « {1} ». Utilisez son identifiant.
+{0} '{1}' was not found in this Business,L’élément {0} « {1} » est introuvable dans cette entreprise.
+{0} must be a valid number,{0} doit être un nombre valide.
+{0} must be {1},{0} doit être {1}.
+greater than 0,supérieur à zéro
+greater than or equal to 0,supérieur ou égal à zéro
+customer,client
+supplier,fournisseur
+product reference,référence produit
+legacy reference,référence historique
+opening event,solde initial
+customer_name,Nom du client
+supplier_name,Nom du fournisseur
+credit_limit,Limite de crédit
+selling_price,Prix de vente
+professional_price,Prix professionnel
+minimum_selling_price,Prix minimum
+tva_rate,Taux de TVA
+minimum_stock,Stock minimum
+quantity,Quantité
+amount,Montant
+Action,Action
+Activity,Activité
+Address,Adresse
+Amended From,Modifié depuis
+Birth Date,Date de naissance
+Created At,Créé le
+Created By,Créé par
+Currency,Devise
+DRAFT,Brouillon
+Description,Description
+Email,E-mail
+Enabled,Activé
+Event Type,Type d’événement
+First Name,Prénom
+Items,Articles
+Last Name,Nom
+Onboarding Status,État de la configuration
+Provider,Prestataire
+Reason,Motif
+SUCCESS,Réussi
+Value,Valeur
+Show,Afficher
+Tel:,Tél. :
+Posted Payments cannot be cancelled. They must be reversed using a reversal workflow.,Les paiements clients validés doivent être contrepassés pour annuler leurs effets.
+Posted Purchases cannot be cancelled. They must be reversed using a reversal workflow.,Les achats validés doivent être contrepassés pour annuler leurs effets.
+Posted Sales cannot be cancelled. They must be reversed using a reversal workflow.,Les ventes validés doivent être contrepassés pour annuler leurs effets.
+Posted Supplier Payments cannot be cancelled. They must be reversed using a reversal workflow.,Les paiements fournisseurs validés doivent être contrepassés pour annuler leurs effets.
+Payment Reversal Business must match the Original Payment Business.,L’entreprise doit correspondre à celle du document d’origine (paiement client).
+Submitted Payment Reversals cannot be cancelled.,Une contrepassation ou un retour validé ne peut pas être annulé.
+Purchase Reversal Business must match the Original Purchase Business.,L’entreprise doit correspondre à celle du document d’origine (achat).
+Submitted Purchase Reversals cannot be cancelled.,Une contrepassation ou un retour validé ne peut pas être annulé.
+Sale Return Business must match the Original Sale Business.,L’entreprise doit correspondre à celle du document d’origine (vente).
+Submitted Sale Returns cannot be cancelled.,Une contrepassation ou un retour validé ne peut pas être annulé.
+Sale Reversal Business must match the Original Sale Business.,L’entreprise doit correspondre à celle du document d’origine (vente).
+Submitted Sale Reversals cannot be cancelled.,Une contrepassation ou un retour validé ne peut pas être annulé.
+Supplier Payment Reversal Business must match the Original Supplier Payment Business.,L’entreprise doit correspondre à celle du document d’origine (paiement fournisseur).
+Submitted Supplier Payment Reversals cannot be cancelled.,Une contrepassation ou un retour validé ne peut pas être annulé.
+CNPC,CNPC
+JSON,JSON
+KIVO,KIVO
+KONNECT,KONNECT
+P_Charge,P_Charge
+SHA-256,SHA-256
+New Customer,Nouveau client
+New Supplier,Nouveau fournisseur
+New Product,Nouveau produit
+STARTER,Démarrage
+Starter,Démarrage
+BUSINESS,Entreprise
+PRO,Pro
+imports,Importation de données
+onboarding_imports,Importation de données
+advanced_reports,Rapports avancés
+multi_uom,Vente dans plusieurs unités
+stock,Gestion du stock
+credit,Crédit client
+migration,Importation des données initiales
+max_users,Nombre maximal d’utilisateurs
+Password is required.,Le mot de passe est obligatoire.
+{0} is required.,{0} est obligatoire.
+{0} is required,{0} est obligatoire
+Show password,Afficher le mot de passe
+Create,Créer
+View,Voir
+Hide,Masquer
+Legacy,Accès existant
+Unit,Unité

@@ -52,17 +52,17 @@ def _decimal(value, label, positive=False, non_negative=False):
     try:
         number = Decimal(str(value))
     except (InvalidOperation, TypeError, ValueError):
-        raise ValueError(f"{label} must be a valid number")
+        raise ValueError(_('{0} must be a valid number').format(_(label)))
     if not number.is_finite() or (positive and number <= 0) or (non_negative and number < 0):
         comparator = "greater than 0" if positive else "greater than or equal to 0"
-        raise ValueError(f"{label} must be {comparator}")
+        raise ValueError(_('{0} must be {1}').format(_(label), _(comparator)))
     return number
 
 
 def _boolean(value):
     text = str(value or "1").strip().lower()
     if text not in {"1", "0", "true", "false", "yes", "no"}:
-        raise ValueError("active must be 1/0, true/false, or yes/no")
+        raise ValueError(_('active must be 1/0, true/false, or yes/no'))
     return 1 if text in {"1", "true", "yes"} else 0
 
 
@@ -100,39 +100,39 @@ def _source_identifier(import_type, data):
 
 def _resolve(doctype, key, business, label_field):
     if not key:
-        raise ValueError(f"{doctype} is required")
+        raise ValueError(_('{0} is required').format(_(doctype)))
     name = frappe.db.get_value(doctype, {"name": key, "business": business}, "name")
     if not name:
         matches = frappe.get_all(doctype, filters={label_field: key, "business": business}, pluck="name", limit=2)
         if len(matches) > 1:
-            raise ValueError(f"{doctype} '{key}' is ambiguous; use its document ID")
+            raise ValueError(_("{0} '{1}' is ambiguous; use its document ID").format(_(doctype), key))
         name = matches[0] if matches else None
     if not name:
-        raise ValueError(f"{doctype} '{key}' was not found in this Business")
+        raise ValueError(_("{0} '{1}' was not found in this Business").format(_(doctype), key))
     return name
 
 
 def _validate_row(import_type, row, business):
     if import_type == "CUSTOMERS":
-        if not row.get("customer_name"): raise ValueError("customer_name is required")
+        if not row.get("customer_name"): raise ValueError(_('customer_name is required'))
         price = (row.get("price_type") or "RETAIL").upper()
-        if price not in {"RETAIL", "PROFESSIONAL"}: raise ValueError("price_type must be RETAIL or PROFESSIONAL")
+        if price not in {"RETAIL", "PROFESSIONAL"}: raise ValueError(_('price_type must be RETAIL or PROFESSIONAL'))
         credit = _decimal(row.get("credit_limit") or 0, "credit_limit", non_negative=True)
-        if frappe.db.exists("Customer", {"business":business,"customer_name":row["customer_name"]}): raise ValueError("duplicate customer_name in this Business")
+        if frappe.db.exists("Customer", {"business":business,"customer_name":row["customer_name"]}): raise ValueError(_('duplicate customer_name in this Business'))
         return {"customer_name":row["customer_name"],"phone":row.get("phone"),"secondary_phone":row.get("secondary_phone"),"address":row.get("address"),"credit_limit":credit,"price_type":price,"notes":row.get("notes")}
     if import_type == "SUPPLIERS":
-        if not row.get("supplier_name"): raise ValueError("supplier_name is required")
-        if frappe.db.exists("Supplier", {"business":business,"supplier_name":row["supplier_name"]}): raise ValueError("duplicate supplier_name in this Business")
+        if not row.get("supplier_name"): raise ValueError(_('supplier_name is required'))
+        if frappe.db.exists("Supplier", {"business":business,"supplier_name":row["supplier_name"]}): raise ValueError(_('duplicate supplier_name in this Business'))
         return {"supplier_name":row["supplier_name"],"phone":row.get("phone"),"address":row.get("address"),"notes":row.get("notes")}
     if import_type == "PRODUCTS":
-        if not row.get("product_name") or not row.get("reference"): raise ValueError("product_name and reference are required")
+        if not row.get("product_name") or not row.get("reference"): raise ValueError(_('product_name and reference are required'))
         uom=(row.get("base_uom") or "UNIT").upper()
-        if not frappe.db.get_value("CreditFlow UOM",uom,"active"): raise ValueError(f"base_uom '{uom}' does not exist or is inactive")
-        if frappe.db.exists("Product", {"business":business,"reference":row["reference"]}): raise ValueError("duplicate product reference/SKU in this Business")
+        if not frappe.db.get_value("CreditFlow UOM",uom,"active"): raise ValueError(_("base_uom '{0}' does not exist or is inactive").format(uom))
+        if frappe.db.exists("Product", {"business":business,"reference":row["reference"]}): raise ValueError(_('duplicate product reference/SKU in this Business'))
         data={"product_name":row["product_name"],"reference":row["reference"],"primary_unit":uom,"active":_boolean(row.get("active"))}
         for field in ("selling_price","professional_price","minimum_selling_price","tva_rate","minimum_stock"):
             data[field]=_decimal(row.get(field) or 0,field,non_negative=True)
-        if data["tva_rate"] > 100: raise ValueError("tva_rate must be between 0 and 100")
+        if data["tva_rate"] > 100: raise ValueError(_('tva_rate must be between 0 and 100'))
         return data
     if import_type == "OPENING_STOCK":
         return {"product":_resolve("Product",row.get("product"),business,"reference"),"quantity":_decimal(row.get("quantity"),"quantity",positive=True),"date":getdate(row.get("date") or today()),"note":row.get("note"),"reference":row.get("reference")}
@@ -153,21 +153,21 @@ def _preview(import_type, csv_content, business=None, filename=None, *, for_upda
     for number,raw in enumerate(reader,start=2):
         input_count += 1
         if None in raw:
-            errors.append({"row":number,"error":f"Row {number} contains more values than declared columns."})
+            errors.append({"row":number,"error":_("Row {0} contains more values than declared columns.").format(number)})
             continue
         row={str(k).strip():str(v or "").strip() for k,v in raw.items()}
         if not any(row.values()): input_count -= 1;continue
         try:
             data=_validate_row(import_type,row,business);duplicate_type,duplicate_key=_duplicate_identity(import_type,data)
-            if (duplicate_type,duplicate_key) in seen: raise ValueError(f"duplicate {duplicate_type} first appeared on row {seen[(duplicate_type,duplicate_key)]}")
+            if (duplicate_type,duplicate_key) in seen: raise ValueError(_('duplicate {0} first appeared on row {1}').format(_(duplicate_type), seen[(duplicate_type,duplicate_key)]))
             seen[(duplicate_type,duplicate_key)]=number
             if import_type in FINANCIAL:
                 economic_key = opening_event_key(business, import_type, data)
                 if economic_key in seen:
-                    raise ValueError(f"duplicate opening event first appeared on row {seen[economic_key]}")
+                    raise ValueError(_('duplicate opening event first appeared on row {0}').format(seen[economic_key]))
                 seen[economic_key] = number
                 if frappe.db.get_value("Onboarding Import Result", {"economic_key": economic_key}, "name", for_update=for_update):
-                    raise ValueError("This opening event was already imported for this Business.")
+                    raise ValueError(_('This opening event was already imported for this Business.'))
             valid.append({"row":number,"data":data,"source_identifier":_source_identifier(import_type,data)})
             if import_type=="OPENING_STOCK": total+=data["quantity"]
             elif import_type in FINANCIAL: total+=data["amount"]

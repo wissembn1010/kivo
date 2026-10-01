@@ -28,7 +28,7 @@ class Product(Document):
             if not self.is_new():
                 filters["name"] = ["!=", self.name]
             if frappe.db.exists("Product", filters):
-                frappe.throw(_("Product {0} already exists in this Business.").format(field))
+                frappe.throw(_("Product {0} already exists in this Business.").format(_(self.meta.get_field(field).label)))
 
     def validate_tva_rate(self):
         try:

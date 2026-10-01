@@ -7,6 +7,7 @@ function setup() {
     const handlers = {};
     const pending = [];
     const sandbox = {
+        __: (message, args = []) => message.replace(/\{(\d+)\}/g, (_, index) => args[index]),
         cur_frm: { doctype: "Sale" }, locals: { "Sale Item": {} },
         frappe: {
             session: { user: "Administrator" }, user_roles: ["OWNER"],
