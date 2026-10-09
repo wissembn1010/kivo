@@ -1,1 +1,21 @@
-{% extends "templates/web.html" %}{% block title %}{{ _("Checking payment") }}{% endblock %}{% block head_include %}<link rel="stylesheet" href="/assets/creditflow/css/saas-onboarding.css">{% endblock %}{% block page_content %}<div class="cf-center-shell"><section class="cf-card cf-check"><p class="cf-eyebrow">{{ _("KONNECT PAYMENT") }}</p><h2 id="cf-payment-title">{{ _("Checking payment status…") }}</h2><p id="cf-payment-message" class="cf-subtle">{{ _("Kivo is checking your payment with Konnect. You can check again safely.") }}</p><a href="/creditflow-subscription">{{ _("Return to billing") }}</a></section></div><script>frappe.ready(async()=>{const payment={{ payment|tojson }};if(!payment)return;try{const r=await frappe.call('creditflow.billing.api.refresh_payment',{payment});const s=r.message.status;document.querySelector('#cf-payment-title').textContent=s==='SUCCEEDED'?__('Payment confirmed'):s==='PENDING'?__('Payment still pending'):__('Payment not completed');document.querySelector('#cf-payment-message').textContent=s==='SUCCEEDED'?__('Your Kivo subscription is active.'):s==='PENDING'?__('Konnect has not confirmed this payment yet. You can check again safely.'):__('This checkout did not activate or extend your subscription.');}catch(e){document.querySelector('#cf-payment-title').textContent=__('Unable to verify right now');}});</script>{% endblock %}
+{% extends "templates/web.html" %}
+{% block title %}{{ _("Bank transfer payment") }}{% endblock %}
+{% block head_include %}<link rel="stylesheet" href="/assets/creditflow/css/saas-onboarding.css">{% endblock %}
+{% block page_content %}
+<div class="cf-center-shell"><section class="cf-card" style="width:min(800px,100%)" id="cf-bank-payment" data-payment="{{ payment|e }}">
+<p class="cf-eyebrow">{{ _("BANK TRANSFER · VIREMENT BANCAIRE") }}</p><h2>{{ _("Pay by bank transfer") }}</h2>
+<p id="cf-payment-status" role="status" aria-live="polite">{{ _("Loading payment details…") }}</p>
+<div id="cf-transfer-details" hidden>
+<dl><dt>{{ _("Selected plan") }}</dt><dd id="cf-payment-plan"></dd>
+<dt>{{ _("Exact amount to transfer") }}</dt><dd id="cf-payment-amount"></dd>
+<dt>{{ _("Bank RIB") }}</dt><dd><strong id="cf-payment-rib"></strong> <button type="button" class="cf-secondary" id="cf-copy-rib">{{ _("Copy RIB") }}</button></dd>
+<dt>{{ _("Payment reference — include this in your transfer description") }}</dt><dd><strong id="cf-payment-reference"></strong> <button type="button" class="cf-secondary" id="cf-copy-reference">{{ _("Copy reference") }}</button></dd></dl>
+<p id="cf-bank-identity"></p><p id="cf-payment-expiry"></p>
+<ol><li>{{ _("Create a bank transfer to the RIB shown above.") }}</li><li>{{ _("Transfer the exact amount in TND and include your unique payment reference in the transfer description.") }}</li><li>{{ _("Upload your transfer receipt below, then wait for verification of received funds.") }}</li></ol>
+<p>{{ _("A receipt does not activate your subscription. Paid access starts only after received funds are independently verified.") }}</p>
+<a id="cf-receipt-link" hidden target="_blank" rel="noopener noreferrer">{{ _("View submitted receipt") }}</a>
+<form id="cf-proof-form" hidden><label for="cf-proof">{{ _("Payment proof (JPEG, PNG or PDF; maximum 5 MiB)") }}</label><input id="cf-proof" type="file" accept="image/jpeg,image/png,application/pdf" required><button class="cf-primary" type="submit">{{ _("Submit proof for review") }}</button></form>
+</div><div id="cf-form-message" class="cf-message" role="status" aria-live="polite"></div>
+<button class="cf-secondary" id="cf-refresh-payment" type="button">{{ _("Refresh status") }}</button> <a href="/creditflow-subscription">{{ _("Return to billing") }}</a>
+</section></div><script src="/assets/creditflow/js/saas-billing.js"></script>
+{% endblock %}

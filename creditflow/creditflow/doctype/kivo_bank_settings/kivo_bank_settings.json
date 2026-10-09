@@ -1,0 +1,63 @@
+{
+ "doctype": "DocType",
+ "name": "Kivo Bank Settings",
+ "module": "CreditFlow",
+ "engine": "InnoDB",
+ "field_order": [
+  "rib",
+  "bank_name",
+  "beneficiary_name",
+  "payment_expiry_days",
+  "review_reminder_days",
+  "expiration_reminder_days"
+ ],
+ "fields": [
+  {
+   "fieldname": "rib",
+   "fieldtype": "Data",
+   "label": "Rib",
+   "reqd": 1,
+   "default": "2519 0000 0001 5085 8272"
+  },
+  {
+   "fieldname": "bank_name",
+   "fieldtype": "Data",
+   "label": "Bank Name"
+  },
+  {
+   "fieldname": "beneficiary_name",
+   "fieldtype": "Data",
+   "label": "Beneficiary Name"
+  },
+  {
+   "fieldname": "payment_expiry_days",
+   "fieldtype": "Int",
+   "label": "Payment Expiry Days",
+   "default": "7",
+   "reqd": 1
+  },
+  {
+   "fieldname": "review_reminder_days",
+   "fieldtype": "Int",
+   "label": "Review Reminder Days",
+   "default": "1",
+   "reqd": 1
+  },
+  {
+   "fieldname": "expiration_reminder_days",
+   "fieldtype": "Int",
+   "label": "Expiration Reminder Days",
+   "default": "3",
+   "reqd": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1
+  }
+ ],
+ "track_changes": 1,
+ "issingle": 1
+}

@@ -4,7 +4,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
-from creditflow.payment_methods import CUSTOMER_PAYMENT_METHODS, normalize_payment_method
+from creditflow.payment_methods import CUSTOMER_PAYMENT_METHODS, normalize_payment_method, payment_method_label
 
 
 MONEY_PRECISION = Decimal("0.001")
@@ -12,6 +12,9 @@ PAYMENT_METHODS = CUSTOMER_PAYMENT_METHODS
 
 
 class Payment(Document):
+	def get_payment_method_label(self):
+		return payment_method_label(self.payment_method)
+
 	def validate(self):
 		self.validate_business_and_customer()
 		self.validate_amount()

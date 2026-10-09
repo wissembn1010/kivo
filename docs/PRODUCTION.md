@@ -4,6 +4,9 @@ Run these commands from the Frappe bench directory. Replace every value in angle
 brackets. Never paste real passwords, database credentials, or encryption keys
 into this document, source control, shell scripts, or tickets.
 
+For the exact Docker fresh-server procedure, health checks, tested backup helper
+and off-host retention policy, use [RELEASE_OPERATIONS.md](RELEASE_OPERATIONS.md).
+
 ## A. Create a full backup
 
 ```sh
@@ -63,12 +66,25 @@ process. In particular, the original encryption key is required to decrypt
 stored Password fields:
 
 ```sh
-bench --site <recovery-site-name> set-config encryption_key '<value-from-secure-config-backup>'
+RECOVERY_SITE=<recovery-site-name> env/bin/python - <<'PY'
+import json, os
+from pathlib import Path
+source = json.loads(Path('/restore/site_config_backup.json').read_text())
+target = Path('sites') / os.environ['RECOVERY_SITE'] / 'site_config.json'
+destination = json.loads(target.read_text())
+for key in ('encryption_key', 'backup_encryption_key'):
+    if source.get(key):
+        destination[key] = source[key]
+destination.update(pause_scheduler=True, mute_emails=True, maintenance_mode=True)
+target.write_text(json.dumps(destination, indent=2))
+target.chmod(0o600)
+PY
 ```
 
-Run this from a protected administrative session, then clear terminal history if
-your environment records sensitive arguments. Do not copy database connection
-settings blindly when the recovery site uses a different database.
+Run this from a protected administrative session with the config backup mounted
+read-only. It transfers key material without printing it or placing it in command
+arguments, and preserves the destination database credentials. Disable copied
+Email Accounts/external integrations on a drill before serving it.
 
 ## E. Migrate after restore
 
@@ -105,11 +121,10 @@ manager.
 3. Open Customer Balances and Stock On Hand and compare sample totals with
    submitted Credit Transactions and Stock Movements.
 4. Confirm OWNER/STAFF users only see their assigned Business.
-5. Run the application tests on the recovery environment:
-
-   ```sh
-   CI=1 bench --site <recovery-site-name> run-tests --app creditflow
-   ```
+5. Run authenticated login/OWNER, file-checksum, encryption and stock/ledger smoke
+   checks from RELEASE_OPERATIONS.md. Run the full app suite only on a separate
+   disposable synthetic test site; it contains destructive/committing tests and
+   must not be run against recovered customer data.
 
 6. Verify expected baseline counts and perform a stock reconciliation before
    accepting the recovery.

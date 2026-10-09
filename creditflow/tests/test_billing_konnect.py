@@ -1,3 +1,7 @@
+"""Bank billing regressions (module name retained for existing test runners)."""
+import base64
+import json
+from io import BytesIO
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -5,214 +9,424 @@ import frappe
 from frappe.tests import IntegrationTestCase
 from frappe.utils import add_days, add_months, get_datetime, now_datetime
 
-from creditflow.billing.service import (
-    create_checkout, reconcile_owner_payment, reconcile_provider_payment, tnd_to_millimes,
-)
+from creditflow.billing import bank
+from creditflow.billing.service import create_checkout, reconcile_owner_payment, tnd_to_millimes
+from creditflow.subscription import clear_request_cache, require_feature
 
 
-class FakeKonnect:
-    checkout_calls=[]; details={}; outage=False; wallet_id="wallet-test"
-    def create_checkout(self,payment,customer):
-        self.__class__.checkout_calls.append((payment.amount_minor,payment.internal_order_id,payment.plan))
-        return {"provider_payment_id":f"payref{payment.internal_order_id[3:]}","checkout_url":"https://sandbox.example/pay"}
-    def get_payment_status(self,ref):
-        if self.__class__.outage: raise TimeoutError("provider timeout")
-        return dict(self.__class__.details[ref])
+def pdf_receipt():
+    from pypdf import PdfWriter
+    writer = PdfWriter(); writer.add_blank_page(width=100, height=100)
+    stream = BytesIO(); writer.write(stream)
+    return base64.b64encode(stream.getvalue()).decode()
 
 
-class IntegrationTestKonnectBilling(IntegrationTestCase):
+class EncodedReceipt(str):
+    def __repr__(self):
+        return f"<encoded receipt: {len(self)} bytes>"
+
+
+class IntegrationTestBankBilling(IntegrationTestCase):
     def setUp(self):
-        checkout_config = patch.dict(frappe.conf, {"creditflow_paid_checkout_enabled": 1})
-        checkout_config.start()
-        self.addCleanup(checkout_config.stop)
-        frappe.set_user("Administrator"); self.token=uuid4().hex[:10]
-        self.business=frappe.get_doc({"doctype":"Business","business_name":f"Billing {self.token}"}).insert()
-        self.other=frappe.get_doc({"doctype":"Business","business_name":f"Other Billing {self.token}"}).insert()
-        self.owner=self.user("owner",self.business.name,"OWNER"); self.staff=self.user("staff",self.business.name,"STAFF")
-        self.plan=frappe.get_doc({"doctype":"CreditFlow Plan","plan_name":f"Billing Plan {self.token}","plan_code":f"BILL_{self.token.upper()}","enabled":1,"monthly_price":"59.000","annual_price":"590.000"}).insert()
-        now=now_datetime(); self.subscription=frappe.get_doc({"doctype":"CreditFlow Subscription","business":self.business.name,"plan":self.plan.name,"status":"TRIAL","trial_start":now,"trial_end":add_days(now,14)}).insert()
-        FakeKonnect.checkout_calls=[];FakeKonnect.details={};FakeKonnect.outage=False
-        self.provider_patch=patch.dict("creditflow.billing.service.PROVIDERS",{"KONNECT":FakeKonnect});self.provider_patch.start();frappe.set_user(self.owner)
-    def tearDown(self): self.provider_patch.stop();frappe.set_user("Administrator")
-    def user(self,prefix,business,role):
-        email=f"billing-{prefix}-{self.token}@example.com";u=frappe.get_doc({"doctype":"User","email":email,"first_name":prefix,"send_welcome_email":0,"creditflow_business":business}).insert(ignore_permissions=True);u.add_roles(role);return email
-    def checkout(self,cycle="MONTHLY"):
-        result=create_checkout(self.plan.name,cycle);payment=frappe.get_doc("CreditFlow Billing Payment",result["payment"]);return result,payment
-    def completed(self,payment,**changes):
-        data={"normalized_status":"SUCCEEDED","provider_status":"completed","amount_minor":tnd_to_millimes(payment.amount),"currency":"TND","order_id":payment.internal_order_id,"receiver_wallet_id":"wallet-test","transaction_success":True,"payment_id":payment.provider_payment_id};data.update(changes);FakeKonnect.details[payment.provider_payment_id]=data;return data
+        config = patch.dict(frappe.conf, {"creditflow_paid_checkout_enabled": 1})
+        config.start(); self.addCleanup(config.stop)
+        frappe.set_user("Administrator")
+        self.token = uuid4().hex[:10]
+        self.business = frappe.get_doc({"doctype": "Business", "business_name": "Bank " + self.token}).insert()
+        self.other = frappe.get_doc({"doctype": "Business", "business_name": "Other bank " + self.token}).insert()
+        self.owner = self.user("owner", self.business.name, "OWNER")
+        self.staff = self.user("staff", self.business.name, "STAFF")
+        self.plan = frappe.get_doc({"doctype": "CreditFlow Plan", "plan_name": "Bank " + self.token,
+            "plan_code": "BANK_" + self.token.upper(), "enabled": 1, "monthly_price": 59,
+            "annual_price": 590, "entitlements": [{"entitlement_key": "advanced_reports",
+                "value_type": "BOOLEAN", "value": "true"}]}).insert()
+        self.subscription = frappe.get_doc({"doctype": "CreditFlow Subscription", "business": self.business.name,
+            "plan": self.plan.name, "status": "TRIAL", "trial_start": add_days(now_datetime(), -15),
+            "trial_end": add_days(now_datetime(), -1)}).insert()
+        clear_request_cache(); frappe.set_user(self.owner)
+        self.addCleanup(frappe.set_user, "Administrator")
+        self.addCleanup(clear_request_cache)
 
-    def test_01_owner_checkout_is_server_priced_and_pending(self):
-        result,p=self.checkout();self.assertEqual(p.status,"PENDING");self.assertEqual(p.amount,59);self.assertEqual(p.currency,"TND");self.assertEqual(FakeKonnect.checkout_calls[0][0],59000);self.assertEqual(result["checkout_url"],"https://sandbox.example/pay");self.assertTrue(p.provider_payment_id)
-    def test_02_staff_and_authority_injection_are_rejected(self):
-        frappe.set_user(self.staff)
-        with self.assertRaises(frappe.PermissionError):create_checkout(self.plan.name)
+    def user(self, prefix, business, role):
+        # Synthetic fixture volume must not consume the unrelated signup quota.
+        with patch("frappe.core.doctype.user.user.throttle_user_creation"):
+            user = frappe.get_doc({"doctype": "User", "email": f"bank-{prefix}-{self.token}@example.com",
+                "first_name": prefix, "send_welcome_email": 0, "creditflow_business": business}).insert(ignore_permissions=True)
+        user.add_roles(role)
+        return user.name
+
+    def checkout(self, cycle="MONTHLY"):
         frappe.set_user(self.owner)
-        for attack in ({"business":self.other.name},{"amount":"0.001"},{"currency":"USD"},{"trial_days":365},{"provider_payment_id":"fake"}):
-            with self.assertRaisesRegex(frappe.ValidationError,"Unsupported"):create_checkout(self.plan.name,**attack)
-    def test_03_disabled_unknown_plan_and_invalid_cycle_are_rejected(self):
-        frappe.set_user("Administrator");self.plan.enabled=0;self.plan.save();frappe.set_user(self.owner)
-        with self.assertRaises(frappe.ValidationError):create_checkout(self.plan.name)
-        with self.assertRaises(frappe.DoesNotExistError):create_checkout("NO-SUCH-PLAN")
-    def test_04_exact_tnd_millime_conversion(self):
-        for amount,minor in (("29.000",29000),("49.000",49000),("59.000",59000),("59.500",59500)):self.assertEqual(tnd_to_millimes(amount),minor)
-        for bad in ("0","-1","1.0001","NaN"):
-            with self.assertRaises(frappe.ValidationError):tnd_to_millimes(bad)
-    def test_05_fake_unknown_webhook_and_browser_values_do_not_activate(self):
-        _,p=self.checkout();self.assertEqual(reconcile_provider_payment("unknownref99")["status"],"UNKNOWN");self.assertEqual(frappe.db.get_value("CreditFlow Subscription",self.subscription.name,"status"),"TRIAL");self.assertEqual(p.status,"PENDING")
-    def test_06_verified_success_activates_subscription(self):
-        _,p=self.checkout();self.completed(p);result=reconcile_provider_payment(p.provider_payment_id);sub=frappe.get_doc("CreditFlow Subscription",self.subscription.name);p.reload();self.assertEqual(result["status"],"SUCCEEDED");self.assertEqual(sub.status,"ACTIVE");self.assertEqual(sub.plan,self.plan.name);self.assertEqual(sub.external_provider,"KONNECT");self.assertTrue(sub.current_period_end);self.assertEqual(p.status,"SUCCEEDED")
-    def test_07_amount_currency_order_wallet_and_transaction_mismatch_never_activate(self):
-        fields=(("amount_minor",1),("currency","USD"),("order_id","forged"),("receiver_wallet_id","other-wallet"),("transaction_success",False))
-        for field,value in fields:
-            with self.subTest(field=field):
-                _,p=self.checkout();self.completed(p,**{field:value});self.assertEqual(reconcile_provider_payment(p.provider_payment_id)["status"],"PENDING");self.assertEqual(frappe.db.get_value("CreditFlow Subscription",self.subscription.name,"status"),"TRIAL")
-    def test_08_failed_expired_pending_do_not_activate(self):
-        for normalized in ("FAILED","EXPIRED","PENDING"):
-            _,p=self.checkout();FakeKonnect.details[p.provider_payment_id]={"normalized_status":normalized,"provider_status":normalized.lower(),"amount_minor":59000,"currency":"TND","order_id":p.internal_order_id};result=reconcile_provider_payment(p.provider_payment_id);self.assertEqual(result["status"],normalized);self.assertEqual(frappe.db.get_value("CreditFlow Subscription",self.subscription.name,"status"),"TRIAL")
-    def test_09_duplicate_and_replayed_success_extend_exactly_once(self):
-        _,p=self.checkout();self.completed(p);reconcile_provider_payment(p.provider_payment_id);end=frappe.db.get_value("CreditFlow Subscription",self.subscription.name,"current_period_end");reconcile_provider_payment(p.provider_payment_id);self.assertEqual(frappe.db.get_value("CreditFlow Subscription",self.subscription.name,"current_period_end"),end)
-    def test_10_early_renewal_preserves_paid_time(self):
-        _,first=self.checkout();self.completed(first);reconcile_provider_payment(first.provider_payment_id);old_end=get_datetime(frappe.db.get_value("CreditFlow Subscription",self.subscription.name,"current_period_end"));_,renewal=self.checkout();self.completed(renewal);reconcile_provider_payment(renewal.provider_payment_id);new_end=get_datetime(frappe.db.get_value("CreditFlow Subscription",self.subscription.name,"current_period_end"));self.assertEqual(new_end,add_months(old_end,1))
-    def test_11_failed_checkout_preserves_existing_active_period(self):
-        _,p=self.checkout();self.completed(p);reconcile_provider_payment(p.provider_payment_id);old=frappe.db.get_value("CreditFlow Subscription",self.subscription.name,"current_period_end");_,failed=self.checkout();FakeKonnect.details[failed.provider_payment_id]={"normalized_status":"FAILED","provider_status":"pending"};reconcile_provider_payment(failed.provider_payment_id);self.assertEqual(frappe.db.get_value("CreditFlow Subscription",self.subscription.name,"current_period_end"),old);self.assertEqual(frappe.db.get_value("CreditFlow Subscription",self.subscription.name,"status"),"ACTIVE")
-    def test_12_reconciliation_recovers_missed_webhook(self):
-        _,p=self.checkout();self.completed(p);result=reconcile_owner_payment(p.name);self.assertEqual(result["status"],"SUCCEEDED")
-    def test_13_provider_outage_keeps_pending_and_subscription_unchanged(self):
-        _,p=self.checkout();FakeKonnect.outage=True;result=reconcile_provider_payment(p.provider_payment_id);self.assertEqual(result["status"],"PENDING");self.assertEqual(frappe.db.get_value("CreditFlow Subscription",self.subscription.name,"status"),"TRIAL")
-    def test_14_cross_tenant_payment_access_is_denied(self):
-        _,p=self.checkout();frappe.set_user("Administrator");other_owner=self.user("other",self.other.name,"OWNER");frappe.set_user(other_owner)
-        with self.assertRaises(frappe.PermissionError):reconcile_owner_payment(p.name)
-        self.assertFalse(frappe.get_doc("CreditFlow Billing Payment",p.name).has_permission("read"))
-    def test_15_owner_cannot_forge_success_or_active(self):
-        _,p=self.checkout();p.status="SUCCEEDED"
-        with self.assertRaises(frappe.PermissionError):p.save()
-        sub=frappe.get_doc("CreditFlow Subscription",self.subscription.name);sub.status="ACTIVE"
-        with self.assertRaises(frappe.PermissionError):sub.save()
-    def test_16_midperiod_plan_change_is_rejected(self):
-        _,p=self.checkout();self.completed(p);reconcile_provider_payment(p.provider_payment_id);frappe.set_user("Administrator");other=frappe.get_doc({"doctype":"CreditFlow Plan","plan_name":"Other","plan_code":f"CHANGE_{self.token.upper()}","enabled":1,"monthly_price":10}).insert();frappe.set_user(self.owner)
-        with self.assertRaisesRegex(frappe.ValidationError,"current paid period"):create_checkout(other.name)
-    def test_17_checkout_provider_failure_retains_pending_history(self):
-        with patch.object(FakeKonnect,"create_checkout",side_effect=TimeoutError("down")):
-            result=create_checkout(self.plan.name)
-        self.assertEqual(result["status"],"PENDING");self.assertTrue(frappe.db.exists("CreditFlow Billing Payment",result["payment"]));self.assertIsNone(result["checkout_url"])
+        result = create_checkout(self.plan.name, cycle)
+        return result, frappe.get_doc("CreditFlow Billing Payment", result["payment"])
 
-    def test_checkout_requires_explicit_server_opt_in(self):
-        from creditflow.billing.api import start_checkout
+    def review(self, payment, **changes):
+        frappe.set_user("Administrator")
+        data = {"payment": payment.name, "action": "VERIFIED", "transaction_id": "TX-" + uuid4().hex,
+            "amount": payment.amount, "transaction_date": now_datetime().date().isoformat(),
+            "reference": payment.internal_order_id, "destination_account": payment.destination_account,
+            "notes": "Funds checked in bank account"}
+        data.update(changes)
+        return bank.admin_review(**data)
 
-        before = frappe.db.count("CreditFlow Billing Payment")
+    def assert_unpaid(self):
+        self.assertEqual(self.subscription.reload().status, "TRIAL")
+        clear_request_cache(); frappe.set_user(self.owner)
+        with self.assertRaises(frappe.PermissionError):
+            require_feature(self.business.name, "advanced_reports")
+
+    def test_checkout_server_prices_and_reference(self):
+        result, payment = self.checkout()
+        self.assertEqual(payment.status, "PENDING_PAYMENT")
+        self.assertEqual(payment.provider, "BANK_TRANSFER")
+        self.assertEqual(payment.amount, 59)
+        self.assertEqual(payment.currency, "TND")
+        self.assertTrue(payment.internal_order_id)
+        self.assertTrue(payment.expires_at)
+        self.assertFalse(payment.provider_payment_id)
+        _, second = self.checkout("ANNUAL")
+        self.assertEqual(second.amount, 590)
+        self.assertNotEqual(payment.internal_order_id, second.internal_order_id)
+        self.assert_unpaid()
+
+    def test_checkout_rejects_authority_injection_and_staff(self):
+        for attack in ({"business": self.other.name}, {"amount": ".001"}, {"status": "VERIFIED"},
+                {"provider": "KONNECT"}, {"currency": "USD"}):
+            with self.assertRaises(frappe.ValidationError):
+                create_checkout(self.plan.name, **attack)
+        frappe.set_user(self.staff)
+        with self.assertRaises(frappe.PermissionError):
+            create_checkout(self.plan.name)
+
+    def test_checkout_requires_server_opt_in(self):
         for value in (None, 0, "0", False, "false", "true", 2):
             with self.subTest(value=value), patch.dict(frappe.conf, {"creditflow_paid_checkout_enabled": value}):
-                if value is None:
-                    frappe.conf.pop("creditflow_paid_checkout_enabled", None)
-                for command in (create_checkout, start_checkout):
-                    with self.assertRaisesRegex(frappe.PermissionError, "Paid checkout is disabled"):
-                        command(self.plan.name)
-        self.assertEqual(FakeKonnect.checkout_calls, [])
+                with self.assertRaises(frappe.PermissionError):
+                    create_checkout(self.plan.name)
 
-        self.assertEqual(frappe.db.count("CreditFlow Billing Payment"), before)
-        self.assertEqual(frappe.db.get_value("CreditFlow Subscription", self.subscription.name, "status"), "TRIAL")
+    def test_tnd_conversion_is_exact(self):
+        self.assertEqual(tnd_to_millimes("59.500"), 59500)
+        for value in ("0", "-1", "1.0001", "NaN"):
+            with self.assertRaises(frappe.ValidationError):
+                tnd_to_millimes(value)
 
-    def test_unpaid_page_and_summary_api_match_entitlements_and_expiry(self):
-        from frappe.handler import execute_cmd
-        from frappe.utils import set_request
-        from frappe.website.serve import get_response_without_exception_handling as get_response
-        from creditflow.subscription import clear_request_cache, require_feature
-
-        frappe.set_user("Administrator")
-        self.plan.append("entitlements", {"entitlement_key": "migration", "value_type": "BOOLEAN", "value": "true"})
-        self.plan.append("entitlements", {"entitlement_key": "advanced_reports", "value_type": "BOOLEAN", "value": "false"})
-        self.plan.save()
-        clear_request_cache()
-        with patch.dict(frappe.conf, {"creditflow_paid_checkout_enabled": 0}):
-            for expired in (False, True):
-                if expired:
-                    frappe.set_user("Administrator")
-                    self.subscription.trial_start = add_days(now_datetime(), -15)
-                    self.subscription.trial_end = add_days(now_datetime(), -1)
-                    self.subscription.save()
-                    clear_request_cache()
-                frappe.set_user(self.owner)
-                cmd = "creditflow.saas_access.subscription_summary"
-                set_request(method="POST", path=f"/api/method/{cmd}")
-                frappe.local.form_dict = frappe._dict(cmd=cmd)
-                summary = execute_cmd(cmd)
-                self.assertEqual(summary["access_state"], "EXPIRED" if expired else "TRIAL")
-                self.assertEqual(summary["can_write"], not expired)
-                for feature in ("advanced_reports", "unconfigured_feature"):
-                    with self.assertRaises(frappe.PermissionError):
-                        require_feature(self.business.name, feature)
-                if not expired:
-                    self.assertTrue(require_feature(self.business.name, "migration"))
-                else:
-                    with self.assertRaises(frappe.PermissionError):
-                        require_feature(self.business.name, "migration")
-                set_request(method="GET", path="/creditflow-subscription")
-                frappe.local.form_dict = frappe._dict()
-                response = get_response("/creditflow-subscription")
-                self.assertEqual(response.status_code, 200)
-                html = frappe.safe_decode(response.get_data())
-                self.assertIn(self.plan.plan_name, html)
-                self.assertIn("EXPIRED" if expired else "TRIAL", html)
-                self.assertNotIn('class="cf-primary cf-checkout"', html)
-                self.assertNotIn('class="cf-secondary cf-checkout"', html)
-        self.assertEqual(FakeKonnect.checkout_calls, [])
-
-    def test_request_cannot_enable_checkout(self):
-        from frappe.api import handle
-        from werkzeug.test import EnvironBuilder
-        from werkzeug.wrappers import Request
-
-        before = frappe.db.count("CreditFlow Billing Payment")
-        with patch.dict(frappe.conf, {"creditflow_paid_checkout_enabled": 0}):
-            for extra in ({}, {"creditflow_paid_checkout_enabled": 1}):
-                payload = {"plan": self.plan.name, **extra}
-                request = Request(EnvironBuilder(path="/api/method/creditflow.billing.api.start_checkout", method="POST", json=payload).get_environ())
-                with (
-                    patch.object(frappe.local, "request", request, create=True),
-                    patch.object(frappe.local, "form_dict", frappe._dict(payload)),
-                    patch.object(frappe.local, "response", frappe._dict(docs=[])),
-                    self.assertRaisesRegex(frappe.PermissionError, "Paid checkout is disabled"),
-                ):
-                    handle(request)
-        self.assertEqual(FakeKonnect.checkout_calls, [])
-        self.assertEqual(frappe.db.count("CreditFlow Billing Payment"), before)
-
-    def test_disabled_checkout_preserves_history_and_reconciliation(self):
+    def test_receipt_is_private_and_never_activates(self):
         _, payment = self.checkout()
-        self.completed(payment)
-        with patch.dict(frappe.conf, {"creditflow_paid_checkout_enabled": 0}):
-            context = frappe._dict()
-            frappe.get_attr("creditflow.www.creditflow_subscription.get_context")(context)
-            self.assertEqual(context.plans, [])
-            self.assertTrue(any(row.name == payment.name for row in context.payments))
-            self.assertEqual(reconcile_owner_payment(payment.name)["status"], "SUCCEEDED")
-        self.assertEqual(len(FakeKonnect.checkout_calls), 1)
+        content = pdf_receipt()
+        bank.submit_proof(payment.name, "receipt.pdf", content)
+        payment.reload()
+        self.assertEqual(payment.status, "PROOF_SUBMITTED")
+        files = frappe.get_all("File", filters={"attached_to_doctype": payment.doctype,
+            "attached_to_name": payment.name}, fields=["name", "is_private", "file_url"])
+        self.assertTrue(files)
+        self.assertTrue(all(row.is_private and row.file_url.startswith("/private/files/") for row in files))
+        self.assert_unpaid()
 
-    def test_unpaid_trial_import_entitlements_and_expiry(self):
-        from creditflow.onboarding import commit_csv
-        from creditflow.subscription import clear_request_cache, require_feature
+    def test_receipt_download_follows_current_business_instead_of_original_file_owner(self):
+        _, payment = self.checkout()
+        bank.submit_proof(payment.name, "receipt.pdf", pdf_receipt())
+        file_name = frappe.db.get_value("File", {"attached_to_doctype": payment.doctype,
+            "attached_to_name": payment.name}, "name")
+        receipt = frappe.get_doc("File", file_name)
+        self.assertEqual(receipt.owner, self.owner)
+        self.assertTrue(receipt.is_downloadable())
+        frappe.set_user("Administrator")
+        frappe.db.set_value("User", self.owner, "creditflow_business", self.other.name)
+        frappe.set_user(self.owner)
+        self.assertFalse(receipt.is_downloadable())
+        frappe.set_user("Administrator")
+        self.assertTrue(receipt.is_downloadable())
+
+    def test_malformed_spoofed_and_oversized_receipts_rejected(self):
+        _, payment = self.checkout()
+        samples = [("proof.pdf", "not-base64!"), ("proof.pdf", base64.b64encode(b"<html>fraud</html>").decode()),
+            ("proof.svg", base64.b64encode(b"<svg/>").decode()),
+            ("proof.pdf", EncodedReceipt(base64.b64encode(b"%PDF-" + b"x" * (5 * 1024 * 1024)).decode()))]
+        for filename, content in samples:
+            with self.subTest(filename=filename, size=len(content)), self.assertRaises(frappe.ValidationError):
+                bank.submit_proof(payment.name, filename, content)
+        self.assertEqual(payment.reload().status, "PENDING_PAYMENT")
+        self.assert_unpaid()
+
+    def test_receipt_resubmission_preserves_review_and_terminal_decisions(self):
+        _, payment = self.checkout()
+        frappe.set_user("Administrator")
+        bank.admin_review(payment.name, "UNDER_REVIEW", notes="Investigating received amount")
+        reviewed_at = payment.reload().reviewed_at
+        frappe.set_user(self.owner)
+        bank.submit_proof(payment.name, "supplementary.pdf", pdf_receipt())
+        payment.reload()
+        self.assertEqual(payment.status, "UNDER_REVIEW")
+        self.assertEqual(payment.admin_notes, "Investigating received amount")
+        self.assertEqual(payment.reviewed_at, reviewed_at)
+        self.assertEqual(frappe.db.count(bank.AUDIT, {"payment": payment.name, "event": "PROOF_SUBMITTED"}), 1)
+        self.assert_unpaid()
 
         frappe.set_user("Administrator")
-        self.plan.monthly_price = self.plan.annual_price = 0
-        self.plan.append("entitlements", {"entitlement_key": "migration", "value_type": "BOOLEAN", "value": "true"})
-        self.plan.save()
-        clear_request_cache()
-        frappe.set_user(self.owner)
-        with patch.dict(frappe.conf, {"creditflow_paid_checkout_enabled": 0}):
-            result = commit_csv("CUSTOMERS", f"customer_name\nUnpaid pilot {self.token}\n")
-            customer = result["created"][0]
-            self.assertEqual(frappe.db.get_value("Customer", customer, "business"), self.business.name)
-            with self.assertRaises(frappe.PermissionError):
-                require_feature(self.business.name, "unconfigured_feature")
-            with self.assertRaises(frappe.PermissionError):
-                commit_csv("CUSTOMERS", "customer_name\nForeign\n", business=self.other.name)
-            frappe.set_user("Administrator")
-            self.subscription.trial_start = add_days(now_datetime(), -15)
-            self.subscription.trial_end = add_days(now_datetime(), -1)
-            self.subscription.save()
-            clear_request_cache()
+        bank.admin_review(payment.name, "REJECTED", notes="No received funds")
+        _, verified = self.checkout()
+        self.review(verified)
+        for terminal in (payment, verified):
             frappe.set_user(self.owner)
-            with self.assertRaisesRegex(frappe.PermissionError, "read-only"):
-                commit_csv("CUSTOMERS", "customer_name\nExpired\n")
-            self.assertTrue(frappe.db.exists("Customer", customer))
-        self.assertEqual(FakeKonnect.checkout_calls, [])
+            status = terminal.reload().status
+            receipt = terminal.receipt
+            with self.assertRaises(frappe.ValidationError):
+                bank.submit_proof(terminal.name, "replacement.pdf", pdf_receipt())
+            self.assertEqual(terminal.reload().status, status)
+            self.assertEqual(terminal.receipt, receipt)
+
+    def test_owner_staff_and_business_system_manager_cannot_approve(self):
+        _, payment = self.checkout()
+        frappe.set_user("Administrator")
+        bound_admin = self.user("bound-admin", self.business.name, "System Manager")
+        for user in (self.owner, self.staff, bound_admin):
+            frappe.set_user(user)
+            with patch("creditflow.billing.bank.frappe.log_error") as log:
+                with self.assertRaises(frappe.PermissionError):
+                    bank.admin_review(payment.name, "VERIFIED", transaction_id="BANK_CREDENTIAL_SECRET", amount=59,
+                        reference=payment.internal_order_id, transaction_date=now_datetime().date().isoformat(),
+                        notes="RAW_PRIVATE_BANK_RECORD")
+                log.assert_called_once()
+                self.assertTrue(log.call_args.kwargs["defer_insert"])
+                message = log.call_args.kwargs["message"]
+                self.assertEqual(json.loads(message), {"actor": user, "payment": payment.name,
+                    "error_type": "PermissionError"})
+                self.assertNotIn("BANK_CREDENTIAL_SECRET", message)
+                self.assertNotIn("RAW_PRIVATE_BANK_RECORD", message)
+        self.assert_unpaid()
+
+    def test_verification_and_replay_activate_once(self):
+        _, payment = self.checkout()
+        tx = "TX-" + uuid4().hex
+        self.review(payment, transaction_id=tx)
+        self.assertEqual(payment.reload().status, "VERIFIED")
+        sub = self.subscription.reload()
+        self.assertEqual(sub.status, "ACTIVE")
+        self.assertEqual(sub.external_provider, "BANK_TRANSFER")
+        end = sub.current_period_end
+        self.review(payment, transaction_id=tx)
+        self.assertEqual(self.subscription.reload().current_period_end, end)
+        self.assertTrue(frappe.db.exists("CreditFlow Billing Audit", {"payment": payment.name,
+            "event": "VERIFICATION_REPLAY"}))
+        clear_request_cache(); frappe.set_user(self.owner)
+        self.assertTrue(require_feature(self.business.name, "advanced_reports"))
+
+    def test_wrong_amount_missing_reference_date_and_destination_fail(self):
+        _, payment = self.checkout()
+        for change in ({"amount": 58}, {"amount": 60}, {"reference": ""}, {"reference": "forged"},
+                {"transaction_date": add_days(now_datetime(), -5).date().isoformat()},
+                {"transaction_date": add_days(now_datetime(), 365).date().isoformat()},
+                {"destination_account": "00000000000000000000"}, {"transaction_id": ""}):
+            with self.subTest(change=change), self.assertRaises(frappe.ValidationError):
+                self.review(payment, **change)
+            self.assertEqual(payment.reload().status, "PENDING_PAYMENT")
+        self.assert_unpaid()
+
+    def test_duplicate_transaction_cannot_credit_another_payment(self):
+        _, first = self.checkout(); _, second = self.checkout()
+        tx = "TX-" + uuid4().hex
+        self.review(first, transaction_id=tx)
+        end = self.subscription.reload().current_period_end
+        with self.assertRaises((frappe.ValidationError, frappe.DuplicateEntryError, frappe.UniqueValidationError)):
+            self.review(second, transaction_id=tx)
+        self.assertEqual(second.reload().status, "PENDING_PAYMENT")
+        self.assertEqual(self.subscription.reload().current_period_end, end)
+
+    def test_early_annual_renewal_preserves_paid_time(self):
+        _, payment = self.checkout(); self.review(payment)
+        end = get_datetime(self.subscription.reload().current_period_end)
+        _, renewal = self.checkout("ANNUAL"); self.review(renewal)
+        self.assertEqual(self.subscription.reload().current_period_end, add_months(end, 12))
+        clear_request_cache(); frappe.set_user(self.owner)
+        self.assertTrue(require_feature(self.business.name, "advanced_reports"))
+
+    def test_rejection_and_owner_refresh_never_activate(self):
+        _, payment = self.checkout()
+        self.review(payment, action="UNDER_REVIEW")
+        self.assertEqual(payment.reload().status, "UNDER_REVIEW")
+        self.review(payment, action="REJECTED", notes="Funds not received")
+        self.assertEqual(payment.reload().status, "REJECTED")
+        frappe.set_user(self.owner)
+        self.assertEqual(reconcile_owner_payment(payment.name)["status"], "REJECTED")
+        self.assert_unpaid()
+
+    def test_cross_tenant_status_receipt_and_direct_writes_denied(self):
+        _, payment = self.checkout()
+        frappe.set_user("Administrator"); other = self.user("other-owner", self.other.name, "OWNER")
+        frappe.set_user(other)
+        with self.assertRaises(frappe.PermissionError):
+            reconcile_owner_payment(payment.name)
+        with self.assertRaises(frappe.PermissionError):
+            bank.submit_proof(payment.name, "receipt.pdf", base64.b64encode(b"%PDF-1.4\n%%EOF").decode())
+        self.assertFalse(payment.has_permission("read"))
+        frappe.set_user(self.owner); payment.status = "VERIFIED"
+        with self.assertRaises(frappe.PermissionError):
+            payment.save()
+        sub = self.subscription.reload(); sub.status = "ACTIVE"
+        with self.assertRaises(frappe.PermissionError):
+            sub.save()
+
+    def test_expiration_and_cancellation_checked_without_waiting_for_job(self):
+        _, payment = self.checkout(); self.review(payment)
+        for cancelled in (0, 1):
+            frappe.set_user("Administrator")
+            frappe.db.set_value("CreditFlow Subscription", self.subscription.name,
+                {"current_period_end": add_days(now_datetime(), -1), "cancel_at_period_end": cancelled})
+            clear_request_cache(); frappe.set_user(self.owner)
+            with self.assertRaises(frappe.PermissionError):
+                require_feature(self.business.name, "advanced_reports")
+
+    def test_authorized_reconciliation_exact_match_and_retry(self):
+        _, payment = self.checkout()
+        record = {"transaction_id": "BANK-" + uuid4().hex, "reference": payment.internal_order_id,
+            "amount": payment.amount, "currency": "TND", "direction": "CREDIT", "bank_status": "BOOKED", "transaction_date": now_datetime().date().isoformat(),
+            "destination_account": payment.destination_account}
+        frappe.set_user("Administrator")
+        bank.reconcile_transactions([record], "authorized-statement")
+        self.assertEqual(payment.reload().status, "VERIFIED")
+        end = self.subscription.reload().current_period_end
+        bank.reconcile_transactions([record], "authorized-statement")
+        self.assertEqual(self.subscription.reload().current_period_end, end)
+
+    def test_partial_wrong_currency_and_unmatched_bank_records_do_not_activate(self):
+        _, payment = self.checkout()
+        for changes in ({"amount": 1}, {"currency": "USD"}, {"reference": ""}, {"reference": "unknown"}):
+            record = {"transaction_id": uuid4().hex, "reference": payment.internal_order_id,
+                "amount": 59, "currency": "TND", "direction": "CREDIT", "bank_status": "BOOKED", "transaction_date": now_datetime().date().isoformat(),
+                "destination_account": payment.destination_account, **changes}
+            frappe.set_user("Administrator")
+            bank.reconcile_transactions([record], "authorized-statement")
+            self.assertNotEqual(payment.reload().status, "VERIFIED")
+        self.assert_unpaid()
+
+    def test_scheduler_without_source_explicitly_uses_manual_mode(self):
+        frappe.set_user("Administrator")
+        with patch.dict(frappe.conf, {"creditflow_bank_reconciliation_adapter": None}):
+            self.assertEqual(bank.scheduled_reconciliation(), {"mode": "MANUAL"})
+
+    def test_source_failure_and_retry_never_double_activate(self):
+        _, payment = self.checkout()
+        record = {"transaction_id": uuid4().hex, "reference": payment.internal_order_id,
+            "amount": 59, "currency": "TND", "direction": "CREDIT", "bank_status": "BOOKED", "transaction_date": now_datetime().date().isoformat(),
+            "destination_account": payment.destination_account}
+        frappe.set_user("Administrator")
+        original_get_attr = frappe.get_attr
+        adapter = "creditflow.tests.authorized_bank_export"
+        def resolve(fn):
+            return adapter_function if fn == adapter else original_get_attr(fn)
+        with patch.dict(frappe.conf, {"creditflow_bank_reconciliation_adapter": adapter}):
+            adapter_function = lambda: (_ for _ in ()).throw(TimeoutError("secret-source-token"))
+            with patch("creditflow.billing.bank.frappe.get_attr", side_effect=resolve):
+                self.assertEqual(bank.scheduled_reconciliation(), {"status": "SOURCE_UNAVAILABLE"})
+            self.assertEqual(payment.reload().status, "PENDING_PAYMENT")
+            adapter_function = lambda: [record]
+            with patch("creditflow.billing.bank.frappe.get_attr", side_effect=resolve):
+                bank.scheduled_reconciliation()
+                self.assertEqual(payment.reload().status, "VERIFIED")
+                end = self.subscription.reload().current_period_end
+                bank.scheduled_reconciliation()
+                self.assertEqual(self.subscription.reload().current_period_end, end)
+
+    def test_maintenance_expiry_and_reminders_are_retry_safe(self):
+        _, payment = self.checkout()
+        frappe.set_user("Administrator")
+        bank.maintain_payment(payment.name)
+        count = frappe.db.count("CreditFlow Billing Audit", {"payment": payment.name, "event": "REVIEW_REMINDER"})
+        bank.maintain_payment(payment.name)
+        self.assertEqual(frappe.db.count("CreditFlow Billing Audit", {"payment": payment.name, "event": "REVIEW_REMINDER"}), count)
+        frappe.db.set_value(payment.doctype, payment.name, "expires_at", add_days(now_datetime(), -1))
+        bank.maintain_payment(payment.name)
+        self.assertEqual(payment.reload().status, "EXPIRED")
+        bank.maintain_payment(payment.name)
+        self.assertEqual(payment.reload().status, "EXPIRED")
+        bank.maintain_subscription(self.subscription.name)
+        self.assertEqual(self.subscription.reload().status, "EXPIRED")
+        bank.maintain_subscription(self.subscription.name)
+        self.assertEqual(self.subscription.reload().status, "EXPIRED")
+
+    def test_active_pdf_content_is_not_accepted(self):
+        _, payment = self.checkout()
+        content = base64.b64encode(b"%PDF-1.4\n/JavaScript (alert(1))\n%%EOF").decode()
+        with self.assertRaises(frappe.ValidationError):
+            bank.submit_proof(payment.name, "receipt.pdf", content)
+        self.assert_unpaid()
+
+    def test_owner_cancellation_preserves_access_through_paid_period(self):
+        from creditflow.billing.service import request_cancellation
+        _, payment = self.checkout(); self.review(payment)
+        end = self.subscription.reload().current_period_end
+        clear_request_cache(); frappe.set_user(self.owner)
+        result = request_cancellation()
+        self.assertTrue(result["ok"])
+        self.assertEqual(self.subscription.reload().current_period_end, end)
+        self.assertEqual(self.subscription.cancel_at_period_end, 1)
+        self.assertTrue(require_feature(self.business.name, "advanced_reports"))
+
+    def test_debit_unsettled_or_unconfirmed_source_records_never_activate(self):
+        _, payment = self.checkout()
+        for changes in ({"direction": "DEBIT"}, {"bank_status": "PENDING"},
+                {"direction": None}, {"bank_status": None}):
+            record = {"transaction_id": uuid4().hex, "reference": payment.internal_order_id,
+                "amount": 59, "currency": "TND", "direction": "CREDIT", "bank_status": "BOOKED",
+                "transaction_date": now_datetime().date().isoformat(),
+                "destination_account": payment.destination_account, **changes}
+            frappe.set_user("Administrator")
+            bank.reconcile_transactions([record], "authorized-statement")
+            self.assertNotEqual(payment.reload().status, "VERIFIED")
+        self.assert_unpaid()
+
+    def test_receipt_cannot_be_public_detached_or_submitted_outside_billing(self):
+        from frappe.utils.file_manager import save_file
+        _, payment = self.checkout()
+        bank.submit_proof(payment.name, "receipt.pdf", pdf_receipt())
+        name = frappe.db.get_value("File", {"attached_to_doctype": payment.doctype,
+            "attached_to_name": payment.name}, "name")
+        self.assertTrue(name)
+        for changes in ({"is_private": 0}, {"attached_to_doctype": "Business", "attached_to_name": self.other.name},
+                {"attached_to_doctype": None, "attached_to_name": None}):
+            file = frappe.get_doc("File", name)
+            file.update(changes)
+            with self.subTest(changes=changes), self.assertRaises(frappe.PermissionError):
+                file.save(ignore_permissions=True)
+            persisted = frappe.get_doc("File", name)
+            self.assertEqual(persisted.is_private, 1)
+            self.assertEqual(persisted.attached_to_doctype, payment.doctype)
+            self.assertEqual(persisted.attached_to_name, payment.name)
+        with self.assertRaises(frappe.PermissionError):
+            save_file("outside-billing.pdf", base64.b64decode(pdf_receipt()), payment.doctype,
+                payment.name, is_private=1)
+        self.assertEqual(payment.reload().status, "PROOF_SUBMITTED")
+        self.assert_unpaid()
+
+    def test_legacy_pending_gateway_history_has_no_bank_checkout_authority(self):
+        _, payment = self.checkout()
+        frappe.set_user("Administrator")
+        legacy = frappe.copy_doc(payment)
+        legacy.provider = "KONNECT"
+        legacy.status = "PENDING"
+        legacy.internal_order_id = "LEGACY-" + uuid4().hex
+        legacy.provider_payment_id = "OLD-" + uuid4().hex
+        legacy.insert()
+        frappe.set_user(self.owner)
+        result = reconcile_owner_payment(legacy.name)
+        self.assertEqual(result["status"], "PENDING")
+        self.assertEqual(result["bank"], {})
+        self.assertEqual(legacy.reload().status, "PENDING")
+        with self.assertRaises(frappe.ValidationError):
+            bank.submit_proof(legacy.name, "receipt.pdf", pdf_receipt())
+        self.assert_unpaid()
+
+    def test_png_and_jpeg_receipts_are_private_and_never_activate(self):
+        from PIL import Image
+        _, payment = self.checkout()
+        for extension, image_format in (("png", "PNG"), ("jpeg", "JPEG")):
+            stream = BytesIO()
+            Image.new("RGB", (12, 12), color="white").save(stream, format=image_format)
+            bank.submit_proof(payment.name, "receipt." + extension,
+                base64.b64encode(stream.getvalue()).decode())
+            self.assertEqual(payment.reload().status, "PROOF_SUBMITTED")
+            file = frappe.get_doc("File", {"file_url": payment.receipt})
+            self.assertEqual(file.is_private, 1)
+            self.assertEqual(file.attached_to_name, payment.name)
+            self.assertEqual(file.attached_to_doctype, payment.doctype)
+        self.assert_unpaid()

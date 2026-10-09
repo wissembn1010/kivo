@@ -25,20 +25,22 @@ class IntegrationTestProductionReadiness(IntegrationTestCase):
         frappe.conf.creditflow_konnect_sandbox = sandbox
         frappe.conf.creditflow_public_base_url = "https://creditflow.example"
 
-    def test_readiness_is_secret_safe_and_reports_webhook(self):
+    def test_retired_gateway_is_never_ready_even_with_valid_credentials(self):
         self.configure(1)
         result = get_konnect_readiness()
-        self.assertTrue(result["ready"])
+        self.assertFalse(result["ready"])
+        self.assertTrue(result["retired"])
         self.assertTrue(result["api_key_configured"])
         self.assertNotIn("never-return-this-secret", repr(result))
-        self.assertEqual(result["webhook_url"], "https://creditflow.example/api/method/creditflow.billing.api.konnect_webhook")
+        self.assertIsNone(result["webhook_url"])
 
     def test_missing_configuration_is_reported_without_secret_values(self):
         for key in self.KEYS:
             frappe.conf.pop(key, None)
         result = get_konnect_readiness()
         self.assertFalse(result["ready"])
-        self.assertEqual(len(result["issues"]), 3)
+        self.assertEqual(len(result["issues"]), 4)
+        self.assertTrue(result["retired"])
         self.assertIsNone(result["webhook_url"])
 
     def test_sandbox_and_production_endpoint_selection(self):

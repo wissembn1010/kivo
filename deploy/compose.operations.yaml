@@ -1,0 +1,113 @@
+# Merge after the pinned frappe_docker production overrides and compose.pins.yaml.
+# This file adds observability/persistence; it does not publish internal ports.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-http-health: &http-health
+  test:
+    - CMD
+    - python
+    - -c
+    - "import os,urllib.request; r=urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:'+os.environ['KIVO_HEALTH_PORT']+'/api/method/ping',headers={'Host':os.environ['KIVO_HEALTH_SITE']}),timeout=5); assert r.status==200"
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 60s
+
+x-worker-health: &worker-health
+  test:
+    - CMD
+    - python
+    - -c
+    - "import pathlib; assert any(b'\\x00worker\\x00' in p.read_bytes() for p in pathlib.Path('/proc').glob('[0-9]*/cmdline') if p.exists())"
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 60s
+
+services:
+  configurator:
+    logging: *logging
+    volumes:
+      - logs:/home/frappe/frappe-bench/logs
+  backend:
+    logging: *logging
+    environment:
+      KIVO_HEALTH_SITE: ${SITE_NAME:?Set SITE_NAME to the production hostname}
+      KIVO_HEALTH_PORT: "8000"
+    healthcheck: *http-health
+    volumes:
+      - logs:/home/frappe/frappe-bench/logs
+  frontend:
+    logging: *logging
+    environment:
+      KIVO_HEALTH_SITE: ${SITE_NAME:?Set SITE_NAME to the production hostname}
+      KIVO_HEALTH_PORT: "8080"
+    healthcheck: *http-health
+    depends_on:
+      backend:
+        condition: service_healthy
+      websocket:
+        condition: service_healthy
+  websocket:
+    logging: *logging
+    volumes:
+      - logs:/home/frappe/frappe-bench/logs
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "const h=require('http'); const r=h.get('http://127.0.0.1:9000/socket.io/?EIO=4&transport=polling',s=>{let b='';s.on('data',c=>b+=c);s.on('end',()=>process.exit(s.statusCode===200&&b.startsWith('0{')?0:1));});r.setTimeout(5000,()=>r.destroy());r.on('error',()=>process.exit(1));"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+  queue-short:
+    logging: *logging
+    healthcheck: *worker-health
+    volumes:
+      - logs:/home/frappe/frappe-bench/logs
+  queue-long:
+    logging: *logging
+    healthcheck: *worker-health
+    volumes:
+      - logs:/home/frappe/frappe-bench/logs
+  scheduler:
+    logging: *logging
+    volumes:
+      - logs:/home/frappe/frappe-bench/logs
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import pathlib; assert any(b'\\x00schedule\\x00' in p.read_bytes() for p in pathlib.Path('/proc').glob('[0-9]*/cmdline') if p.exists())"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+  db:
+    logging: *logging
+  redis-cache:
+    logging: *logging
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  redis-queue:
+    logging: *logging
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  proxy:
+    logging: *logging
+
+volumes:
+  logs:

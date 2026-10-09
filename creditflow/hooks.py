@@ -199,6 +199,10 @@ has_permission["CreditFlow UOM"] = "creditflow.creditflow.doctype.creditflow_uom
 doc_events = {
 	doctype: {
 		"before_validate": "creditflow.permissions.set_and_validate_business",
+		"before_cancel": "creditflow.permissions.set_and_validate_business",
+		"on_trash": "creditflow.permissions.set_and_validate_business",
+		"before_update_after_submit": "creditflow.permissions.set_and_validate_business",
+		"before_change": "creditflow.permissions.set_and_validate_business",
 	}
 	for doctype in permission_query_conditions
 }
@@ -336,3 +340,15 @@ after_request = ["creditflow.website.normalize_kivo_public_response"]
 # ------------
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
+
+# Private receipt integrity applies to generic upload/File APIs as well.
+doc_events["File"] = {
+    "before_validate": "creditflow.billing.bank.guard_file",
+    "before_change": "creditflow.billing.bank.guard_file",
+    "on_trash": "creditflow.billing.bank.guard_file",
+}
+extend_doctype_class["File"] = ["creditflow.billing.bank.BankReceiptFileMixin"]
+scheduler_events = {
+    "hourly": ["creditflow.billing.bank.scheduled_reconciliation"],
+    "daily": ["creditflow.billing.bank.daily_maintenance"],
+}

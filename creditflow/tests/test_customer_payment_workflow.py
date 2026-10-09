@@ -223,6 +223,27 @@ class IntegrationTestCustomerPaymentWorkflow(IntegrationTestCase):
 			"Received at front desk",
 		):
 			self.assertIn(str(expected), html)
+		self.assertEqual(payment.payment_method, "CHEQUE")
+
+	def test_receipt_payment_method_labels_use_existing_translations(self):
+		from creditflow.payment_methods import payment_method_label
+
+		original_language = frappe.local.lang
+		try:
+			frappe.local.lang = "en"
+			for code, label in (
+				("CASH", "Cash"), ("BANK_TRANSFER", "Transfer"),
+				("CHEQUE", "Cheque"), ("CARD", "Card"), ("OTHER", "Other"),
+			):
+				payment = frappe.get_doc({"doctype": "Payment", "payment_method": code})
+				self.assertEqual(payment.get_payment_method_label(), label)
+				self.assertEqual(payment.payment_method, code)
+			self.assertEqual(payment_method_label("Historical method"), "Historical method")
+			frappe.local.lang = "fr"
+			self.assertEqual(payment_method_label("CHEQUE"), "Chèque")
+			self.assertEqual(payment_method_label("BANK_TRANSFER"), "Virement")
+		finally:
+			frappe.local.lang = original_language
 
 	def test_payment_history_fields_are_visible_in_native_list(self):
 		meta = frappe.get_meta("Payment")

@@ -62,11 +62,22 @@ def get_plan(business=None):
 def get_access_state(business=None, at=None):
     business = _authorized_business(business)
     subscription = get_subscription(business)
+    return _subscription_access_state(subscription, at)
+
+
+def _subscription_access_state(subscription, at=None):
+    """Evaluate stored state, including permission checks for an explicit user."""
     if not subscription:
         return "LEGACY_ACCESS"
     now = get_datetime(at or now_datetime())
     if subscription.status == "TRIAL":
-        return "TRIAL" if subscription.trial_start and subscription.trial_end and subscription.trial_start <= now < subscription.trial_end else "EXPIRED"
+        return "TRIAL" if subscription.trial_start and subscription.trial_end and get_datetime(subscription.trial_start) <= now < get_datetime(subscription.trial_end) else "EXPIRED"
+    if subscription.status == "ACTIVE" and subscription.external_provider and not subscription.current_period_end:
+        # Old administrator-managed perpetual subscriptions remain supported.
+        # A paid provider subscription must always have a bounded paid period.
+        return "EXPIRED"
+    if subscription.status == "ACTIVE" and subscription.current_period_start and get_datetime(subscription.current_period_start) > now:
+        return "EXPIRED"
     if subscription.status == "ACTIVE" and subscription.current_period_end and get_datetime(subscription.current_period_end) <= now:
         return "CANCELLED" if subscription.cancel_at_period_end else "EXPIRED"
     return subscription.status

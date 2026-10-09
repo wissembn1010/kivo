@@ -6,6 +6,20 @@ CUSTOMER_PAYMENT_METHODS = frozenset({"CASH", "BANK_TRANSFER", "CHEQUE", "CARD",
 SUPPLIER_PAYMENT_METHODS = frozenset({"CASH", "BANK_TRANSFER", "CHEQUE", "TRAITE", "OTHER"})
 
 
+def payment_method_label(value):
+    """Render canonical storage codes using the existing translated display labels."""
+    labels = {
+        "CASH": _("Cash"),
+        "BANK_TRANSFER": _("Transfer"),
+        "CHEQUE": _("Cheque"),
+        "CARD": _("Card"),
+        "TRAITE": _("Traite"),
+        "OTHER": _("Other"),
+    }
+    method = (value or "CASH").strip().upper().replace("BANK TRANSFER", "BANK_TRANSFER")
+    return labels.get(method, value or _("Cash"))
+
+
 def normalize_payment_method(value, allowed, *, default=None):
     method = (value or default or "").strip().upper()
     if method == "BANK TRANSFER":

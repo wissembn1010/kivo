@@ -5,6 +5,7 @@ CREDITFLOW_ROLES = {"OWNER", "STAFF"}
 ADMINISTRATIVE_ROLES = {"System Manager"}
 SYSTEM_LEDGER_DOCTYPES = {"Credit Transaction", "Supplier Transaction", "Stock Movement"}
 SYSTEM_LEDGER_MUTATIONS = {"create", "write", "submit", "cancel", "delete", "amend"}
+BILLING_DOCTYPES = {"CreditFlow Subscription", "CreditFlow Billing Payment"}
 
 DEFAULTED_DOCTYPES = {
 	"Customer",
@@ -88,6 +89,18 @@ def has_permission(doc, ptype=None, user=None, **kwargs):
 	assigned_business = get_user_business(user)
 	if not assigned_business:
 		return False
+	if ptype in SYSTEM_LEDGER_MUTATIONS and doc.doctype not in BILLING_DOCTYPES:
+		from creditflow.subscription import WRITABLE_STATES, _subscription_access_state
+
+		# Permission APIs may check a user other than the current session user.
+		# Evaluate their tenant's stored state without changing the session.
+		subscription = frappe.db.get_value(
+			"CreditFlow Subscription", {"business": assigned_business},
+			["status", "trial_start", "trial_end", "current_period_start", "current_period_end", "cancel_at_period_end", "external_provider"],
+			as_dict=True, cache=False,
+		)
+		if _subscription_access_state(subscription) not in WRITABLE_STATES:
+			return False
 	if not _has_stored_business_access(
 		doc, assigned_business, for_update=ptype in {"create", "write", "submit", "cancel", "delete", "amend"}
 	):
@@ -135,7 +148,7 @@ def set_and_validate_business(doc, method=None):
 
 	# One centralized gate protects Desk, REST, direct Document calls and generated
 	# tenant records. Legacy Businesses are allowed by the subscription policy.
-	if doc.doctype not in {"CreditFlow Subscription", "CreditFlow Billing Payment"}:
+	if doc.doctype not in BILLING_DOCTYPES:
 		from creditflow.subscription import require_write_access
 
 		require_write_access(assigned_business)

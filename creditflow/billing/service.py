@@ -1,18 +1,13 @@
-import json
-import re
 from decimal import Decimal, InvalidOperation
 
 import frappe
 from frappe import _
-from frappe.utils import add_months, get_datetime, now_datetime
+from frappe.utils import add_days, add_months, get_datetime, now_datetime
 
-from creditflow.billing.providers.konnect import KonnectProvider
-from creditflow.permissions import get_user_business, has_cross_business_access
+from creditflow.permissions import get_user_business
 from creditflow.subscription import clear_request_cache, get_subscription
 
 CURRENCY = "TND"
-PAYMENT_REF_PATTERN = re.compile(r"^[A-Za-z0-9_-]{8,128}$")
-PROVIDERS = {"KONNECT": KonnectProvider}
 
 
 def tnd_to_millimes(amount):
@@ -35,13 +30,6 @@ def _owner_business():
     if not business:
         frappe.throw(_("Your user is not assigned to a CreditFlow Business."), frappe.PermissionError)
     return business
-
-
-def _provider(name="KONNECT"):
-    provider = PROVIDERS.get(name)
-    if not provider:
-        frappe.throw(_("Unsupported billing provider."))
-    return provider()
 
 
 def _plan(plan_name):
@@ -67,71 +55,47 @@ def is_paid_checkout_enabled():
 
 
 def create_checkout(plan, billing_cycle="MONTHLY", **unsupported):
+    from creditflow.billing.bank import atomic
+    return atomic(_create_checkout)(plan, billing_cycle, **unsupported)
+
+
+def _create_checkout(plan, billing_cycle="MONTHLY", **unsupported):
+    from creditflow.billing.bank import audit, bank_settings, public_payment
     if not is_paid_checkout_enabled():
         frappe.throw(_("Paid checkout is disabled on this site."), frappe.PermissionError)
     if unsupported:
         frappe.throw(_("Unsupported checkout fields."))
     business = _owner_business()
+    frappe.db.get_value("Business", business, "name", for_update=True)
+    clear_request_cache()
     selected = _plan(plan)
     amount = _amount(selected, billing_cycle)
     subscription = get_subscription(business)
     now = now_datetime()
     if subscription and subscription.plan != selected.name and subscription.current_period_end and get_datetime(subscription.current_period_end) > now:
         frappe.throw(_("Plan changes are available when the current paid period ends."))
-    order_id = f"CF-{frappe.generate_hash(length=24)}"
-    payment = frappe.get_doc({
-        "doctype":"CreditFlow Billing Payment", "business":business,
-        "subscription":subscription.name if subscription else None, "plan":selected.name,
-        "provider":"KONNECT", "internal_order_id":order_id, "amount":amount,
-        "currency":CURRENCY, "billing_cycle":billing_cycle, "status":"PENDING", "created_at":now,
+    settings = bank_settings()
+    payment = frappe.get_doc({"doctype": "CreditFlow Billing Payment", "business": business,
+        "subscription": subscription.name if subscription else None, "plan": selected.name,
+        "provider": "BANK_TRANSFER", "internal_order_id": "KIVO-" + frappe.generate_hash(length=24).upper(),
+        "amount": amount, "currency": CURRENCY, "billing_cycle": billing_cycle,
+        "status": "PENDING_PAYMENT", "created_at": now, "requested_by": frappe.session.user,
+        "expires_at": add_days(now, settings["expiry_days"]), "destination_account": settings["rib"],
     }).insert(ignore_permissions=True)
-    payment.amount_minor = tnd_to_millimes(amount)
-    user = frappe.get_doc("User", frappe.session.user)
-    business_doc = frappe.get_doc("Business", business)
-    try:
-        result = _provider().create_checkout(payment, {
-            "first_name":user.first_name, "last_name":user.last_name, "email":user.email,
-            "phone":business_doc.phone,
-        })
-        if frappe.db.exists("CreditFlow Billing Payment", {"provider_payment_id": result["provider_payment_id"]}):
-            payment.last_reconciliation_message = "Provider returned an already-used payment reference"
-            payment.save(ignore_permissions=True)
-            return {"payment":payment.name, "status":"PENDING", "checkout_url":None,
-                    "message":_("The payment provider returned an invalid reference. Please retry safely.")}
-        payment.provider_payment_id = result["provider_payment_id"]
-        payment.checkout_url = result["checkout_url"]
-        payment.last_reconciliation_message = "Checkout created"
-        payment.save(ignore_permissions=True)
-        return {"payment":payment.name, "status":payment.status, "checkout_url":payment.checkout_url}
-    except Exception:
-        frappe.clear_messages()
-        payment.last_reconciliation_message = "Provider temporarily unavailable during checkout creation"
-        payment.save(ignore_permissions=True)
-        return {"payment":payment.name, "status":"PENDING", "checkout_url":None,
-                "message":_("The payment provider is temporarily unavailable. Please retry safely.")}
-
-
-def _lock_payment(provider_payment_id):
-    rows = frappe.db.sql("SELECT name FROM `tabCreditFlow Billing Payment` WHERE provider_payment_id=%s FOR UPDATE", provider_payment_id)
-    return frappe.get_doc("CreditFlow Billing Payment", rows[0][0], for_update=True) if rows else None
-
-
-def _safe_metadata(details):
-    return json.dumps({key:details.get(key) for key in ("provider_status","amount_minor","currency","order_id","receiver_wallet_id","payment_id")}, default=str)
+    payment.checkout_url = "/creditflow-payment-return?payment=" + payment.name
+    payment.save(ignore_permissions=True)
+    audit(payment, "PENDING_PAYMENT", "Bank transfer request created using server plan price")
+    return public_payment(payment) | {"checkout_url": payment.checkout_url}
 
 
 def _activate(payment, paid_at):
-    subscription = None
-    if payment.subscription:
-        # Scope before locking; historical bad links must not mutate another tenant.
-        rows = frappe.db.sql("SELECT name FROM `tabCreditFlow Subscription` WHERE name=%s AND business=%s FOR UPDATE",
-            (payment.subscription, payment.business))
-        if not rows:
-            frappe.throw(_("Billing subscription is outside your Business."), frappe.PermissionError)
-        subscription = frappe.get_doc("CreditFlow Subscription", rows[0][0], for_update=True)
+    name = frappe.db.get_value("CreditFlow Subscription", {"business": payment.business}, "name")
+    if payment.subscription and frappe.db.get_value("CreditFlow Subscription", payment.subscription, "business") != payment.business:
+        frappe.throw(_("Billing subscription is outside your Business."), frappe.PermissionError)
+    subscription = frappe.get_doc("CreditFlow Subscription", name, for_update=True) if name else None
     if not subscription:
-        subscription = frappe.get_doc({"doctype":"CreditFlow Subscription","business":payment.business,"plan":payment.plan,"status":"ACTIVE"}).insert(ignore_permissions=True)
-        payment.subscription = subscription.name
+        subscription = frappe.get_doc({"doctype": "CreditFlow Subscription", "business": payment.business,
+            "plan": payment.plan, "status": "ACTIVE"})
     now = get_datetime(paid_at)
     current_end = get_datetime(subscription.current_period_end) if subscription.current_period_end else None
     if subscription.plan != payment.plan and current_end and current_end > now:
@@ -142,87 +106,56 @@ def _activate(payment, paid_at):
     subscription.plan = payment.plan
     subscription.status = "ACTIVE"
     subscription.subscription_start = subscription.subscription_start or now
-    subscription.current_period_start = period_start
+    # An early renewal adds a future billing period while current access continues.
+    subscription.current_period_start = (
+        get_datetime(subscription.current_period_start)
+        if current_end and current_end > now and subscription.current_period_start
+        and get_datetime(subscription.current_period_start) <= now else now
+    )
     subscription.current_period_end = period_end
     subscription.last_payment_at = now
     subscription.next_billing_date = period_end.date()
-    subscription.external_provider = "KONNECT"
+    subscription.external_provider = "BANK_TRANSFER"
     subscription.cancel_at_period_end = 0
     subscription.save(ignore_permissions=True)
+    payment.subscription = subscription.name
     payment.billing_period_start = period_start
     payment.billing_period_end = period_end
     clear_request_cache()
 
 
 def reconcile_provider_payment(provider_payment_id, expected_business=None):
-    if not isinstance(provider_payment_id, str) or not PAYMENT_REF_PATTERN.fullmatch(provider_payment_id):
-        return {"status":"UNKNOWN"}
-    savepoint = f"billing_reconcile_{frappe.generate_hash(length=8)}"
-    frappe.db.savepoint(savepoint)
-    payment = _lock_payment(provider_payment_id)
-    if not payment:
-        return {"status":"UNKNOWN"}
-    if expected_business and payment.business != expected_business:
-        frappe.throw(_("Billing payment is outside your Business."), frappe.PermissionError)
-    if payment.status == "SUCCEEDED":
-        return {"payment":payment.name, "status":"SUCCEEDED"}
-    try:
-        details = _provider(payment.provider).get_payment_status(provider_payment_id)
-    except Exception:
-        frappe.clear_messages()
-        payment.last_reconciled_at = now_datetime(); payment.reconciliation_count = (payment.reconciliation_count or 0)+1
-        payment.last_reconciliation_message = "Provider unavailable; payment remains pending"
-        payment.save(ignore_permissions=True)
-        return {"payment":payment.name,"status":payment.status}
-    payment.last_reconciled_at = now_datetime(); payment.reconciliation_count = (payment.reconciliation_count or 0)+1
-    payment.provider_status = details.get("provider_status"); payment.provider_response = _safe_metadata(details)
-    if details.get("normalized_status") == "SUCCEEDED":
-        try:
-            confirmed_amount = Decimal(str(details.get("amount_minor")))
-        except (InvalidOperation, ValueError, TypeError):
-            confirmed_amount = Decimal("NaN")
-        mismatch = (
-            not confirmed_amount.is_finite()
-            or confirmed_amount != tnd_to_millimes(payment.amount)
-            or details.get("payment_id") != payment.provider_payment_id
-            or details.get("currency") != payment.currency
-            or details.get("order_id") != payment.internal_order_id
-            or details.get("receiver_wallet_id") != _provider(payment.provider).wallet_id
-            or details.get("transaction_success") is False
-        )
-        if mismatch:
-            payment.last_reconciliation_message = "Provider confirmation did not match expected billing data"
-            payment.save(ignore_permissions=True)
-            return {"payment":payment.name,"status":"PENDING"}
-        paid_at = now_datetime()
-        _activate(payment, paid_at)
-        payment.status="SUCCEEDED"; payment.paid_at=paid_at; payment.last_reconciliation_message="Payment verified and applied"
-    elif details.get("normalized_status") in {"FAILED","EXPIRED","CANCELLED"}:
-        payment.status=details["normalized_status"]; payment.failed_at=now_datetime(); payment.last_reconciliation_message="Provider reported non-successful payment"
-    else:
-        payment.last_reconciliation_message="Provider payment remains pending"
-    payment.save(ignore_permissions=True)
-    return {"payment":payment.name,"status":payment.status}
+    """Retired gateway entry point; never grants access."""
+    return {"status": "UNKNOWN"}
 
 
 def reconcile_owner_payment(payment_name):
-    business = _owner_business()
-    payment = frappe.get_doc("CreditFlow Billing Payment", payment_name)
-    if payment.business != business:
-        frappe.throw(_("Billing payment is outside your Business."), frappe.PermissionError)
-    if not payment.provider_payment_id:
-        return {"payment":payment.name,"status":payment.status}
-    return reconcile_provider_payment(payment.provider_payment_id, business)
+    from creditflow.billing.bank import owner_payment, public_payment
+    return public_payment(owner_payment(payment_name))
 
 
 def request_cancellation():
-    business = _owner_business(); subscription=get_subscription(business)
+    from creditflow.billing.bank import atomic
+    return atomic(_request_cancellation)()
+
+
+def _request_cancellation():
+    business = _owner_business()
+    frappe.db.get_value("Business", business, "name", for_update=True)
+    name = frappe.db.get_value("CreditFlow Subscription", {"business": business}, "name")
+    subscription = frappe.get_doc("CreditFlow Subscription", name, for_update=True) if name else None
     if not subscription or subscription.status != "ACTIVE":
         frappe.throw(_("There is no active subscription to cancel."))
-    subscription.cancel_at_period_end=1; subscription.cancelled_at=now_datetime(); subscription.save(ignore_permissions=True)
+    subscription.cancel_at_period_end = 1
+    subscription.cancelled_at = now_datetime()
+    subscription.save(ignore_permissions=True)
     clear_request_cache()
-    return {"ok":True,"access_through":subscription.current_period_end}
+    return {"ok": True, "access_through": subscription.current_period_end}
 
 
 def billing_history(business):
-    return frappe.get_all("CreditFlow Billing Payment", filters={"business":business}, fields=["name","plan","amount","currency","billing_cycle","status","created_at","paid_at","checkout_url"], order_by="creation desc", limit=50)
+    if business != _owner_business():
+        frappe.throw(_("Billing payment is outside your Business."), frappe.PermissionError)
+    return frappe.get_all("CreditFlow Billing Payment", filters={"business": business},
+        fields=["name", "internal_order_id", "plan", "amount", "currency", "billing_cycle", "status", "created_at", "paid_at", "checkout_url"],
+        order_by="creation desc", limit=50)

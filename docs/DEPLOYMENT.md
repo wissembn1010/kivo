@@ -12,8 +12,10 @@ commit builds on that baseline; set `KIVO_RELEASE_SHA` and `CUSTOM_TAG` to its
 full SHA after committing the deployment files. The pinned framework is Frappe
 `v16.30.0` (commit `9523516cac25992bc2cd810e1015df8994c257f5`);
 Frappe Docker is `4546724524c140bd4b76549b5a724527b78b123c`.
-The Kivo source is currently local only. An authorized fetch URL and a
-lightweight tag at the new release commit are required before a fresh VPS build.
+The P0 application baseline is now `34c0ac96aa2041d748aa11a352744914634a4b51`.
+The configured origin is `https://github.com/wissembn1010/kivo.git`, but the
+remote integration branch does not yet contain that P0 commit. An authorized
+immutable release ref at the reviewed release is required before a fresh VPS build.
 Do not tag or push during repository preparation.
 
 ## 1. Prepare a fresh Ubuntu or Debian VPS
@@ -362,21 +364,27 @@ encrypted to a separate system.
 
 ## 14. Future release update procedure
 
+Use [RELEASE_OPERATIONS.md](RELEASE_OPERATIONS.md) for the complete maintenance,
+worker-drain and one-off migration sequence. Do not start new web/worker code
+against the old schema or use an image downgrade as a database rollback.
+
 1. Take and verify a full off-server backup.
 2. Tag the reviewed CreditFlow release and build a new immutable image tag.
 3. Test that exact image and a restored production backup on staging.
 4. Pull or load the new image on the VPS.
 5. Update only `CUSTOM_TAG` in the protected environment.
 6. Regenerate `compose.production.yaml` from the pinned Frappe Docker files.
-7. Recreate services, migrate once, clear cache, and verify health:
+7. Enable maintenance, disable scheduling, drain/stop workers and web services.
+   Migrate once in a one-off new-image backend before restarting web services:
 
 ```sh
-docker compose --project-name creditflow -f /opt/creditflow/compose.production.yaml up -d
-docker compose --project-name creditflow -f /opt/creditflow/compose.production.yaml exec backend bench --site "$SITE_NAME" migrate
-docker compose --project-name creditflow -f /opt/creditflow/compose.production.yaml exec backend bench --site "$SITE_NAME" clear-cache
+docker compose --project-name creditflow -f /opt/creditflow/compose.production.yaml run --rm --no-deps backend bench --site "$SITE_NAME" migrate
+docker compose --project-name creditflow -f /opt/creditflow/compose.production.yaml run --rm --no-deps backend bench --site "$SITE_NAME" clear-cache
+docker compose --project-name creditflow -f /opt/creditflow/compose.production.yaml up -d backend websocket frontend
 docker compose --project-name creditflow -f /opt/creditflow/compose.production.yaml ps
 ```
 
-8. Run the health checklist.
+8. Run the health checklist, leave maintenance and re-enable scheduler/workers
+   as detailed in RELEASE_OPERATIONS.md. Leave maintenance on if any step fails.
 9. Keep the previous immutable image and pre-update backup available for the
    tested recovery procedure. Do not downgrade the database casually.

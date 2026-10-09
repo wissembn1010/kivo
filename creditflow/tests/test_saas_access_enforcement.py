@@ -63,7 +63,8 @@ class IntegrationTestSaaSAccessEnforcement(IntegrationTestCase):
         return frappe.get_doc({"doctype":"Purchase","business":self.business.name,"supplier":self.supplier.name,"business_date":"2026-08-26","payment_status":"CREDIT","items":[{"product":self.product.name,"quantity":1,"unit_cost":5}]}).insert()
 
     def assert_readonly(self, callback):
-        with self.assertRaisesRegex(frappe.PermissionError, "currently read-only"):
+        # Permission checks now reject forbidden mutations before validation.
+        with self.assertRaises(frappe.PermissionError):
             callback()
 
     def test_01_status_matrix_and_trial_expiry_are_computed_at_request_time(self):
@@ -172,3 +173,68 @@ class IntegrationTestSaaSAccessEnforcement(IntegrationTestCase):
         before=frappe.db.count("Customer",{"business":self.business.name})
         frappe.get_doc({"doctype":"Customer","business":self.business.name,"customer_name":f"Admin {self.token}"}).insert()
         self.assertEqual(frappe.db.count("Customer",{"business":self.business.name}),before+1)
+
+    def test_17_expired_blocks_delete_and_direct_db_set(self):
+        self._set_status("EXPIRED")
+        self.assert_readonly(lambda: frappe.delete_doc("Customer", self.customer.name))
+        customer = frappe.get_doc("Customer", self.customer.name)
+        self.assert_readonly(lambda: customer.db_set("phone", "forged"))
+        self.assertTrue(frappe.db.exists("Customer", self.customer.name))
+        self.assertNotEqual(frappe.db.get_value("Customer", self.customer.name, "phone"), "forged")
+
+    def test_18_mutation_permissions_follow_paid_state_for_explicit_user(self):
+        self._set_status("EXPIRED")
+        frappe.set_user("Administrator")
+        for ptype in ("write", "delete", "create"):
+            self.assertFalse(frappe.has_permission("Customer", ptype, doc=self.customer.name, user=self.owner))
+        self.assertTrue(frappe.has_permission("Customer", "read", doc=self.customer.name, user=self.owner))
+
+    def test_19_provider_paid_period_is_required_and_future_period_is_denied(self):
+        frappe.set_user("Administrator")
+        doc = frappe.get_doc("CreditFlow Subscription", self.subscription.name)
+        doc.external_provider = "bank_transfer"
+        doc.save()
+        frappe.set_user(self.owner)
+        self.assertFalse(can_write())
+        frappe.set_user("Administrator")
+        doc.current_period_start = add_days(now_datetime(), 1)
+        doc.current_period_end = add_days(now_datetime(), 31)
+        doc.save()
+        frappe.set_user(self.owner)
+        self.assertFalse(can_write())
+
+    def test_20_owner_cannot_change_entitlements_using_ignore_permissions_or_db_set(self):
+        self._set_status("EXPIRED")
+        doc = frappe.get_doc("CreditFlow Subscription", self.subscription.name)
+        doc.status = "ACTIVE"
+        with self.assertRaises(frappe.PermissionError):
+            doc.save(ignore_permissions=True)
+        with self.assertRaises(frappe.PermissionError):
+            doc.db_set("status", "ACTIVE")
+        self.assertEqual(frappe.db.get_value("CreditFlow Subscription", doc.name, "status"), "EXPIRED")
+
+    def test_21_cancel_at_period_end_expires_at_boundary_without_job(self):
+        frappe.set_user("Administrator")
+        doc = frappe.get_doc("CreditFlow Subscription", self.subscription.name)
+        doc.current_period_start = add_days(now_datetime(), -30)
+        doc.current_period_end = now_datetime()
+        doc.cancel_at_period_end = 1
+        doc.save()
+        frappe.set_user(self.owner)
+        self.assertEqual(get_access_state(at=doc.current_period_end), "CANCELLED")
+        self.assertFalse(can_write(at=doc.current_period_end))
+
+    def test_22_direct_api_update_and_delete_are_denied(self):
+        from frappe.client import delete, set_value
+
+        self._set_status("EXPIRED")
+        self.assert_readonly(lambda: set_value("Customer", self.customer.name, "phone", "forged"))
+        self.assert_readonly(lambda: delete("Customer", self.customer.name))
+        self.assertTrue(frappe.db.exists("Customer", self.customer.name))
+
+    def test_23_administrative_db_set_revocation_clears_cached_access(self):
+        self.assertTrue(can_write())
+        frappe.set_user("Administrator")
+        frappe.get_doc("CreditFlow Subscription", self.subscription.name).db_set("status", "EXPIRED")
+        frappe.set_user(self.owner)
+        self.assertFalse(can_write())

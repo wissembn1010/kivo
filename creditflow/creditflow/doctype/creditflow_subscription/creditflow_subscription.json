@@ -22,7 +22,8 @@
   "external_subscription_id",
   "last_payment_at",
   "next_billing_date",
-  "cancel_at_period_end"
+  "cancel_at_period_end",
+  "expiration_reminded_for"
  ],
  "fields": [
   {
@@ -110,6 +111,12 @@
    "fieldtype": "Check",
    "label": "Cancel at Period End",
    "default": "0"
+  },
+  {
+   "fieldname": "expiration_reminded_for",
+   "fieldtype": "Datetime",
+   "label": "Expiration Reminded For",
+   "read_only": 1
   }
  ],
  "permissions": [

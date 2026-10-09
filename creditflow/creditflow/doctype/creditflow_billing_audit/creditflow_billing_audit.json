@@ -1,0 +1,73 @@
+{
+ "doctype": "DocType",
+ "name": "CreditFlow Billing Audit",
+ "module": "CreditFlow",
+ "engine": "InnoDB",
+ "field_order": [
+  "payment",
+  "business",
+  "event",
+  "actor",
+  "occurred_at",
+  "notes",
+  "bank_transaction"
+ ],
+ "fields": [
+  {
+   "fieldname": "payment",
+   "fieldtype": "Link",
+   "label": "Payment",
+   "options": "CreditFlow Billing Payment",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "business",
+   "fieldtype": "Link",
+   "label": "Business",
+   "options": "Business",
+   "reqd": 1
+  },
+  {
+   "fieldname": "event",
+   "fieldtype": "Data",
+   "label": "Event",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "actor",
+   "fieldtype": "Link",
+   "label": "Actor",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "occurred_at",
+   "fieldtype": "Datetime",
+   "label": "Occurred At",
+   "reqd": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "bank_transaction",
+   "fieldtype": "Link",
+   "label": "Bank Transaction",
+   "options": "CreditFlow Bank Transaction"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1
+  }
+ ],
+ "track_changes": 1,
+ "autoname": "hash",
+ "naming_rule": "Random"
+}

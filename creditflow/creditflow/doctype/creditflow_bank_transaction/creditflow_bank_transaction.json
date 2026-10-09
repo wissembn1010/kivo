@@ -1,0 +1,103 @@
+{
+ "doctype": "DocType",
+ "name": "CreditFlow Bank Transaction",
+ "module": "CreditFlow",
+ "engine": "InnoDB",
+ "field_order": [
+  "transaction_key",
+  "transaction_id",
+  "source",
+  "reference",
+  "amount",
+  "currency",
+  "transaction_date",
+  "destination_account",
+  "status",
+  "payment",
+  "review_reason"
+ ],
+ "fields": [
+  {
+   "fieldname": "transaction_key",
+   "fieldtype": "Data",
+   "label": "Transaction Key",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "transaction_id",
+   "fieldtype": "Data",
+   "label": "Transaction Id",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Data",
+   "label": "Source",
+   "reqd": 1
+  },
+  {
+   "fieldname": "reference",
+   "fieldtype": "Data",
+   "label": "Reference",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "precision": "3",
+   "reqd": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Data",
+   "label": "Currency",
+   "default": "TND",
+   "reqd": 1
+  },
+  {
+   "fieldname": "transaction_date",
+   "fieldtype": "Datetime",
+   "label": "Transaction Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "destination_account",
+   "fieldtype": "Data",
+   "label": "Destination Account"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "UNMATCHED\nREVIEW_REQUIRED\nMATCHED",
+   "default": "UNMATCHED",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "payment",
+   "fieldtype": "Link",
+   "label": "Payment",
+   "options": "CreditFlow Billing Payment",
+   "unique": 1
+  },
+  {
+   "fieldname": "review_reason",
+   "fieldtype": "Small Text",
+   "label": "Review Reason"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1
+  }
+ ],
+ "track_changes": 1,
+ "autoname": "hash",
+ "naming_rule": "Random"
+}
