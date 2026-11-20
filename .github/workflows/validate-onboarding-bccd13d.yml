@@ -34,15 +34,16 @@ jobs:
       - name: Provision temporary Frappe bench
         id: provision
         run: |
-          docker run -d --name kivo-test --network host --entrypoint sleep -v "$RUNNER_TEMP/creditflow:/input:ro" -v "$GITHUB_WORKSPACE/.validation:/validation:ro" frappe/erpnext:v16.60.0 infinity
+          docker run -d --name kivo-test --network host -v "$RUNNER_TEMP/creditflow:/input:ro" -v "$GITHUB_WORKSPACE/.validation:/validation:ro" frappe/erpnext:v16.60.0 sleep infinity
           docker exec kivo-test bash -ec '
             cd /home/frappe/frappe-bench
             cp -R /input apps/creditflow
             bench pip install -e apps/creditflow
+            ln -s "$PWD/apps/creditflow/creditflow/public" sites/assets/creditflow
             ls -1 apps > sites/apps.txt
             for config in redis_cache redis_queue redis_socketio; do bench set-config -g "$config" redis://127.0.0.1:6379; done
             bench new-site test_kivo.localhost --db-host 127.0.0.1 --mariadb-user-host-login-scope=% --db-root-password disposable-ci --admin-password disposable-ci --install-app creditflow
-            bench --site test_kivo.localhost set-config allow_tests true --parse
+            bench --site test_kivo.localhost set-config allow_tests 1 --parse
             bench version'
       - name: Python and Jinja regression suite
         run: docker exec kivo-test env/bin/python -m unittest -v creditflow.tests.test_website_language_selector
