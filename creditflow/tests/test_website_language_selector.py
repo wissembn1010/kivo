@@ -73,6 +73,12 @@ class TestWebsiteLanguageSelector(TestCase):
 			)
 		self.assert_selector(html, "ar-TN")
 
+	def test_language_choices_are_isolated_between_contexts(self):
+		choices = i18n.get_language_context("en")["kivo_languages"]
+		self.assertIsNot(choices, i18n.SUPPORTED_LANGUAGES)
+		choices.pop("ar-TN")
+		self.assertIn("ar-TN", i18n.get_language_context("fr")["kivo_languages"])
+
 	def test_invalid_explicit_mapping_surfaces(self):
 		template = self.env.get_template("creditflow/templates/includes/kivo_language_selector.html")
 		with self.assertRaises(UndefinedError):

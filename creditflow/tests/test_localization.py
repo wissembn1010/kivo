@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 import frappe
+from frappe.modules.utils import get_module_app
 from frappe.tests import IntegrationTestCase
 from frappe.utils import set_request
 from frappe.website.serve import get_response
@@ -72,6 +73,7 @@ class IntegrationTestKivoLocalization(IntegrationTestCase):
 		self.assertEqual(frappe.db.get_value("User", email, "language"), "ar-TN")
 
 	def test_internal_identifiers_and_tej_codes_are_not_translated(self):
-		self.assertEqual(frappe.get_doc("Workspace", "Kivo").app, "creditflow")
+		workspace = frappe.get_doc("Workspace", "Kivo")
+		self.assertEqual(get_module_app(workspace.module), "creditflow")
 		self.assertEqual(frappe._("creditflow", lang="ar-TN"), "creditflow")
 		self.assertEqual(frappe._("TEJ", lang="ar-TN"), "TEJ")
