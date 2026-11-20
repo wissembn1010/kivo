@@ -110,10 +110,7 @@ extend_bootinfo = "creditflow.saas_access.extend_bootinfo"
 # ----------
 
 # add methods and filters to jinja environment
-# jinja = {
-# 	"methods": "creditflow.utils.jinja_methods",
-# 	"filters": "creditflow.utils.jinja_filters"
-# }
+jinja = {"methods": ["creditflow.i18n.get_language_context"]}
 
 # Installation
 # ------------

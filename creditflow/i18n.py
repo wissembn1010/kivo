@@ -23,8 +23,10 @@ def normalize_language(language: str | None) -> str:
 	return language if language in SUPPORTED_LANGUAGES else "en"
 
 
-def get_language_context() -> dict:
-	language = normalize_language(getattr(frappe.local, "lang", None))
+def get_language_context(language: str | None = None) -> dict:
+	if language is None:
+		language = getattr(frappe.local, "lang", None)
+	language = normalize_language(language)
 	return {
 		"kivo_language": language,
 		"kivo_languages": SUPPORTED_LANGUAGES,

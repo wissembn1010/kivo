@@ -1,3 +1,9 @@
+{% if kivo_languages is undefined or kivo_language is undefined or kivo_direction is undefined %}
+  {% set defaults = get_language_context(kivo_language | default(none)) %}
+  {% set kivo_languages = kivo_languages | default(defaults.kivo_languages) %}
+  {% set kivo_language = kivo_language | default(defaults.kivo_language) %}
+  {% set kivo_direction = kivo_direction | default(defaults.kivo_direction) %}
+{% endif %}
 <div class="kivo-language-picker" dir="ltr">
   <label for="kivo-language-select">{{ _("Language") }}</label>
   <select id="kivo-language-select" aria-label="{{ _('Language') }}">
