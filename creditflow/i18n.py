@@ -29,7 +29,7 @@ def get_language_context(language: str | None = None) -> dict:
 	language = normalize_language(language)
 	return {
 		"kivo_language": language,
-		"kivo_languages": SUPPORTED_LANGUAGES,
+		"kivo_languages": SUPPORTED_LANGUAGES.copy(),
 		"kivo_direction": "rtl" if language in RTL_LANGUAGES else "ltr",
 	}
 

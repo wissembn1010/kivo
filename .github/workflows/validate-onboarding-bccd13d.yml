@@ -26,10 +26,10 @@ jobs:
       - name: Apply exact patch to isolated checkout
         run: |
           git worktree add --detach "$RUNNER_TEMP/creditflow" 5782e64eecc4cf10cae8ccb6c47b960dbc364bc0
-          git diff --binary 5782e64eecc4cf10cae8ccb6c47b960dbc364bc0 bccd13d6ad061ebf7d2ff85a9d1af64989b4a9b6 > "$RUNNER_TEMP/fix.patch"
+          git diff --binary 5782e64eecc4cf10cae8ccb6c47b960dbc364bc0 dcbbcfb9419a829533865735516f0565ef3205bd > "$RUNNER_TEMP/fix.patch"
           cd "$RUNNER_TEMP/creditflow"
           git apply --index "$RUNNER_TEMP/fix.patch"
-          test "$(git write-tree)" = 8c4c0c06c529abedb47bc6a34f2a183c28d95546
+          test "$(git write-tree)" = a09639fa073277c3258ad2baf5a70469d2dcd8b5
           git diff --cached --stat
       - name: Provision temporary Frappe bench
         id: provision
@@ -58,3 +58,10 @@ jobs:
       - name: Real sandbox and authenticated HTTP checks
         if: ${{ !cancelled() && steps.provision.outcome == 'success' }}
         run: docker exec kivo-test env/bin/python /validation/onboarding_http.py
+      - name: Reproduce missing hook on original revision
+        if: ${{ !cancelled() && steps.provision.outcome == 'success' }}
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/old-creditflow" 5782e64eecc4cf10cae8ccb6c47b960dbc364bc0
+          docker cp "$RUNNER_TEMP/old-creditflow/creditflow/." kivo-test:/home/frappe/frappe-bench/apps/creditflow/creditflow
+          docker exec kivo-test bench --site test_kivo.localhost clear-cache
+          docker exec -e BASELINE_CONTROL=1 kivo-test env/bin/python /validation/onboarding_http.py

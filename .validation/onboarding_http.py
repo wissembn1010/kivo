@@ -22,7 +22,8 @@ frappe.init(site=site, sites_path=".")
 frappe.connect()
 frappe.set_user("Administrator")
 assert "creditflow.website.update_website_context" in frappe.get_hooks("update_website_context")
-for restricted in (False, True):
+baseline = os.environ.get('BASELINE_CONTROL') == '1'
+for restricted in (() if baseline else (False, True)):
     env = get_jenv(restrict_globals=restricted)
     assert env.globals["get_language_context"] is get_language_context
     assert env.from_string("{{ get_language_context('ar-TN').kivo_direction }}").render() == "rtl"
@@ -45,6 +46,22 @@ url = f"http://127.0.0.1:{server.server_port}"
 with requests.Session() as session:
     session.headers.update(headers)
     try:
+        if baseline:
+            from frappe.utils import jinja
+            from jinja2 import UndefinedError
+
+            response = session.get(url + "/creditflow-onboarding", timeout=30)
+            assert response.status_code == 200 and 'id="cf-profile-form"' in response.text
+            print("BASELINE normal hook: HTTP 200, onboarding form present", flush=True)
+            with patch("creditflow.website.update_website_context", return_value=None) as hook:
+                with patch.object(jinja, "_throw_render_error", wraps=jinja._throw_render_error) as errors:
+                    response = session.get(url + "/creditflow-onboarding", timeout=30)
+                    assert hook.called and response.status_code == 500, response.status_code
+                    exceptions = [call.kwargs.get("exc") for call in errors.call_args_list]
+                    assert any(isinstance(e, UndefinedError) and str(e) == "'kivo_languages' is undefined"
+                               for e in exceptions), [type(e).__name__ for e in exceptions]
+            print("BASELINE missing hook: HTTP 500, 'kivo_languages' is undefined", flush=True)
+            raise SystemExit(0)
         for no_hook in (False, True):
             hook = patch("creditflow.website.update_website_context", return_value=None) if no_hook else nullcontext()
             with hook as observed:
