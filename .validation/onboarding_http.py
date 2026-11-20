@@ -109,12 +109,18 @@ with requests.Session() as session:
             assert response.status_code == 200 and 'id="cf-profile-form"' in response.text
             print("BASELINE normal hook: HTTP 200, onboarding form present", flush=True)
             with patch("creditflow.website.update_website_context", return_value=None) as hook:
-                with patch.object(jinja, "_throw_render_error", wraps=jinja._throw_render_error) as errors:
+                captured = []
+                original = jinja._throw_render_error
+
+                def record_error(*args, **kwargs):
+                    exc = kwargs.get("exc")
+                    captured.append((isinstance(exc, UndefinedError), str(exc)))
+                    return original(*args, **kwargs)
+
+                with patch.object(jinja, "_throw_render_error", side_effect=record_error):
                     response = session.get(url + "/creditflow-onboarding", timeout=30)
                     assert hook.called and response.status_code == 500, response.status_code
-                    exceptions = [call.kwargs.get("exc") for call in errors.call_args_list]
-                    assert any(isinstance(e, UndefinedError) and str(e) == "'kivo_languages' is undefined"
-                               for e in exceptions), [type(e).__name__ for e in exceptions]
+                    assert (True, "'kivo_languages' is undefined") in captured, captured
             print("BASELINE missing hook: HTTP 500, 'kivo_languages' is undefined", flush=True)
             raise SystemExit(0)
         if os.environ.get("BROWSER_CONTROL") == "1":
