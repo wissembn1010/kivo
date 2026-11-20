@@ -58,6 +58,12 @@ jobs:
       - name: Real sandbox and authenticated HTTP checks
         if: ${{ !cancelled() && steps.provision.outcome == 'success' }}
         run: docker exec kivo-test env/bin/python /validation/onboarding_http.py
+      - name: Switch languages with the actual selector in Chrome
+        if: ${{ !cancelled() && steps.provision.outcome == 'success' }}
+        run: |
+          chromedriver --port=9515 > "$RUNNER_TEMP/chromedriver.log" 2>&1 &
+          curl --retry 10 --retry-connrefused --retry-delay 1 -fsS http://127.0.0.1:9515/status
+          docker exec -e BROWSER_CONTROL=1 kivo-test env/bin/python /validation/onboarding_http.py
       - name: Reproduce missing hook on original revision
         if: ${{ !cancelled() && steps.provision.outcome == 'success' }}
         run: |
