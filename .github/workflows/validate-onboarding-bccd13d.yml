@@ -32,6 +32,7 @@ jobs:
           test "$(git write-tree)" = 8c4c0c06c529abedb47bc6a34f2a183c28d95546
           git diff --cached --stat
       - name: Provision temporary Frappe bench
+        id: provision
         run: |
           docker run -d --name kivo-test --network host --entrypoint sleep -v "$RUNNER_TEMP/creditflow:/input:ro" -v "$GITHUB_WORKSPACE/.validation:/validation:ro" frappe/erpnext:v16.60.0 infinity
           docker exec kivo-test bash -ec '
@@ -46,7 +47,7 @@ jobs:
       - name: Python and Jinja regression suite
         run: docker exec kivo-test env/bin/python -m unittest -v creditflow.tests.test_website_language_selector
       - name: Existing onboarding, localization and navigation suites
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.provision.outcome == 'success' }}
         run: |
           result=0
           for module in test_onboarding_website test_localization test_language_navigation; do
@@ -54,5 +55,5 @@ jobs:
           done
           exit "$result"
       - name: Real sandbox and authenticated HTTP checks
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.provision.outcome == 'success' }}
         run: docker exec kivo-test env/bin/python /validation/onboarding_http.py
